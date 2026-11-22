@@ -2,8 +2,11 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Plus, ShieldAlert, X, Sparkles, Clock, AlertCircle, XCircle, ArrowRight } from 'lucide-react';
+import { Plus, ShieldAlert, X, Sparkles, Clock, AlertCircle, XCircle, ArrowRight, Image as ImageIcon } from 'lucide-react';
 import { useSession } from '@/context/session-context';
+import PetMediaUpload from '@/components/media/PetMediaUpload';
+import LineageProvenanceUpload from '@/components/media/LineageProvenanceUpload';
+import KciDocumentsUpload from '@/components/media/KciDocumentsUpload';
 
 export default function VendorPetsPage() {
   const { currentUser, switchToRoleName } = useSession();
@@ -19,9 +22,17 @@ export default function VendorPetsPage() {
   const [newDob, setNewDob] = useState('2026-07-01');
   const [newSex, setNewSex] = useState('Female');
   const [newColour, setNewColour] = useState('White & Grey');
+  const [newOtherDetails, setNewOtherDetails] = useState('');
+  const [newPhotos, setNewPhotos] = useState<string[]>([]);
+  const [newVideos, setNewVideos] = useState<string[]>([]);
   const [newFatherName, setNewFatherName] = useState('');
+  const [newFatherPhoto, setNewFatherPhoto] = useState('');
+  const [newFatherDocs, setNewFatherDocs] = useState<string[]>([]);
   const [newMotherName, setNewMotherName] = useState('');
+  const [newMotherPhoto, setNewMotherPhoto] = useState('');
+  const [newMotherDocs, setNewMotherDocs] = useState<string[]>([]);
   const [newKci, setNewKci] = useState(false);
+  const [newKciDocs, setNewKciDocs] = useState<string[]>([]);
 
   const loadData = async () => {
     setLoading(true);
@@ -80,15 +91,35 @@ export default function VendorPetsPage() {
           dob: newDob,
           sex: newSex,
           colour: newColour,
-          fatherName: newFatherName,
-          motherName: newMotherName,
+          otherDetails: newOtherDetails || undefined,
+          fatherName: newFatherName || null,
+          fatherPhoto: newFatherPhoto || null,
+          fatherDocs: newFatherDocs,
+          motherName: newMotherName || null,
+          motherPhoto: newMotherPhoto || null,
+          motherDocs: newMotherDocs,
           kciRegistered: newKci,
-          photos: ['https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=400&q=80'],
+          kciDocuments: newKciDocs,
+          photos: newPhotos,
+          videos: newVideos,
+          inventoryOwner: 'VENDOR',
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setCreatingPet(false);
+      // Reset form
+      setNewPhotos([]);
+      setNewVideos([]);
+      setNewFatherName('');
+      setNewFatherPhoto('');
+      setNewFatherDocs([]);
+      setNewMotherName('');
+      setNewMotherPhoto('');
+      setNewMotherDocs([]);
+      setNewKci(false);
+      setNewKciDocs([]);
+      setNewOtherDetails('');
       loadData();
     } catch (err: any) {
       alert(err.message);
@@ -267,7 +298,20 @@ export default function VendorPetsPage() {
                 pets.map((p) => (
                   <tr key={p.id} className="hover:bg-slate-50/70 transition">
                     <td className="px-6 py-4 font-mono font-bold text-slate-900">
-                      {p.petId}
+                      <div className="flex items-center gap-2.5">
+                        {p.photos && p.photos.length > 0 ? (
+                          <img
+                            src={p.photos[0]}
+                            alt={p.petId}
+                            className="w-9 h-9 rounded-lg object-cover border border-slate-200 shrink-0"
+                          />
+                        ) : (
+                          <div className="w-9 h-9 rounded-lg bg-slate-100 text-slate-400 flex items-center justify-center shrink-0">
+                            <ImageIcon className="w-4 h-4" />
+                          </div>
+                        )}
+                        <span>{p.petId}</span>
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="font-bold text-slate-900">{p.breed?.name}</div>
@@ -303,12 +347,12 @@ export default function VendorPetsPage() {
       {/* Modal for Vendor Pet Creation */}
       {creatingPet && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="card-clean max-w-lg w-full p-6 shadow-2xl space-y-4 rounded-3xl max-h-[90vh] overflow-y-auto">
+          <div className="card-clean max-w-2xl w-full p-6 shadow-2xl space-y-4 rounded-3xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
-                <h3 className="text-sm font-extrabold text-slate-900">Add Pet to Your Facility</h3>
+                <h3 className="text-base font-extrabold text-slate-900">Add Pet to Your Kennel Inventory</h3>
                 <p className="text-[11px] text-slate-400 mt-0.5">
-                  Pet ID is auto-generated (`FUR-PET-######`) and assigned directly to your inventory.
+                  Pet ID is auto-generated (`FUR-PET-######`) and assigned directly to your facility.
                 </p>
               </div>
               <button
@@ -320,99 +364,140 @@ export default function VendorPetsPage() {
             </div>
 
             <form onSubmit={handleCreatePet} className="space-y-4 text-xs">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Category</label>
-                  <select
-                    value={newCatId}
-                    onChange={(e) => handleCatChange(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl p-2.5 text-xs bg-white font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900"
-                  >
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
+              <div className="space-y-3">
+                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                  1. Basic Profile & Identification
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Category</label>
+                    <select
+                      value={newCatId}
+                      onChange={(e) => handleCatChange(e.target.value)}
+                      className="w-full border border-slate-200 rounded-xl p-2.5 text-xs bg-white font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900"
+                    >
+                      {categories.map((c) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Breed (Active Only)</label>
+                    <select
+                      value={newBreedId}
+                      onChange={(e) => setNewBreedId(e.target.value)}
+                      className="w-full border border-slate-200 rounded-xl p-2.5 text-xs bg-white font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900"
+                    >
+                      {breeds.map((b) => (
+                        <option key={b.id} value={b.id}>{b.name}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Breed (Active Only)</label>
-                  <select
-                    value={newBreedId}
-                    onChange={(e) => setNewBreedId(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl p-2.5 text-xs bg-white font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900"
-                  >
-                    {breeds.map((b) => (
-                      <option key={b.id} value={b.id}>{b.name}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
 
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">DOB</label>
-                  <input
-                    type="date"
-                    value={newDob}
-                    onChange={(e) => setNewDob(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl p-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900"
-                    required
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">DOB</label>
+                    <input
+                      type="date"
+                      value={newDob}
+                      onChange={(e) => setNewDob(e.target.value)}
+                      className="w-full border border-slate-200 rounded-xl p-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Sex</label>
+                    <select
+                      value={newSex}
+                      onChange={(e) => setNewSex(e.target.value)}
+                      className="w-full border border-slate-200 rounded-xl p-2.5 text-xs bg-white font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900"
+                    >
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Colour</label>
+                    <input
+                      type="text"
+                      value={newColour}
+                      onChange={(e) => setNewColour(e.target.value)}
+                      className="w-full border border-slate-200 rounded-xl p-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900"
+                      required
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Sex</label>
-                  <select
-                    value={newSex}
-                    onChange={(e) => setNewSex(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl p-2.5 text-xs bg-white font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900"
-                  >
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Colour</label>
-                  <input
-                    type="text"
-                    value={newColour}
-                    onChange={(e) => setNewColour(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl p-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900"
-                    required
-                  />
-                </div>
-              </div>
 
-              <div className="pt-2">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
-                  Lineage & Parents
-                </span>
-                <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                    Markings & Details (Optional)
+                  </label>
                   <input
                     type="text"
-                    placeholder="Sire / Father Name"
-                    value={newFatherName}
-                    onChange={(e) => setNewFatherName(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl p-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Dam / Mother Name"
-                    value={newMotherName}
-                    onChange={(e) => setNewMotherName(e.target.value)}
+                    placeholder="Distinguishing markings, microchip notes, temperament..."
+                    value={newOtherDetails}
+                    onChange={(e) => setNewOtherDetails(e.target.value)}
                     className="w-full border border-slate-200 rounded-xl p-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900"
                   />
                 </div>
               </div>
 
-              <div className="pt-1">
-                <label className="flex items-center gap-2 cursor-pointer">
+              {/* SECTION 2: Media (Photos & Videos) */}
+              <div className="pt-2 border-t border-slate-100">
+                <PetMediaUpload
+                  photos={newPhotos}
+                  videos={newVideos}
+                  onPhotosChange={setNewPhotos}
+                  onVideosChange={setNewVideos}
+                  folder="pets"
+                />
+              </div>
+
+              {/* SECTION 3: Lineage Provenance (Sire & Dam) */}
+              <div className="space-y-3 pt-2 border-t border-slate-100">
+                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                  3. Lineage Provenance (Sire & Dam)
+                </h4>
+                <LineageProvenanceUpload
+                  fatherName={newFatherName}
+                  fatherPhoto={newFatherPhoto}
+                  fatherDocs={newFatherDocs}
+                  motherName={newMotherName}
+                  motherPhoto={newMotherPhoto}
+                  motherDocs={newMotherDocs}
+                  onChange={(updates) => {
+                    if (updates.fatherName !== undefined) setNewFatherName(updates.fatherName);
+                    if (updates.fatherPhoto !== undefined) setNewFatherPhoto(updates.fatherPhoto);
+                    if (updates.fatherDocs !== undefined) setNewFatherDocs(Array.isArray(updates.fatherDocs) ? updates.fatherDocs : []);
+                    if (updates.motherName !== undefined) setNewMotherName(updates.motherName);
+                    if (updates.motherPhoto !== undefined) setNewMotherPhoto(updates.motherPhoto);
+                    if (updates.motherDocs !== undefined) setNewMotherDocs(Array.isArray(updates.motherDocs) ? updates.motherDocs : []);
+                  }}
+                />
+              </div>
+
+              {/* SECTION 4: KCI Registration */}
+              <div className="space-y-3 pt-2 border-t border-slate-100">
+                <div className="flex items-center space-x-2">
                   <input
                     type="checkbox"
+                    id="vendorKciCheckbox"
                     checked={newKci}
                     onChange={(e) => setNewKci(e.target.checked)}
-                    className="rounded text-slate-900 focus:ring-slate-900 w-4 h-4 cursor-pointer"
+                    className="w-4 h-4 rounded text-slate-900 focus:ring-slate-900 border-slate-300 cursor-pointer"
                   />
-                  <span className="font-bold text-slate-800 text-xs">KCI Registered Pet</span>
-                </label>
+                  <label htmlFor="vendorKciCheckbox" className="text-xs font-bold text-slate-800 cursor-pointer">
+                    Kennel Club of India (KCI) Registered
+                  </label>
+                </div>
+
+                {newKci && (
+                  <KciDocumentsUpload
+                    documents={newKciDocs}
+                    onChange={setNewKciDocs}
+                  />
+                )}
               </div>
 
               <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
@@ -427,7 +512,7 @@ export default function VendorPetsPage() {
                   type="submit"
                   className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition"
                 >
-                  Save to Inventory
+                  Save Pet to Kennel Stock
                 </button>
               </div>
             </form>

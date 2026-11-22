@@ -27,6 +27,9 @@ import {
 } from 'lucide-react';
 import { useSession } from '@/context/session-context';
 import { calculateAge } from '@/lib/age-calculator';
+import PetMediaUpload from '@/components/media/PetMediaUpload';
+import LineageProvenanceUpload from '@/components/media/LineageProvenanceUpload';
+import KciDocumentsUpload from '@/components/media/KciDocumentsUpload';
 
 // All 11 statuses defined in PRD §4.3 & System Flow
 const ALL_STATUSES = [
@@ -114,15 +117,20 @@ export default function AdminInventoryPage() {
   const [newSex, setNewSex] = useState('Male');
   const [newColour, setNewColour] = useState('Golden');
   const [newOtherDetails, setNewOtherDetails] = useState('');
-  const [newPhotoUrl, setNewPhotoUrl] = useState('https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=600&q=80');
+  const [newPhotos, setNewPhotos] = useState<string[]>([]);
+  const [newVideos, setNewVideos] = useState<string[]>([]);
+  const [newPhotoUrl, setNewPhotoUrl] = useState('');
   const [newOwner, setNewOwner] = useState<'FURORA' | 'VENDOR'>('FURORA');
   const [newVendorId, setNewVendorId] = useState('usr_vendor_1');
-  const [newFatherName, setNewFatherName] = useState('Champion Boris');
-  const [newFatherPhoto, setNewFatherPhoto] = useState('https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&w=400&q=80');
-  const [newMotherName, setNewMotherName] = useState('Lady Bella');
-  const [newMotherPhoto, setNewMotherPhoto] = useState('https://images.unsplash.com/photo-1537151625747-768eb6cf92b2?auto=format&fit=crop&w=400&q=80');
-  const [newKci, setNewKci] = useState(true);
-  const [newKciDocUrl, setNewKciDocUrl] = useState('https://example.com/kci-cert-preview.pdf');
+  const [newFatherName, setNewFatherName] = useState('');
+  const [newFatherPhoto, setNewFatherPhoto] = useState('');
+  const [newFatherDocs, setNewFatherDocs] = useState<string[]>([]);
+  const [newMotherName, setNewMotherName] = useState('');
+  const [newMotherPhoto, setNewMotherPhoto] = useState('');
+  const [newMotherDocs, setNewMotherDocs] = useState<string[]>([]);
+  const [newKci, setNewKci] = useState(false);
+  const [newKciDocs, setNewKciDocs] = useState<string[]>([]);
+  const [newKciDocUrl, setNewKciDocUrl] = useState('');
   const [createSubmitting, setCreateSubmitting] = useState(false);
 
   // Check URL query parameters for category and breed filter
@@ -404,8 +412,8 @@ export default function AdminInventoryPage() {
 
     setCreateSubmitting(true);
     try {
-      const photosArray = newPhotoUrl ? [newPhotoUrl] : [];
-      const kciDocsArray = newKci && newKciDocUrl ? [newKciDocUrl] : [];
+      const photosArray = newPhotos.length > 0 ? newPhotos : (newPhotoUrl ? [newPhotoUrl] : []);
+      const kciDocsArray = newKciDocs.length > 0 ? newKciDocs : (newKci && newKciDocUrl ? [newKciDocUrl] : []);
 
       const res = await fetch('/api/pets', {
         method: 'POST',
@@ -419,13 +427,16 @@ export default function AdminInventoryPage() {
           otherDetails: newOtherDetails || undefined,
           inventoryOwner: newOwner,
           vendorId: newOwner === 'VENDOR' ? newVendorId : null,
-          fatherName: newFatherName,
-          fatherPhoto: newFatherPhoto,
-          motherName: newMotherName,
-          motherPhoto: newMotherPhoto,
+          fatherName: newFatherName || null,
+          fatherPhoto: newFatherPhoto || null,
+          fatherDocs: newFatherDocs,
+          motherName: newMotherName || null,
+          motherPhoto: newMotherPhoto || null,
+          motherDocs: newMotherDocs,
           kciRegistered: newKci,
           kciDocuments: kciDocsArray,
           photos: photosArray,
+          videos: newVideos,
         }),
       });
 
@@ -1559,14 +1570,14 @@ export default function AdminInventoryPage() {
                 </div>
               </div>
 
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Photo URL</label>
-                <input
-                  type="url"
-                  placeholder="https://..."
-                  value={newPhotoUrl}
-                  onChange={(e) => setNewPhotoUrl(e.target.value)}
-                  className="w-full border rounded-xl p-2 bg-slate-50 font-medium"
+              {/* Media Upload */}
+              <div className="pt-2 border-t border-slate-100">
+                <PetMediaUpload
+                  photos={newPhotos.length > 0 ? newPhotos : (newPhotoUrl ? [newPhotoUrl] : [])}
+                  videos={newVideos}
+                  onPhotosChange={setNewPhotos}
+                  onVideosChange={setNewVideos}
+                  folder="pets"
                 />
               </div>
 
@@ -1597,63 +1608,44 @@ export default function AdminInventoryPage() {
                 )}
               </div>
 
+              {/* Lineage */}
               <div className="border-t border-slate-100 pt-3 space-y-2">
                 <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">
                   Parent Details (Sire & Dam)
                 </span>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <input
-                      type="text"
-                      placeholder="Father Name (Sire)"
-                      value={newFatherName}
-                      onChange={(e) => setNewFatherName(e.target.value)}
-                      className="w-full border rounded-xl p-2 bg-slate-50 font-medium"
-                    />
-                    <input
-                      type="url"
-                      placeholder="Father Photo URL"
-                      value={newFatherPhoto}
-                      onChange={(e) => setNewFatherPhoto(e.target.value)}
-                      className="w-full border rounded-xl p-1.5 bg-slate-50 font-medium mt-1 text-[11px]"
-                    />
-                  </div>
-                  <div>
-                    <input
-                      type="text"
-                      placeholder="Mother Name (Dam)"
-                      value={newMotherName}
-                      onChange={(e) => setNewMotherName(e.target.value)}
-                      className="w-full border rounded-xl p-2 bg-slate-50 font-medium"
-                    />
-                    <input
-                      type="url"
-                      placeholder="Mother Photo URL"
-                      value={newMotherPhoto}
-                      onChange={(e) => setNewMotherPhoto(e.target.value)}
-                      className="w-full border rounded-xl p-1.5 bg-slate-50 font-medium mt-1 text-[11px]"
-                    />
-                  </div>
-                </div>
+                <LineageProvenanceUpload
+                  fatherName={newFatherName}
+                  fatherPhoto={newFatherPhoto}
+                  fatherDocs={newFatherDocs}
+                  motherName={newMotherName}
+                  motherPhoto={newMotherPhoto}
+                  motherDocs={newMotherDocs}
+                  onChange={(updates) => {
+                    if (updates.fatherName !== undefined) setNewFatherName(updates.fatherName);
+                    if (updates.fatherPhoto !== undefined) setNewFatherPhoto(updates.fatherPhoto);
+                    if (updates.fatherDocs !== undefined) setNewFatherDocs(Array.isArray(updates.fatherDocs) ? updates.fatherDocs : []);
+                    if (updates.motherName !== undefined) setNewMotherName(updates.motherName);
+                    if (updates.motherPhoto !== undefined) setNewMotherPhoto(updates.motherPhoto);
+                    if (updates.motherDocs !== undefined) setNewMotherDocs(Array.isArray(updates.motherDocs) ? updates.motherDocs : []);
+                  }}
+                />
               </div>
 
+              {/* KCI Pedigree */}
               <div className="border-t border-slate-100 pt-3 space-y-2">
                 <label className="flex items-center space-x-2 text-xs font-semibold text-slate-700">
                   <input
                     type="checkbox"
                     checked={newKci}
                     onChange={(e) => setNewKci(e.target.checked)}
-                    className="rounded text-blue-600 focus:ring-blue-500"
+                    className="rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
                   />
                   <span>KCI Registered Pedigree</span>
                 </label>
                 {newKci && (
-                  <input
-                    type="text"
-                    placeholder="KCI Certificate Document URL"
-                    value={newKciDocUrl}
-                    onChange={(e) => setNewKciDocUrl(e.target.value)}
-                    className="w-full border rounded-xl p-2 bg-slate-50 font-medium text-xs mt-1"
+                  <KciDocumentsUpload
+                    documents={newKciDocs}
+                    onChange={setNewKciDocs}
                   />
                 )}
               </div>

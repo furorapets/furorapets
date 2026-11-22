@@ -28,6 +28,9 @@ import {
   ShoppingBag,
 } from 'lucide-react';
 import { calculateAge } from '@/lib/age-calculator';
+import PetMediaUpload from '@/components/media/PetMediaUpload';
+import LineageProvenanceUpload from '@/components/media/LineageProvenanceUpload';
+import KciDocumentsUpload from '@/components/media/KciDocumentsUpload';
 
 // All 11 statuses defined in PRD §4.3 & System Flow
 const ALL_PET_STATUSES = [
@@ -144,18 +147,18 @@ function CategoriesContent() {
     sex: 'Male',
     colour: 'Standard',
     otherDetails: '',
-    photos: '',
-    videos: '',
+    photos: [] as string[],
+    videos: [] as string[],
     fatherName: '',
     fatherPhoto: '',
     fatherVideo: '',
-    fatherDocs: '',
+    fatherDocs: [] as string[],
     motherName: '',
     motherPhoto: '',
     motherVideo: '',
-    motherDocs: '',
+    motherDocs: [] as string[],
     kciRegistered: false,
-    kciDocuments: '',
+    kciDocuments: [] as string[],
     inventoryOwner: 'FURORA',
     vendorId: 'usr_vendor_1',
     status: 'AVAILABLE',
@@ -439,18 +442,18 @@ function CategoriesContent() {
       sex: 'Male',
       colour: 'Standard',
       otherDetails: '',
-      photos: '',
-      videos: '',
+      photos: [],
+      videos: [],
       fatherName: '',
       fatherPhoto: '',
       fatherVideo: '',
-      fatherDocs: '',
+      fatherDocs: [],
       motherName: '',
       motherPhoto: '',
       motherVideo: '',
-      motherDocs: '',
+      motherDocs: [],
       kciRegistered: false,
-      kciDocuments: '',
+      kciDocuments: [],
       inventoryOwner: 'FURORA',
       vendorId: 'usr_vendor_1',
       status: 'AVAILABLE',
@@ -460,6 +463,19 @@ function CategoriesContent() {
 
   const openEditPetModal = (pet: any) => {
     setEditingPet(pet);
+    const safeParse = (val: any) => {
+      if (Array.isArray(val)) return val;
+      if (typeof val === 'string' && val.trim()) {
+        try {
+          const parsed = JSON.parse(val);
+          if (Array.isArray(parsed)) return parsed;
+        } catch {
+          return val.split(',').map((s: string) => s.trim()).filter(Boolean);
+        }
+      }
+      return [];
+    };
+
     setPetFormData({
       categoryId: pet.categoryId,
       breedId: pet.breedId,
@@ -467,18 +483,18 @@ function CategoriesContent() {
       sex: pet.sex || 'Male',
       colour: pet.colour || '',
       otherDetails: pet.otherDetails || '',
-      photos: Array.isArray(pet.photos) ? pet.photos.join(', ') : '',
-      videos: Array.isArray(pet.videos) ? pet.videos.join(', ') : '',
+      photos: safeParse(pet.photos),
+      videos: safeParse(pet.videos),
       fatherName: pet.fatherName || '',
       fatherPhoto: pet.fatherPhoto || '',
       fatherVideo: pet.fatherVideo || '',
-      fatherDocs: Array.isArray(pet.fatherDocs) ? pet.fatherDocs.join(', ') : '',
+      fatherDocs: safeParse(pet.fatherDocs),
       motherName: pet.motherName || '',
       motherPhoto: pet.motherPhoto || '',
       motherVideo: pet.motherVideo || '',
-      motherDocs: Array.isArray(pet.motherDocs) ? pet.motherDocs.join(', ') : '',
+      motherDocs: safeParse(pet.motherDocs),
       kciRegistered: Boolean(pet.kciRegistered),
-      kciDocuments: Array.isArray(pet.kciDocuments) ? pet.kciDocuments.join(', ') : '',
+      kciDocuments: safeParse(pet.kciDocuments),
       inventoryOwner: pet.inventoryOwner || 'FURORA',
       vendorId: pet.vendorId || 'usr_vendor_1',
       status: pet.status || 'AVAILABLE',
@@ -590,12 +606,6 @@ function CategoriesContent() {
 
     setPetFormSubmitting(true);
     try {
-      const parseList = (str: string) =>
-        str
-          .split(',')
-          .map((s) => s.trim())
-          .filter(Boolean);
-
       const payload = {
         categoryId: petFormData.categoryId,
         breedId: petFormData.breedId,
@@ -603,18 +613,18 @@ function CategoriesContent() {
         sex: petFormData.sex,
         colour: petFormData.colour.trim(),
         otherDetails: petFormData.otherDetails.trim() || null,
-        photos: parseList(petFormData.photos),
-        videos: parseList(petFormData.videos),
+        photos: petFormData.photos,
+        videos: petFormData.videos,
         fatherName: petFormData.fatherName.trim() || null,
         fatherPhoto: petFormData.fatherPhoto.trim() || null,
         fatherVideo: petFormData.fatherVideo.trim() || null,
-        fatherDocs: parseList(petFormData.fatherDocs),
+        fatherDocs: petFormData.fatherDocs,
         motherName: petFormData.motherName.trim() || null,
         motherPhoto: petFormData.motherPhoto.trim() || null,
         motherVideo: petFormData.motherVideo.trim() || null,
-        motherDocs: parseList(petFormData.motherDocs),
+        motherDocs: petFormData.motherDocs,
         kciRegistered: petFormData.kciRegistered,
-        kciDocuments: parseList(petFormData.kciDocuments),
+        kciDocuments: petFormData.kciDocuments,
         inventoryOwner: petFormData.inventoryOwner,
         vendorId: petFormData.inventoryOwner === 'VENDOR' ? petFormData.vendorId || 'usr_vendor_1' : null,
         status: petFormData.status,
@@ -1663,37 +1673,15 @@ function CategoriesContent() {
                 </div>
               </div>
 
-              {/* SECTION: Photos & Videos */}
-              <div className="space-y-3 pt-2 border-t border-slate-100">
-                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                  2. Media (Photos & Videos)
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                      Photo URLs (comma-separated)
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="https://example.com/photo1.jpg, https://..."
-                      value={petFormData.photos}
-                      onChange={(e) => setPetFormData({ ...petFormData, photos: e.target.value })}
-                      className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 font-medium text-slate-800 focus:ring-2 focus:ring-slate-900 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                      Video URLs (comma-separated)
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="https://example.com/video1.mp4, https://..."
-                      value={petFormData.videos}
-                      onChange={(e) => setPetFormData({ ...petFormData, videos: e.target.value })}
-                      className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 font-medium text-slate-800 focus:ring-2 focus:ring-slate-900 focus:outline-none"
-                    />
-                  </div>
-                </div>
+              {/* SECTION: Photos & Videos (Cloudflare R2 Direct Upload) */}
+              <div className="pt-2 border-t border-slate-100">
+                <PetMediaUpload
+                  photos={petFormData.photos}
+                  videos={petFormData.videos}
+                  onPhotosChange={(photos) => setPetFormData((prev) => ({ ...prev, photos }))}
+                  onVideosChange={(videos) => setPetFormData((prev) => ({ ...prev, videos }))}
+                  folder="pets"
+                />
               </div>
 
               {/* SECTION: Parentage (Sire & Dam) */}
@@ -1701,63 +1689,15 @@ function CategoriesContent() {
                 <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                   3. Lineage Provenance (Sire & Dam)
                 </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {/* Father (Sire) */}
-                  <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100 space-y-2">
-                    <span className="text-[11px] font-bold text-slate-700 block">
-                      Sire (Father)
-                    </span>
-                    <input
-                      type="text"
-                      placeholder="Father's Name"
-                      value={petFormData.fatherName}
-                      onChange={(e) => setPetFormData({ ...petFormData, fatherName: e.target.value })}
-                      className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200 font-semibold bg-white"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Father Photo URL"
-                      value={petFormData.fatherPhoto}
-                      onChange={(e) => setPetFormData({ ...petFormData, fatherPhoto: e.target.value })}
-                      className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-white"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Father Documents (comma-separated)"
-                      value={petFormData.fatherDocs}
-                      onChange={(e) => setPetFormData({ ...petFormData, fatherDocs: e.target.value })}
-                      className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-white"
-                    />
-                  </div>
-
-                  {/* Mother (Dam) */}
-                  <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100 space-y-2">
-                    <span className="text-[11px] font-bold text-slate-700 block">
-                      Dam (Mother)
-                    </span>
-                    <input
-                      type="text"
-                      placeholder="Mother's Name"
-                      value={petFormData.motherName}
-                      onChange={(e) => setPetFormData({ ...petFormData, motherName: e.target.value })}
-                      className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200 font-semibold bg-white"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Mother Photo URL"
-                      value={petFormData.motherPhoto}
-                      onChange={(e) => setPetFormData({ ...petFormData, motherPhoto: e.target.value })}
-                      className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-white"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Mother Documents (comma-separated)"
-                      value={petFormData.motherDocs}
-                      onChange={(e) => setPetFormData({ ...petFormData, motherDocs: e.target.value })}
-                      className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-white"
-                    />
-                  </div>
-                </div>
+                <LineageProvenanceUpload
+                  fatherName={petFormData.fatherName}
+                  fatherPhoto={petFormData.fatherPhoto}
+                  fatherDocs={petFormData.fatherDocs}
+                  motherName={petFormData.motherName}
+                  motherPhoto={petFormData.motherPhoto}
+                  motherDocs={petFormData.motherDocs}
+                  onChange={(updates) => setPetFormData((prev) => ({ ...prev, ...updates }))}
+                />
               </div>
 
               {/* SECTION: KCI Registration */}
@@ -1776,18 +1716,10 @@ function CategoriesContent() {
                 </div>
 
                 {petFormData.kciRegistered && (
-                  <div>
-                    <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                      KCI Certificate Document URLs (comma-separated)
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="https://example.com/kci-certificate.pdf, https://..."
-                      value={petFormData.kciDocuments}
-                      onChange={(e) => setPetFormData({ ...petFormData, kciDocuments: e.target.value })}
-                      className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 font-medium text-slate-800 focus:ring-2 focus:ring-slate-900 focus:outline-none"
-                    />
-                  </div>
+                  <KciDocumentsUpload
+                    documents={petFormData.kciDocuments}
+                    onChange={(docs) => setPetFormData((prev) => ({ ...prev, kciDocuments: docs }))}
+                  />
                 )}
               </div>
 

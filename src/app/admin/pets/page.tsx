@@ -22,6 +22,9 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { calculateAge } from '@/lib/age-calculator';
+import PetMediaUpload from '@/components/media/PetMediaUpload';
+import LineageProvenanceUpload from '@/components/media/LineageProvenanceUpload';
+import KciDocumentsUpload from '@/components/media/KciDocumentsUpload';
 
 function AdminPetsContent() {
   const searchParams = useSearchParams();
@@ -58,18 +61,18 @@ function AdminPetsContent() {
     sex: 'Male',
     colour: 'Golden',
     otherDetails: '',
-    photos: '',
-    videos: '',
+    photos: [] as string[],
+    videos: [] as string[],
     fatherName: '',
     fatherPhoto: '',
     fatherVideo: '',
-    fatherDocs: '',
+    fatherDocs: [] as string[],
     motherName: '',
     motherPhoto: '',
     motherVideo: '',
-    motherDocs: '',
+    motherDocs: [] as string[],
     kciRegistered: false,
-    kciDocuments: '',
+    kciDocuments: [] as string[],
     inventoryOwner: 'FURORA',
     vendorId: '',
   });
@@ -164,18 +167,18 @@ function AdminPetsContent() {
       sex: 'Male',
       colour: 'Standard',
       otherDetails: '',
-      photos: '',
-      videos: '',
+      photos: [],
+      videos: [],
       fatherName: '',
       fatherPhoto: '',
       fatherVideo: '',
-      fatherDocs: '',
+      fatherDocs: [],
       motherName: '',
       motherPhoto: '',
       motherVideo: '',
-      motherDocs: '',
+      motherDocs: [],
       kciRegistered: false,
-      kciDocuments: '',
+      kciDocuments: [],
       inventoryOwner: 'FURORA',
       vendorId: '',
     });
@@ -184,6 +187,19 @@ function AdminPetsContent() {
 
   const openEditModal = (p: any) => {
     setEditingPet(p);
+    const safeParse = (val: any) => {
+      if (Array.isArray(val)) return val;
+      if (typeof val === 'string' && val.trim()) {
+        try {
+          const parsed = JSON.parse(val);
+          if (Array.isArray(parsed)) return parsed;
+        } catch {
+          return val.split(',').map((s: string) => s.trim()).filter(Boolean);
+        }
+      }
+      return [];
+    };
+
     setFormData({
       categoryId: p.categoryId,
       breedId: p.breedId,
@@ -191,18 +207,18 @@ function AdminPetsContent() {
       sex: p.sex || 'Male',
       colour: p.colour || '',
       otherDetails: p.otherDetails || '',
-      photos: Array.isArray(p.photos) ? p.photos.join(', ') : '',
-      videos: Array.isArray(p.videos) ? p.videos.join(', ') : '',
+      photos: safeParse(p.photos),
+      videos: safeParse(p.videos),
       fatherName: p.fatherName || '',
       fatherPhoto: p.fatherPhoto || '',
       fatherVideo: p.fatherVideo || '',
-      fatherDocs: Array.isArray(p.fatherDocs) ? p.fatherDocs.join(', ') : '',
+      fatherDocs: safeParse(p.fatherDocs),
       motherName: p.motherName || '',
       motherPhoto: p.motherPhoto || '',
       motherVideo: p.motherVideo || '',
-      motherDocs: Array.isArray(p.motherDocs) ? p.motherDocs.join(', ') : '',
+      motherDocs: safeParse(p.motherDocs),
       kciRegistered: Boolean(p.kciRegistered),
-      kciDocuments: Array.isArray(p.kciDocuments) ? p.kciDocuments.join(', ') : '',
+      kciDocuments: safeParse(p.kciDocuments),
       inventoryOwner: p.inventoryOwner || 'FURORA',
       vendorId: p.vendorId || '',
     });
@@ -231,12 +247,6 @@ function AdminPetsContent() {
 
     setFormSubmitting(true);
     try {
-      const parseList = (str: string) =>
-        str
-          .split(',')
-          .map((s) => s.trim())
-          .filter(Boolean);
-
       const payload = {
         categoryId: formData.categoryId,
         breedId: formData.breedId,
@@ -244,18 +254,18 @@ function AdminPetsContent() {
         sex: formData.sex,
         colour: formData.colour.trim(),
         otherDetails: formData.otherDetails.trim() || null,
-        photos: parseList(formData.photos),
-        videos: parseList(formData.videos),
+        photos: formData.photos,
+        videos: formData.videos,
         fatherName: formData.fatherName.trim() || null,
         fatherPhoto: formData.fatherPhoto.trim() || null,
         fatherVideo: formData.fatherVideo.trim() || null,
-        fatherDocs: parseList(formData.fatherDocs),
+        fatherDocs: formData.fatherDocs,
         motherName: formData.motherName.trim() || null,
         motherPhoto: formData.motherPhoto.trim() || null,
         motherVideo: formData.motherVideo.trim() || null,
-        motherDocs: parseList(formData.motherDocs),
+        motherDocs: formData.motherDocs,
         kciRegistered: formData.kciRegistered,
-        kciDocuments: parseList(formData.kciDocuments),
+        kciDocuments: formData.kciDocuments,
         inventoryOwner: formData.inventoryOwner,
         vendorId: formData.inventoryOwner === 'VENDOR' ? formData.vendorId || null : null,
       };
@@ -715,37 +725,15 @@ function AdminPetsContent() {
                 </div>
               </div>
 
-              {/* SECTION: Photos & Videos */}
-              <div className="space-y-3 pt-2 border-t border-slate-100">
-                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                  2. Media (Photos & Videos)
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                      Photo URLs (comma-separated)
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="https://example.com/photo1.jpg, https://..."
-                      value={formData.photos}
-                      onChange={(e) => setFormData({ ...formData, photos: e.target.value })}
-                      className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 font-medium text-slate-800 focus:ring-2 focus:ring-slate-900 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                      Video URLs (comma-separated)
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="https://example.com/video1.mp4, https://..."
-                      value={formData.videos}
-                      onChange={(e) => setFormData({ ...formData, videos: e.target.value })}
-                      className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 font-medium text-slate-800 focus:ring-2 focus:ring-slate-900 focus:outline-none"
-                    />
-                  </div>
-                </div>
+              {/* SECTION: Photos & Videos (Cloudflare R2 Direct Upload) */}
+              <div className="pt-2 border-t border-slate-100">
+                <PetMediaUpload
+                  photos={formData.photos}
+                  videos={formData.videos}
+                  onPhotosChange={(photos) => setFormData((prev) => ({ ...prev, photos }))}
+                  onVideosChange={(videos) => setFormData((prev) => ({ ...prev, videos }))}
+                  folder="pets"
+                />
               </div>
 
               {/* SECTION: Parentage (Sire & Dam) */}
@@ -753,63 +741,15 @@ function AdminPetsContent() {
                 <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                   3. Lineage Provenance (Sire & Dam)
                 </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {/* Father (Sire) */}
-                  <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100 space-y-2">
-                    <span className="text-[11px] font-bold text-slate-700 block">
-                      Sire (Father)
-                    </span>
-                    <input
-                      type="text"
-                      placeholder="Father's Name"
-                      value={formData.fatherName}
-                      onChange={(e) => setFormData({ ...formData, fatherName: e.target.value })}
-                      className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200 font-semibold bg-white"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Father Photo URL"
-                      value={formData.fatherPhoto}
-                      onChange={(e) => setFormData({ ...formData, fatherPhoto: e.target.value })}
-                      className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-white"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Father Documents (comma-separated)"
-                      value={formData.fatherDocs}
-                      onChange={(e) => setFormData({ ...formData, fatherDocs: e.target.value })}
-                      className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-white"
-                    />
-                  </div>
-
-                  {/* Mother (Dam) */}
-                  <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100 space-y-2">
-                    <span className="text-[11px] font-bold text-slate-700 block">
-                      Dam (Mother)
-                    </span>
-                    <input
-                      type="text"
-                      placeholder="Mother's Name"
-                      value={formData.motherName}
-                      onChange={(e) => setFormData({ ...formData, motherName: e.target.value })}
-                      className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200 font-semibold bg-white"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Mother Photo URL"
-                      value={formData.motherPhoto}
-                      onChange={(e) => setFormData({ ...formData, motherPhoto: e.target.value })}
-                      className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-white"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Mother Documents (comma-separated)"
-                      value={formData.motherDocs}
-                      onChange={(e) => setFormData({ ...formData, motherDocs: e.target.value })}
-                      className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-white"
-                    />
-                  </div>
-                </div>
+                <LineageProvenanceUpload
+                  fatherName={formData.fatherName}
+                  fatherPhoto={formData.fatherPhoto}
+                  fatherDocs={formData.fatherDocs}
+                  motherName={formData.motherName}
+                  motherPhoto={formData.motherPhoto}
+                  motherDocs={formData.motherDocs}
+                  onChange={(updates) => setFormData((prev) => ({ ...prev, ...updates }))}
+                />
               </div>
 
               {/* SECTION: KCI Registration */}
@@ -828,18 +768,10 @@ function AdminPetsContent() {
                 </div>
 
                 {formData.kciRegistered && (
-                  <div>
-                    <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                      KCI Certificate Document URLs (comma-separated)
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="https://example.com/kci-certificate.pdf, https://..."
-                      value={formData.kciDocuments}
-                      onChange={(e) => setFormData({ ...formData, kciDocuments: e.target.value })}
-                      className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 font-medium text-slate-800 focus:ring-2 focus:ring-slate-900 focus:outline-none"
-                    />
-                  </div>
+                  <KciDocumentsUpload
+                    documents={formData.kciDocuments}
+                    onChange={(docs) => setFormData((prev) => ({ ...prev, kciDocuments: docs }))}
+                  />
                 )}
               </div>
 
