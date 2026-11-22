@@ -8,6 +8,13 @@ export interface EmailPayload {
 }
 
 /**
+ * Checks whether SMTP email credentials are configured.
+ */
+export function isEmailConfigured(): boolean {
+  return Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+}
+
+/**
  * Returns a configured Nodemailer transporter using Hostinger SMTP.
  */
 export function getEmailTransporter() {

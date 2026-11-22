@@ -30,6 +30,7 @@ import {
   ClipboardList,
 } from 'lucide-react';
 import { useSession } from '@/context/session-context';
+import FileUploadField from '@/components/FileUploadField';
 
 function VendorsContent() {
   const searchParams = useSearchParams();
@@ -995,79 +996,64 @@ function VendorsContent() {
                 />
               </div>
 
-              {/* 5 Compliance Docs */}
-              <div className="space-y-2.5 pt-2 border-t border-slate-100">
-                <span className="text-xs font-bold text-slate-900 block">5 Compliance Document URLs *</span>
-
-                <div>
-                  <label className="block text-[10px] font-bold uppercase text-slate-400 mb-0.5">
-                    1. Kennel Reg Certificate (URL/Doc) *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="https://.../kci-reg-cert.pdf"
-                    value={formData.kennelRegDoc}
-                    onChange={(e) => setFormData({ ...formData, kennelRegDoc: e.target.value })}
-                    className="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-xs bg-white text-slate-800 font-mono text-[11px]"
-                  />
+              {/* 5 Compliance Docs (Cloudflare R2 Direct Upload) */}
+              <div className="space-y-3 pt-2 border-t border-slate-100">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-900 block">5 Compliance Accreditation Documents *</span>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    ⚡ Stored on Cloudflare R2
+                  </span>
                 </div>
 
-                <div>
-                  <label className="block text-[10px] font-bold uppercase text-slate-400 mb-0.5">
-                    2. Breeder Govt ID (Aadhaar / PAN) *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="https://.../breeder-aadhaar.pdf"
-                    value={formData.govIdDoc}
-                    onChange={(e) => setFormData({ ...formData, govIdDoc: e.target.value })}
-                    className="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-xs bg-white text-slate-800 font-mono text-[11px]"
-                  />
-                </div>
+                <FileUploadField
+                  label="1. Kennel Club / AWBI Registration Certificate"
+                  description="Official registration certificate or accreditation paper"
+                  value={formData.kennelRegDoc}
+                  onChange={(url) => setFormData((prev) => ({ ...prev, kennelRegDoc: url }))}
+                  folder="compliance/kennel"
+                  required={true}
+                  badge="Accreditation"
+                />
 
-                <div>
-                  <label className="block text-[10px] font-bold uppercase text-slate-400 mb-0.5">
-                    3. Municipal / AWBI Trade License *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="https://.../trade-license.pdf"
-                    value={formData.tradeLicenseDoc}
-                    onChange={(e) => setFormData({ ...formData, tradeLicenseDoc: e.target.value })}
-                    className="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-xs bg-white text-slate-800 font-mono text-[11px]"
-                  />
-                </div>
+                <FileUploadField
+                  label="2. Breeder Government ID (Aadhaar / PAN)"
+                  description="Identity proof of proprietor"
+                  value={formData.govIdDoc}
+                  onChange={(url) => setFormData((prev) => ({ ...prev, govIdDoc: url }))}
+                  folder="compliance/govid"
+                  required={true}
+                  badge="Identity Proof"
+                />
 
-                <div>
-                  <label className="block text-[10px] font-bold uppercase text-slate-400 mb-0.5">
-                    4. Vet Clinic Tie-up / MoU *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="https://.../vet-mou.pdf"
-                    value={formData.vetAffiliationDoc}
-                    onChange={(e) => setFormData({ ...formData, vetAffiliationDoc: e.target.value })}
-                    className="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-xs bg-white text-slate-800 font-mono text-[11px]"
-                  />
-                </div>
+                <FileUploadField
+                  label="3. Municipal / AWBI Trade License"
+                  description="Valid municipal trade license or local authority permit"
+                  value={formData.tradeLicenseDoc}
+                  onChange={(url) => setFormData((prev) => ({ ...prev, tradeLicenseDoc: url }))}
+                  folder="compliance/license"
+                  required={true}
+                  badge="Trade Permit"
+                />
 
-                <div>
-                  <label className="block text-[10px] font-bold uppercase text-slate-400 mb-0.5">
-                    5. Bank Proof / Canceled Cheque *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="https://.../canceled-cheque.pdf"
-                    value={formData.bankDetailsDoc}
-                    onChange={(e) => setFormData({ ...formData, bankDetailsDoc: e.target.value })}
-                    className="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-xs bg-white text-slate-800 font-mono text-[11px]"
-                  />
-                </div>
+                <FileUploadField
+                  label="4. Registered Vet Clinic Tie-up / MoU"
+                  description="Signed medical affiliation letter or retainer MOU with a licensed vet"
+                  value={formData.vetAffiliationDoc}
+                  onChange={(url) => setFormData((prev) => ({ ...prev, vetAffiliationDoc: url }))}
+                  folder="compliance/vet"
+                  required={true}
+                  badge="Veterinary"
+                />
+
+                <FileUploadField
+                  label="5. Bank Proof / Canceled Cheque"
+                  description="Canceled cheque or bank statement showing account number and IFSC"
+                  value={formData.bankDetailsDoc}
+                  onChange={(url) => setFormData((prev) => ({ ...prev, bankDetailsDoc: url }))}
+                  folder="compliance/bank"
+                  required={true}
+                  badge="Bank Settlement"
+                />
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
