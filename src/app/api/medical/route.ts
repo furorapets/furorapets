@@ -3,6 +3,8 @@ import prisma from '@/lib/prisma';
 import { assertRole, rbacErrorResponse } from '@/lib/rbac';
 import { submitMedicalExamination } from '@/lib/medical-service';
 
+export const dynamic = 'force-dynamic';
+
 // POST /api/medical - Submit medical examination results and documents
 export async function POST(req: NextRequest) {
   try {

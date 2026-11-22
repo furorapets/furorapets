@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { assertRole, rbacErrorResponse } from '@/lib/rbac';
 import { submitDeliveryCompletion } from '@/lib/delivery-service';
 
+export const dynamic = 'force-dynamic';
+
 // POST /api/delivery - Agent submits proof of delivery report
 export async function POST(req: NextRequest) {
   try {

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { assertRole, rbacErrorResponse } from '@/lib/rbac';
 import { resolveMedicalFailure } from '@/lib/medical-service';
 
+export const dynamic = 'force-dynamic';
+
 // POST /api/medical/resolve - Admin only decision workflow after Medical Failure
 export async function POST(req: NextRequest) {
   try {

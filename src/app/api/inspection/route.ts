@@ -3,6 +3,8 @@ import prisma from '@/lib/prisma';
 import { assertRole, rbacErrorResponse } from '@/lib/rbac';
 import { submitPickupInspection } from '@/lib/inspection-service';
 
+export const dynamic = 'force-dynamic';
+
 // POST /api/inspection - Delivery Agent submits pickup inspection report
 export async function POST(req: NextRequest) {
   try {
