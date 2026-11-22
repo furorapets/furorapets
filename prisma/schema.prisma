@@ -1,0 +1,261 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  username     String?   @unique
+  password     String?   // Staff credentials (encrypted)
+  tempPassword String?   // Plaintext copy strictly visible & changeable ONLY by ADMIN
+  name         String
+  role         String    // ADMIN, SALES, VENDOR, DELIVERY_AGENT, CUSTOMER
+  phone        String?
+  address      String?
+  assignedHub  String?   // e.g. Delhi NCR Field Hub, Pune Hub, Bangalore Hub
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Vendor Onboarding Compliance Fields
+  kennelRegNumber    String?   // e.g. KCI-KEN-2024-8891
+  kennelRegDoc       String?   // URL to Kennel Club / AWBI registration
+  govIdDoc           String?   // URL to Breeder Government ID (Aadhaar / PAN)
+  tradeLicenseDoc    String?   // URL to Municipal / AWBI Breeder License
+  vetAffiliationDoc  String?   // URL to Registered Vet Doctor Affiliation Certificate
+  bankDetailsDoc     String?   // URL to Bank Passbook / Canceled Cheque
+  onboardingStatus   String?   @default("APPROVED") // PENDING, APPROVED, REJECTED, CHANGES_REQUESTED
+  onboardingNotes    String?   // Feedback / Reason when requesting resubmission or rejecting
+
+  petsCreated        Pet[]              @relation("PetCreator")
+  vendorPets         Pet[]              @relation("VendorInventory")
+  vendorOrders       Order[]            @relation("VendorOrders")
+  agentOrders        Order[]            @relation("AgentOrders")
+  customerOrders     Order[]            @relation("CustomerOrders")
+  inspectionRecords  InspectionRecord[] @relation("AgentInspections")
+  deliveryRecords    DeliveryRecord[]   @relation("AgentDeliveries")
+  uploadedDocuments  Document[]         @relation("DocumentUploader")
+  auditLogs          AuditLog[]         @relation("UserAuditLogs")
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique // Dogs, Cats, Fish, Birds, Small Animals, Reptiles
+  active    Boolean  @default(true)
+  breeds    Breed[]
+  pets      Pet[]
+  orders    Order[]
+}
+
+model Breed {
+  id          String   @id @default(cuid())
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  name        String
+  active      Boolean  @default(true)
+  pets        Pet[]
+  orders      Order[]
+
+  @@unique([categoryId, name])
+}
+
+model Pet {
+  id              String         @id @default(cuid())
+  petId           String         @unique // Format: FUR-PET-000123
+  categoryId      String
+  category        Category       @relation(fields: [categoryId], references: [id])
+  breedId         String
+  breed           Breed          @relation(fields: [breedId], references: [id])
+  dob             DateTime
+  sex             String         // Male, Female
+  colour          String
+  otherDetails    String?
+  photos          String         @default("[]") // JSON array of strings
+  videos          String         @default("[]") // JSON array of strings
+  
+  // Parent details
+  fatherName      String?
+  fatherPhoto     String?
+  fatherVideo     String?
+  fatherDocs      String?        @default("[]") // JSON array
+  motherName      String?
+  motherPhoto     String?
+  motherVideo     String?
+  motherDocs      String?        @default("[]") // JSON array
+
+  // KCI Registration
+  kciRegistered   Boolean        @default(false)
+  kciDocuments    String?        @default("[]") // JSON array
+
+  // Ownership & Status
+  inventoryOwner  String         @default("FURORA") // FURORA, VENDOR
+  vendorId        String?
+  vendor          User?          @relation("VendorInventory", fields: [vendorId], references: [id])
+  status          String         @default("AVAILABLE") // AVAILABLE, RESERVED, ASSIGNED_TO_ORDER, etc.
+
+  createdById     String
+  createdBy       User           @relation("PetCreator", fields: [createdById], references: [id])
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  order           Order?
+  documents       Document[]
+  inspections     InspectionRecord[]
+  medicalRecords  MedicalRecord[]
+  deliveryRecord  DeliveryRecord?
+  certificate     Certificate?
+}
+
+model Order {
+  id                 String       @id @default(cuid())
+  orderId            String       @unique // Format: FUR-ORD-001025
+  customerId         String
+  customer           User         @relation("CustomerOrders", fields: [customerId], references: [id])
+  customerName       String
+  customerContact    String
+  deliveryAddress    String
+  categoryId         String
+  category           Category     @relation(fields: [categoryId], references: [id])
+  breedId            String
+  breed              Breed        @relation(fields: [breedId], references: [id])
+  productOrPackage   String
+  paymentStatus      String       @default("PENDING") // PENDING, PAID, FAILED, REFUNDED
+  orderSource        String?      @default("WEBSITE") // WEBSITE, AD_CAMPAIGN, MANUAL_DIRECT
+  adCampaign         String?      // e.g. "Instagram PuppyFest #2", "Google Ads Delhi"
+  advancePaid        Float?       // e.g. 15000
+  paymentMode        String?      @default("FULL_PREPAID") // FULL_PREPAID, ADVANCE_COD, COD
+  
+  // Permanent Pet Link
+  petId              String?      @unique
+  pet                Pet?         @relation(fields: [petId], references: [id])
+
+  // Assignments
+  vendorId           String?
+  vendor             User?        @relation("VendorOrders", fields: [vendorId], references: [id])
+  agentId            String?
+  agent              User?        @relation("AgentOrders", fields: [agentId], references: [id])
+
+  // Physical 3-Location Custody & Live Tracking Checkpoint Data
+  petPhotoAtPickup        String?   // Location 1: Photo captured by delivery agent at kennel
+  vetClinicName           String?   // Location 2: Vet hospital name
+  vetDoctorName           String?   // Location 2: Registered Vet Doctor name & reg number
+  medicalCertUrl          String?   // Location 2: Signed Vet Health Clearance Certificate URL
+  deliveryDriverLat       Float?    // Location 3: Live Swiggy/Zomato style tracking coordinate
+  deliveryDriverLng       Float?    // Location 3: Live Swiggy/Zomato style tracking coordinate
+  estimatedDeliveryTime   String?   // Location 3: e.g. "25 mins" / "Arriving by 4:30 PM"
+
+  // Vendor Procurement & Escrow Financials
+  procurementCost         Float?    // Amount payable to vendor kennel
+  vendorPayoutStatus      String?   @default("UNASSIGNED") // UNASSIGNED, PENDING_PICKUP, HELD_IN_ESCROW, APPROVED_FOR_PAYOUT, SETTLED, REFUNDED
+  vendorPayoutRef         String?   // Bank Transfer UTR / Transaction ID
+
+  status             String       @default("ORDER_RECEIVED")
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  documents          Document[]
+  inspections        InspectionRecord[]
+  medicalRecords     MedicalRecord[]
+  deliveryRecord     DeliveryRecord?
+  certificate        Certificate?
+  auditLogs          AuditLog[]
+}
+
+model Document {
+  id           String             @id @default(cuid())
+  petId        String?
+  pet          Pet?               @relation(fields: [petId], references: [id])
+  orderId      String?
+  order        Order?             @relation(fields: [orderId], references: [id])
+  type         String             // MEDICAL_REPORT, TEST_REPORT, etc.
+  visibility   String             // ADMIN_ONLY, INTERNAL_FURORA, VENDOR_VISIBLE, CUSTOMER_VISIBLE, DELIVERY_AGENT_VISIBLE
+  fileUrl      String
+  fileName     String
+  fileSize     Int?
+  uploadedById String
+  uploadedBy   User               @relation("DocumentUploader", fields: [uploadedById], references: [id])
+  uploadedAt   DateTime           @default(now())
+}
+
+model InspectionRecord {
+  id                String    @id @default(cuid())
+  orderId           String
+  order             Order     @relation(fields: [orderId], references: [id])
+  petId             String
+  pet               Pet       @relation(fields: [petId], references: [id])
+  agentId           String
+  agent             User      @relation("AgentInspections", fields: [agentId], references: [id])
+  photos            String    @default("[]") // JSON array of URLs
+  video             String?
+  notes             String
+  physicalCondition String
+  result            String    // ACCEPT | FAIL
+  failureReason     String?
+  timestamp         DateTime  @default(now())
+}
+
+model MedicalRecord {
+  id         String    @id @default(cuid())
+  orderId    String
+  order      Order     @relation(fields: [orderId], references: [id])
+  petId      String
+  pet        Pet       @relation(fields: [petId], references: [id])
+  result     String    // APPROVED | FAILED
+  reason     String?   // Mandatory if FAILED
+  proofDocs  String?   @default("[]") // JSON array of URLs
+  timestamp  DateTime  @default(now())
+}
+
+model DeliveryRecord {
+  id                      String    @id @default(cuid())
+  orderId                 String    @unique
+  order                   Order     @relation(fields: [orderId], references: [id])
+  petId                   String    @unique
+  pet                     Pet       @relation(fields: [petId], references: [id])
+  agentId                 String
+  agent                   User      @relation("AgentDeliveries", fields: [agentId], references: [id])
+  photo                   String
+  video                   String?
+  photoWithCustomer       String?
+  customerIdCaptured      String
+  signedDeliveryReport    String
+  customerAcknowledgement String
+  dateTime                DateTime  @default(now())
+  status                  String    @default("DELIVERY COMPLETED")
+}
+
+model Certificate {
+  id              String    @id @default(cuid())
+  petId           String    @unique
+  pet             Pet       @relation(fields: [petId], references: [id])
+  orderId         String    @unique
+  order           Order     @relation(fields: [orderId], references: [id])
+  certificateId   String    @unique // Format: FUR-CERT-000123
+  furoraDetails   String    @default("{}") // JSON metadata
+  qrCodeUrl       String    // Data URI or path to generated QR
+  verificationUrl String    // Link to /records/:orderId
+  issuedAt        DateTime  @default(now())
+}
+
+model AuditLog {
+  id        String    @id @default(cuid())
+  orderId   String?
+  order     Order?    @relation(fields: [orderId], references: [id])
+  userId    String?
+  user      User?     @relation("UserAuditLogs", fields: [userId], references: [id])
+  action    String    // STATUS_CHANGE, INVENTORY_MOVE, DOCUMENT_UPLOAD, ASSIGNMENT, etc.
+  fromState String?
+  toState   String?
+  metadata  String?   // JSON extra context
+  timestamp DateTime  @default(now())
+}
+
+model SequenceCounter {
+  id           String @id
+  currentValue Int    @default(0)
+}

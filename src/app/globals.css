@@ -1,0 +1,75 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #F4F5F9;
+  --foreground: #0F172A;
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom subtle scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #E2E8F0;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #CBD5E1;
+}
+
+/* Utility classes matching reference design */
+.card-clean {
+  background-color: #FFFFFF;
+  border: 1px solid #ECEEF2;
+  border-radius: 1.25rem;
+  box-shadow: 0 4px 24px -4px rgba(15, 23, 42, 0.03);
+}
+
+.card-clean-hover {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.card-clean-hover:hover {
+  border-color: #E2E8F0;
+  box-shadow: 0 8px 30px -4px rgba(15, 23, 42, 0.06);
+}
+
+/* Prevent background scrolling when any modal, popup, or drawer is open */
+body.modal-open,
+html.modal-open {
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+  touch-action: none !important;
+}
+
+body.modal-open main {
+  overflow: hidden !important;
+  touch-action: none !important;
+}
+
+/* Contain scrolling inside modal popups and prevent scroll chaining to behind page */
+.modal-backdrop {
+  overscroll-behavior: contain !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+.modal-content-scroll {
+  overscroll-behavior: contain !important;
+  -webkit-overflow-scrolling: touch;
+}
