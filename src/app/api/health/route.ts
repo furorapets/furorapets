@@ -69,6 +69,21 @@ export async function GET() {
             }
           }
         }
+
+        // Self-healing check: ensure microchipNumber column exists on Pet table
+        if (directTables.includes('Pet')) {
+          const tableInfo = await directClient.execute('PRAGMA table_info("Pet")');
+          const cols = tableInfo.rows.map((r) => String(r.name));
+          if (!cols.includes('microchipNumber')) {
+            console.log('[api/health] microchipNumber column missing on Pet table. Adding...');
+            try {
+              await directClient.execute(`ALTER TABLE "Pet" ADD COLUMN "microchipNumber" TEXT`);
+              console.log('[api/health] microchipNumber column added successfully.');
+            } catch (err: any) {
+              console.error('[api/health] Error adding microchipNumber column:', err.message);
+            }
+          }
+        }
       } catch (err: any) {
         directError = err.message;
       }

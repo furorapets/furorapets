@@ -61,6 +61,11 @@ function createPrismaClient(): PrismaClient {
         .execute(`ALTER TABLE "User" ADD COLUMN "assignedCategories" TEXT DEFAULT '[]'`)
         .catch(() => {}); // safely ignore if already exists or during table creation
 
+      // Self-healing migration: ensure microchipNumber column exists on Pet table
+      libsql
+        .execute(`ALTER TABLE "Pet" ADD COLUMN "microchipNumber" TEXT`)
+        .catch(() => {});
+
       const adapter = new PrismaLibSQL(libsql);
       return new PrismaClient({
         adapter: adapter as any,

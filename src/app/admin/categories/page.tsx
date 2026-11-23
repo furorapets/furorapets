@@ -146,6 +146,7 @@ function CategoriesContent() {
     dob: '2026-06-01',
     sex: 'Male',
     colour: 'Standard',
+    microchipNumber: '',
     otherDetails: '',
     photos: [] as string[],
     videos: [] as string[],
@@ -441,6 +442,7 @@ function CategoriesContent() {
       dob: new Date().toISOString().split('T')[0],
       sex: 'Male',
       colour: 'Standard',
+      microchipNumber: '',
       otherDetails: '',
       photos: [],
       videos: [],
@@ -482,6 +484,7 @@ function CategoriesContent() {
       dob: new Date(pet.dob).toISOString().split('T')[0],
       sex: pet.sex || 'Male',
       colour: pet.colour || '',
+      microchipNumber: pet.microchipNumber || '',
       otherDetails: pet.otherDetails || '',
       photos: safeParse(pet.photos),
       videos: safeParse(pet.videos),
@@ -612,6 +615,7 @@ function CategoriesContent() {
         dob: petFormData.dob,
         sex: petFormData.sex,
         colour: petFormData.colour.trim(),
+        microchipNumber: petFormData.microchipNumber.trim().toUpperCase() || null,
         otherDetails: petFormData.otherDetails.trim() || null,
         photos: petFormData.photos,
         videos: petFormData.videos,
@@ -1096,7 +1100,9 @@ function CategoriesContent() {
                           if (statusFilter !== 'ALL' && pet.status !== statusFilter) return false;
                           if (petSearchQuery.trim()) {
                             const q = petSearchQuery.toLowerCase();
-                            const matchId = pet.petId?.toLowerCase().includes(q);
+                            const matchId =
+                              pet.petId?.toLowerCase().includes(q) ||
+                              pet.microchipNumber?.toLowerCase().includes(q);
                             const matchColour = pet.colour?.toLowerCase().includes(q);
                             const matchSire = pet.fatherName?.toLowerCase().includes(q);
                             const matchDam = pet.motherName?.toLowerCase().includes(q);
@@ -1183,8 +1189,16 @@ function CategoriesContent() {
                                         return (
                                           <tr key={pet.id} className="hover:bg-slate-50/70 transition">
                                             {/* Pet ID */}
-                                            <td className="py-2.5 font-mono font-bold text-slate-900">
-                                              {pet.petId}
+                                            <td className="py-2.5">
+                                              <span className="font-mono font-bold text-slate-900 block leading-tight">
+                                                {pet.petId}
+                                              </span>
+                                              {pet.microchipNumber && (
+                                                <span className="text-[10px] text-slate-500 font-mono flex items-center gap-1 mt-0.5" title="RFID Microchip">
+                                                  <QrCode className="w-2.5 h-2.5 text-slate-400" />
+                                                  <span>{pet.microchipNumber}</span>
+                                                </span>
+                                              )}
                                             </td>
 
                                             {/* Age & DOB */}
@@ -1660,12 +1674,29 @@ function CategoriesContent() {
                 </div>
 
                 <div>
+                  <label className="text-[11px] font-bold text-slate-700 block mb-1 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <QrCode className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Microchip Number / RFID Tag</span>
+                    </span>
+                    <span className="text-[10px] font-normal text-slate-400">15-digit ISO or Tag</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 953010002134567"
+                    value={petFormData.microchipNumber}
+                    onChange={(e) => setPetFormData({ ...petFormData, microchipNumber: e.target.value.toUpperCase() })}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 font-mono font-medium text-slate-800 placeholder:font-sans focus:ring-2 focus:ring-slate-900 focus:outline-none"
+                  />
+                </div>
+
+                <div>
                   <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                    Identification Details & Notes
+                    Distinguishing Markings & Notes (Optional)
                   </label>
                   <textarea
                     rows={2}
-                    placeholder="Distinguishing markings, microchip notes, traits..."
+                    placeholder="Coat markings, eye color variations, physical traits, temperament..."
                     value={petFormData.otherDetails}
                     onChange={(e) => setPetFormData({ ...petFormData, otherDetails: e.target.value })}
                     className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 font-medium text-slate-800 focus:ring-2 focus:ring-slate-900 focus:outline-none"

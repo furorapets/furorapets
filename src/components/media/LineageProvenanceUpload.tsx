@@ -57,6 +57,8 @@ export default function LineageProvenanceUpload({
   const [uploadingFatherDoc, setUploadingFatherDoc] = useState(false);
   const [uploadingMotherPhoto, setUploadingMotherPhoto] = useState(false);
   const [uploadingMotherDoc, setUploadingMotherDoc] = useState(false);
+  const [showFatherDocSection, setShowFatherDocSection] = useState(fatherDocList.length > 0);
+  const [showMotherDocSection, setShowMotherDocSection] = useState(motherDocList.length > 0);
 
   const fatherPhotoInputRef = useRef<HTMLInputElement | null>(null);
   const fatherDocInputRef = useRef<HTMLInputElement | null>(null);
@@ -245,82 +247,108 @@ export default function LineageProvenanceUpload({
             )}
           </div>
 
-          {/* Father Documents (Pedigree / KCI) */}
+          {/* Father Documents (Optional Pedigree / KCI) */}
           <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="text-[11px] font-bold text-slate-600">
-                Father Pedigree Docs / KCI Certificate
-              </label>
+            {!showFatherDocSection && fatherDocList.length === 0 ? (
               <button
                 type="button"
-                onClick={() => fatherDocInputRef.current?.click()}
-                disabled={uploadingFatherDoc || disabled}
-                className="text-[10px] font-bold text-slate-900 hover:underline flex items-center gap-1"
+                onClick={() => setShowFatherDocSection(true)}
+                className="text-[10px] font-semibold text-slate-500 hover:text-slate-800 flex items-center gap-1 transition pt-1"
               >
-                <Upload className="w-3 h-3" /> + Upload Document
+                <FileText className="w-3 h-3 text-slate-400" />
+                <span>+ Attach Father Pedigree / KCI Certificate (Optional)</span>
               </button>
-            </div>
-            <input
-              ref={fatherDocInputRef}
-              type="file"
-              accept=".pdf,image/*"
-              onChange={(e) =>
-                e.target.files &&
-                uploadDocument(
-                  e.target.files[0],
-                  'pets/lineage/docs',
-                  setUploadingFatherDoc,
-                  (url) => onChange({ fatherDocs: [...fatherDocList, url] })
-                )
-              }
-              className="hidden"
-            />
-
-            {uploadingFatherDoc && (
-              <div className="p-2 rounded-lg bg-blue-50 text-[11px] text-blue-700 flex items-center gap-2">
-                <div className="w-3.5 h-3.5 rounded-full border-2 border-blue-600 border-t-transparent animate-spin"></div>
-                <span>Uploading document to R2...</span>
-              </div>
-            )}
-
-            {fatherDocList.length > 0 ? (
-              <div className="space-y-1.5 pt-1">
-                {fatherDocList.map((docUrl, idx) => (
-                  <div
-                    key={`${docUrl}-${idx}`}
-                    className="flex items-center justify-between p-2 rounded-lg bg-white border border-slate-200 text-xs"
-                  >
-                    <div className="flex items-center gap-2 truncate">
-                      <FileText className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                      <span className="font-mono text-[10px] truncate max-w-[170px]">
-                        {docUrl.split('/').pop() || 'PedigreeDoc.pdf'}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <a
-                        href={docUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="p-1 text-slate-500 hover:text-slate-800"
-                        title="View"
-                      >
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
+            ) : (
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[11px] font-bold text-slate-600 flex items-center gap-1">
+                    <span>Father Pedigree Docs / KCI</span>
+                    <span className="text-[10px] font-normal text-slate-400">(Optional)</span>
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => fatherDocInputRef.current?.click()}
+                      disabled={uploadingFatherDoc || disabled}
+                      className="text-[10px] font-bold text-slate-900 hover:underline flex items-center gap-1"
+                    >
+                      <Upload className="w-3 h-3" /> + Upload
+                    </button>
+                    {fatherDocList.length === 0 && (
                       <button
                         type="button"
-                        onClick={() =>
-                          onChange({ fatherDocs: fatherDocList.filter((_, i) => i !== idx) })
-                        }
-                        className="p-1 text-slate-400 hover:text-rose-600"
+                        onClick={() => setShowFatherDocSection(false)}
+                        className="text-[10px] text-slate-400 hover:text-slate-600"
+                        title="Hide section"
                       >
-                        <X className="w-3 h-3" />
+                        Hide
                       </button>
-                    </div>
+                    )}
                   </div>
-                ))}
+                </div>
+                <input
+                  ref={fatherDocInputRef}
+                  type="file"
+                  accept=".pdf,image/*"
+                  onChange={(e) =>
+                    e.target.files &&
+                    uploadDocument(
+                      e.target.files[0],
+                      'pets/lineage/docs',
+                      setUploadingFatherDoc,
+                      (url) => onChange({ fatherDocs: [...fatherDocList, url] })
+                    )
+                  }
+                  className="hidden"
+                />
+
+                {uploadingFatherDoc && (
+                  <div className="p-2 rounded-lg bg-blue-50 text-[11px] text-blue-700 flex items-center gap-2">
+                    <div className="w-3.5 h-3.5 rounded-full border-2 border-blue-600 border-t-transparent animate-spin"></div>
+                    <span>Uploading document to R2...</span>
+                  </div>
+                )}
+
+                {fatherDocList.length > 0 ? (
+                  <div className="space-y-1.5 pt-1">
+                    {fatherDocList.map((docUrl, idx) => (
+                      <div
+                        key={`${docUrl}-${idx}`}
+                        className="flex items-center justify-between p-2 rounded-lg bg-white border border-slate-200 text-xs"
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <FileText className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                          <span className="font-mono text-[10px] truncate max-w-[170px]">
+                            {docUrl.split('/').pop() || 'PedigreeDoc.pdf'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <a
+                            href={docUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="p-1 text-slate-500 hover:text-slate-800"
+                            title="View"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              onChange({ fatherDocs: fatherDocList.filter((_, i) => i !== idx) })
+                            }
+                            className="p-1 text-slate-400 hover:text-rose-600"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[10px] text-slate-400 italic">Optional: Upload certified pedigree if available.</p>
+                )}
               </div>
-            ) : (
-              <p className="text-[10px] text-slate-400 italic">No lineage documents uploaded yet.</p>
             )}
           </div>
         </div>
@@ -429,82 +457,108 @@ export default function LineageProvenanceUpload({
             )}
           </div>
 
-          {/* Mother Documents (Pedigree / KCI) */}
+          {/* Mother Documents (Optional Pedigree / KCI) */}
           <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="text-[11px] font-bold text-slate-600">
-                Mother Pedigree Docs / KCI Certificate
-              </label>
+            {!showMotherDocSection && motherDocList.length === 0 ? (
               <button
                 type="button"
-                onClick={() => motherDocInputRef.current?.click()}
-                disabled={uploadingMotherDoc || disabled}
-                className="text-[10px] font-bold text-slate-900 hover:underline flex items-center gap-1"
+                onClick={() => setShowMotherDocSection(true)}
+                className="text-[10px] font-semibold text-slate-500 hover:text-slate-800 flex items-center gap-1 transition pt-1"
               >
-                <Upload className="w-3 h-3" /> + Upload Document
+                <FileText className="w-3 h-3 text-slate-400" />
+                <span>+ Attach Mother Pedigree / KCI Certificate (Optional)</span>
               </button>
-            </div>
-            <input
-              ref={motherDocInputRef}
-              type="file"
-              accept=".pdf,image/*"
-              onChange={(e) =>
-                e.target.files &&
-                uploadDocument(
-                  e.target.files[0],
-                  'pets/lineage/docs',
-                  setUploadingMotherDoc,
-                  (url) => onChange({ motherDocs: [...motherDocList, url] })
-                )
-              }
-              className="hidden"
-            />
-
-            {uploadingMotherDoc && (
-              <div className="p-2 rounded-lg bg-blue-50 text-[11px] text-blue-700 flex items-center gap-2">
-                <div className="w-3.5 h-3.5 rounded-full border-2 border-blue-600 border-t-transparent animate-spin"></div>
-                <span>Uploading document to R2...</span>
-              </div>
-            )}
-
-            {motherDocList.length > 0 ? (
-              <div className="space-y-1.5 pt-1">
-                {motherDocList.map((docUrl, idx) => (
-                  <div
-                    key={`${docUrl}-${idx}`}
-                    className="flex items-center justify-between p-2 rounded-lg bg-white border border-slate-200 text-xs"
-                  >
-                    <div className="flex items-center gap-2 truncate">
-                      <FileText className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                      <span className="font-mono text-[10px] truncate max-w-[170px]">
-                        {docUrl.split('/').pop() || 'PedigreeDoc.pdf'}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <a
-                        href={docUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="p-1 text-slate-500 hover:text-slate-800"
-                        title="View"
-                      >
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
+            ) : (
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[11px] font-bold text-slate-600 flex items-center gap-1">
+                    <span>Mother Pedigree Docs / KCI</span>
+                    <span className="text-[10px] font-normal text-slate-400">(Optional)</span>
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => motherDocInputRef.current?.click()}
+                      disabled={uploadingMotherDoc || disabled}
+                      className="text-[10px] font-bold text-slate-900 hover:underline flex items-center gap-1"
+                    >
+                      <Upload className="w-3 h-3" /> + Upload
+                    </button>
+                    {motherDocList.length === 0 && (
                       <button
                         type="button"
-                        onClick={() =>
-                          onChange({ motherDocs: motherDocList.filter((_, i) => i !== idx) })
-                        }
-                        className="p-1 text-slate-400 hover:text-rose-600"
+                        onClick={() => setShowMotherDocSection(false)}
+                        className="text-[10px] text-slate-400 hover:text-slate-600"
+                        title="Hide section"
                       >
-                        <X className="w-3 h-3" />
+                        Hide
                       </button>
-                    </div>
+                    )}
                   </div>
-                ))}
+                </div>
+                <input
+                  ref={motherDocInputRef}
+                  type="file"
+                  accept=".pdf,image/*"
+                  onChange={(e) =>
+                    e.target.files &&
+                    uploadDocument(
+                      e.target.files[0],
+                      'pets/lineage/docs',
+                      setUploadingMotherDoc,
+                      (url) => onChange({ motherDocs: [...motherDocList, url] })
+                    )
+                  }
+                  className="hidden"
+                />
+
+                {uploadingMotherDoc && (
+                  <div className="p-2 rounded-lg bg-blue-50 text-[11px] text-blue-700 flex items-center gap-2">
+                    <div className="w-3.5 h-3.5 rounded-full border-2 border-blue-600 border-t-transparent animate-spin"></div>
+                    <span>Uploading document to R2...</span>
+                  </div>
+                )}
+
+                {motherDocList.length > 0 ? (
+                  <div className="space-y-1.5 pt-1">
+                    {motherDocList.map((docUrl, idx) => (
+                      <div
+                        key={`${docUrl}-${idx}`}
+                        className="flex items-center justify-between p-2 rounded-lg bg-white border border-slate-200 text-xs"
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <FileText className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                          <span className="font-mono text-[10px] truncate max-w-[170px]">
+                            {docUrl.split('/').pop() || 'PedigreeDoc.pdf'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <a
+                            href={docUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="p-1 text-slate-500 hover:text-slate-800"
+                            title="View"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              onChange({ motherDocs: motherDocList.filter((_, i) => i !== idx) })
+                            }
+                            className="p-1 text-slate-400 hover:text-rose-600"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[10px] text-slate-400 italic">Optional: Upload certified pedigree if available.</p>
+                )}
               </div>
-            ) : (
-              <p className="text-[10px] text-slate-400 italic">No lineage documents uploaded yet.</p>
             )}
           </div>
         </div>

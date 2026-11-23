@@ -44,6 +44,7 @@ export const SCHEMA_DDL: string[] = [
     "dob" DATETIME NOT NULL,
     "sex" TEXT NOT NULL,
     "colour" TEXT NOT NULL,
+    "microchipNumber" TEXT,
     "otherDetails" TEXT,
     "photos" TEXT NOT NULL DEFAULT '[]',
     "videos" TEXT NOT NULL DEFAULT '[]',
@@ -219,6 +220,13 @@ export async function ensureDatabaseSchema(libsqlClient: ReturnType<typeof creat
   // Ensure assignedCategories column exists on User table for older databases
   try {
     await libsqlClient.execute(`ALTER TABLE "User" ADD COLUMN "assignedCategories" TEXT DEFAULT '[]'`);
+  } catch (err: any) {
+    // Column already exists or table freshly created
+  }
+
+  // Ensure microchipNumber column exists on Pet table for older databases
+  try {
+    await libsqlClient.execute(`ALTER TABLE "Pet" ADD COLUMN "microchipNumber" TEXT`);
   } catch (err: any) {
     // Column already exists or table freshly created
   }

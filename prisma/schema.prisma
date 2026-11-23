@@ -75,6 +75,7 @@ model Pet {
   dob             DateTime
   sex             String         // Male, Female
   colour          String
+  microchipNumber String?        // ISO 15-digit or alphanumeric RFID microchip ID
   otherDetails    String?
   photos          String         @default("[]") // JSON array of strings
   videos          String         @default("[]") // JSON array of strings

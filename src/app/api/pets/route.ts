@@ -28,6 +28,7 @@ export async function GET(req: NextRequest) {
       where.OR = [
         { petId: { contains: q } },
         { colour: { contains: q } },
+        { microchipNumber: { contains: q } },
         { fatherName: { contains: q } },
         { motherName: { contains: q } },
       ];
@@ -97,6 +98,7 @@ export async function GET(req: NextRequest) {
           age: ageInfo.formatted,
           sex: p.sex,
           colour: p.colour,
+          microchipNumber: p.microchipNumber,
           otherDetails: p.otherDetails,
           photos,
           videos,
@@ -137,6 +139,7 @@ export async function POST(req: NextRequest) {
       dob,
       sex,
       colour,
+      microchipNumber,
       otherDetails,
       photos = [],
       videos = [],
@@ -233,6 +236,7 @@ export async function POST(req: NextRequest) {
         dob: new Date(dob),
         sex,
         colour,
+        microchipNumber: microchipNumber ? String(microchipNumber).trim().toUpperCase() : null,
         otherDetails: otherDetails || null,
         photos: JSON.stringify(photos),
         videos: JSON.stringify(videos),

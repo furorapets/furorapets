@@ -24,6 +24,7 @@ import {
   ChevronRight,
   Sparkles,
   Layers,
+  QrCode,
 } from 'lucide-react';
 import { useSession } from '@/context/session-context';
 import { calculateAge } from '@/lib/age-calculator';
@@ -89,6 +90,7 @@ export default function AdminInventoryPage() {
   const [editingPet, setEditingPet] = useState<any | null>(null);
   const [editForm, setEditForm] = useState({
     colour: '',
+    microchipNumber: '',
     sex: 'Male',
     dob: '2026-01-01',
     otherDetails: '',
@@ -116,6 +118,7 @@ export default function AdminInventoryPage() {
   const [newDob, setNewDob] = useState('2026-06-15');
   const [newSex, setNewSex] = useState('Male');
   const [newColour, setNewColour] = useState('Golden');
+  const [newMicrochipNumber, setNewMicrochipNumber] = useState('');
   const [newOtherDetails, setNewOtherDetails] = useState('');
   const [newPhotos, setNewPhotos] = useState<string[]>([]);
   const [newVideos, setNewVideos] = useState<string[]>([]);
@@ -338,6 +341,7 @@ export default function AdminInventoryPage() {
 
     setEditForm({
       colour: pet.colour || '',
+      microchipNumber: pet.microchipNumber || '',
       sex: pet.sex || 'Male',
       dob: dobString,
       otherDetails: pet.otherDetails || '',
@@ -368,6 +372,7 @@ export default function AdminInventoryPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           colour: editForm.colour,
+          microchipNumber: editForm.microchipNumber.trim().toUpperCase() || null,
           sex: editForm.sex,
           dob: editForm.dob,
           otherDetails: editForm.otherDetails,
@@ -424,6 +429,7 @@ export default function AdminInventoryPage() {
           dob: newDob,
           sex: newSex,
           colour: newColour,
+          microchipNumber: newMicrochipNumber.trim().toUpperCase() || null,
           otherDetails: newOtherDetails || undefined,
           inventoryOwner: newOwner,
           vendorId: newOwner === 'VENDOR' ? newVendorId : null,
@@ -1174,6 +1180,17 @@ export default function AdminInventoryPage() {
                   {viewingPet.kciRegistered ? 'YES (Certified)' : 'NO'}
                 </span>
               </div>
+              {viewingPet.microchipNumber && (
+                <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between">
+                  <span className="font-semibold text-slate-700 flex items-center gap-1.5 text-xs">
+                    <QrCode className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Microchip ID:</span>
+                  </span>
+                  <span className="font-mono font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded text-[11px] border border-slate-200">
+                    {viewingPet.microchipNumber}
+                  </span>
+                </div>
+              )}
             </div>
 
             {viewingPet.otherDetails && (
@@ -1358,9 +1375,27 @@ export default function AdminInventoryPage() {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Other Details / Medical Notes</label>
+                <label className="block font-bold text-slate-700 mb-1 flex items-center justify-between text-xs">
+                  <span className="flex items-center gap-1.5">
+                    <QrCode className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Microchip Number / RFID Tag</span>
+                  </span>
+                  <span className="text-[10px] font-normal text-slate-400">15-digit ISO or Tag</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. 953010002134567"
+                  value={editForm.microchipNumber}
+                  onChange={(e) => setEditForm({ ...editForm, microchipNumber: e.target.value.toUpperCase() })}
+                  className="w-full border rounded-xl p-2 bg-slate-50 font-mono text-xs font-semibold text-slate-800"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Distinguishing Markings & Notes</label>
                 <textarea
                   rows={2}
+                  placeholder="Markings, traits, temperament, notes..."
                   value={editForm.otherDetails}
                   onChange={(e) => setEditForm({ ...editForm, otherDetails: e.target.value })}
                   className="w-full border rounded-xl p-2 bg-slate-50 font-medium"
@@ -1651,10 +1686,27 @@ export default function AdminInventoryPage() {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Microchip / Special Notes</label>
+                <label className="block font-bold text-slate-700 mb-1 flex items-center justify-between text-xs">
+                  <span className="flex items-center gap-1.5">
+                    <QrCode className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Microchip Number / RFID Tag</span>
+                  </span>
+                  <span className="text-[10px] font-normal text-slate-400">15-digit ISO or Tag</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. 953010002134567"
+                  value={newMicrochipNumber}
+                  onChange={(e) => setNewMicrochipNumber(e.target.value.toUpperCase())}
+                  className="w-full border rounded-xl p-2 bg-slate-50 font-mono text-xs font-semibold text-slate-800"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Distinguishing Markings & Special Notes</label>
                 <textarea
                   rows={2}
-                  placeholder="e.g. Microchipped, first dose Parvovirus vaccination administered."
+                  placeholder="e.g. First dose Parvovirus vaccination administered, distinct white chest patch."
                   value={newOtherDetails}
                   onChange={(e) => setNewOtherDetails(e.target.value)}
                   className="w-full border rounded-xl p-2 bg-slate-50 font-medium"

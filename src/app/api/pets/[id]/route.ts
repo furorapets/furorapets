@@ -75,6 +75,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
           age: ageInfo.formatted,
           sex: pet.sex,
           colour: pet.colour,
+          microchipNumber: pet.microchipNumber,
           otherDetails: pet.otherDetails,
           photos,
           videos,
@@ -143,6 +144,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       colour,
       sex,
       dob,
+      microchipNumber,
       otherDetails,
       photos,
       videos,
@@ -167,6 +169,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     if (colour) updateData.colour = colour;
     if (sex) updateData.sex = sex;
     if (dob) updateData.dob = new Date(dob);
+    if (microchipNumber !== undefined) updateData.microchipNumber = microchipNumber ? String(microchipNumber).trim().toUpperCase() : null;
     if (otherDetails !== undefined) updateData.otherDetails = otherDetails;
     if (photos !== undefined) updateData.photos = Array.isArray(photos) ? JSON.stringify(photos) : photos;
     if (videos !== undefined) updateData.videos = Array.isArray(videos) ? JSON.stringify(videos) : videos;

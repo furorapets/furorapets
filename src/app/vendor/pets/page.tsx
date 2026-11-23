@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Plus, ShieldAlert, X, Sparkles, Clock, AlertCircle, XCircle, ArrowRight, Image as ImageIcon } from 'lucide-react';
+import { Plus, ShieldAlert, X, Sparkles, Clock, AlertCircle, XCircle, ArrowRight, Image as ImageIcon, QrCode } from 'lucide-react';
 import { useSession } from '@/context/session-context';
 import PetMediaUpload from '@/components/media/PetMediaUpload';
 import LineageProvenanceUpload from '@/components/media/LineageProvenanceUpload';
@@ -22,6 +22,7 @@ export default function VendorPetsPage() {
   const [newDob, setNewDob] = useState('2026-07-01');
   const [newSex, setNewSex] = useState('Female');
   const [newColour, setNewColour] = useState('White & Grey');
+  const [newMicrochipNumber, setNewMicrochipNumber] = useState('');
   const [newOtherDetails, setNewOtherDetails] = useState('');
   const [newPhotos, setNewPhotos] = useState<string[]>([]);
   const [newVideos, setNewVideos] = useState<string[]>([]);
@@ -91,6 +92,7 @@ export default function VendorPetsPage() {
           dob: newDob,
           sex: newSex,
           colour: newColour,
+          microchipNumber: newMicrochipNumber ? newMicrochipNumber.trim().toUpperCase() : null,
           otherDetails: newOtherDetails || undefined,
           fatherName: newFatherName || null,
           fatherPhoto: newFatherPhoto || null,
@@ -119,6 +121,7 @@ export default function VendorPetsPage() {
       setNewMotherDocs([]);
       setNewKci(false);
       setNewKciDocs([]);
+      setNewMicrochipNumber('');
       setNewOtherDetails('');
       loadData();
     } catch (err: any) {
@@ -346,7 +349,15 @@ export default function VendorPetsPage() {
                             <ImageIcon className="w-4 h-4" />
                           </div>
                         )}
-                        <span>{p.petId}</span>
+                        <div>
+                          <span className="block leading-tight">{p.petId}</span>
+                          {p.microchipNumber && (
+                            <span className="text-[10px] text-slate-500 font-mono flex items-center gap-1 mt-0.5" title="RFID Microchip">
+                              <QrCode className="w-2.5 h-2.5 text-slate-400" />
+                              <span>{p.microchipNumber}</span>
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -479,12 +490,29 @@ export default function VendorPetsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-                    Markings & Details (Optional)
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5 text-slate-700">
+                      <QrCode className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Microchip Number / RFID Tag</span>
+                    </span>
+                    <span className="text-[10px] font-normal text-slate-400 lowercase">15-digit ISO or Tag</span>
                   </label>
                   <input
                     type="text"
-                    placeholder="Distinguishing markings, microchip notes, temperament..."
+                    placeholder="e.g. 953010002134567"
+                    value={newMicrochipNumber}
+                    onChange={(e) => setNewMicrochipNumber(e.target.value.toUpperCase())}
+                    className="w-full border border-slate-200 rounded-xl p-2.5 text-xs font-mono font-medium text-slate-800 placeholder:font-sans focus:outline-none focus:ring-2 focus:ring-slate-900"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                    Markings & Identification Traits (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Distinguishing coat markings, eye variations, temperament..."
                     value={newOtherDetails}
                     onChange={(e) => setNewOtherDetails(e.target.value)}
                     className="w-full border border-slate-200 rounded-xl p-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900"

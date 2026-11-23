@@ -60,6 +60,7 @@ function AdminPetsContent() {
     dob: '2026-06-01',
     sex: 'Male',
     colour: 'Golden',
+    microchipNumber: '',
     otherDetails: '',
     photos: [] as string[],
     videos: [] as string[],
@@ -166,6 +167,7 @@ function AdminPetsContent() {
       dob: new Date().toISOString().split('T')[0],
       sex: 'Male',
       colour: 'Standard',
+      microchipNumber: '',
       otherDetails: '',
       photos: [],
       videos: [],
@@ -206,6 +208,7 @@ function AdminPetsContent() {
       dob: new Date(p.dob).toISOString().split('T')[0],
       sex: p.sex || 'Male',
       colour: p.colour || '',
+      microchipNumber: p.microchipNumber || '',
       otherDetails: p.otherDetails || '',
       photos: safeParse(p.photos),
       videos: safeParse(p.videos),
@@ -253,6 +256,7 @@ function AdminPetsContent() {
         dob: formData.dob,
         sex: formData.sex,
         colour: formData.colour.trim(),
+        microchipNumber: formData.microchipNumber.trim().toUpperCase() || null,
         otherDetails: formData.otherDetails.trim() || null,
         photos: formData.photos,
         videos: formData.videos,
@@ -712,12 +716,29 @@ function AdminPetsContent() {
                 </div>
 
                 <div>
+                  <label className="text-[11px] font-bold text-slate-700 block mb-1 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <QrCode className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Microchip Number / RFID Tag</span>
+                    </span>
+                    <span className="text-[10px] font-normal text-slate-400">15-digit ISO or Tag</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 953010002134567"
+                    value={formData.microchipNumber}
+                    onChange={(e) => setFormData({ ...formData, microchipNumber: e.target.value.toUpperCase() })}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 font-mono font-medium text-slate-800 placeholder:font-sans focus:ring-2 focus:ring-slate-900 focus:outline-none"
+                  />
+                </div>
+
+                <div>
                   <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                    Identification Details & Notes
+                    Distinguishing Markings & Notes (Optional)
                   </label>
                   <textarea
                     rows={2}
-                    placeholder="Distinguishing markings, microchip notes, personality..."
+                    placeholder="Distinguishing coat markings, eye colour variations, personality traits..."
                     value={formData.otherDetails}
                     onChange={(e) => setFormData({ ...formData, otherDetails: e.target.value })}
                     className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 font-medium text-slate-800 focus:ring-2 focus:ring-slate-900 focus:outline-none"
