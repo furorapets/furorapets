@@ -84,12 +84,14 @@ export default function DashboardLayoutShell({ children }: DashboardLayoutShellP
         </div>
 
         <div className="flex items-center space-x-2">
-          <button
-            onClick={() => setIsSwitchModalOpen(true)}
-            className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200"
-          >
-            {currentUser?.role || 'Switch'}
-          </button>
+          {currentUser?.role !== 'ADMIN' && (
+            <button
+              onClick={() => setIsSwitchModalOpen(true)}
+              className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200"
+            >
+              {currentUser?.role || 'Switch'}
+            </button>
+          )}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600"
