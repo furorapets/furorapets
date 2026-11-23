@@ -468,12 +468,12 @@ export default function PartnerOnboardPage() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4 text-xs font-semibold">
-            {pageMode !== 'LANDING' && (
+            {pageMode === 'TRACK' && (
               <button
                 onClick={() => setPageMode('LANDING')}
                 className="px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition"
               >
-                &larr; Landing Page
+                &larr; Back to Home
               </button>
             )}
 
@@ -1052,12 +1052,10 @@ export default function PartnerOnboardPage() {
               </div>
             </div>
 
-            <button
-              onClick={() => setPageMode('LANDING')}
-              className="text-xs font-bold text-slate-500 hover:text-slate-800 underline transition self-start sm:self-auto"
-            >
-              Exit to Landing Page
-            </button>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-600 font-semibold self-start sm:self-auto shadow-2xs">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>Draft Auto-Saved</span>
+            </div>
           </div>
 
           {/* Admin Changes Requested Alert Banner */}
