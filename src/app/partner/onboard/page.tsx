@@ -32,6 +32,8 @@ import {
   ChevronDown,
   HelpCircle,
   Award,
+  RotateCw,
+  KeyRound,
 } from 'lucide-react';
 import FileUploadField from '@/components/FileUploadField';
 
@@ -49,6 +51,19 @@ export default function PartnerOnboardPage() {
   });
   const [regLoading, setRegLoading] = useState(false);
   const [regError, setRegError] = useState('');
+
+  // Captcha & Email OTP State
+  const [captchaSvg, setCaptchaSvg] = useState<string>('');
+  const [captchaToken, setCaptchaToken] = useState<string>('');
+  const [captchaInput, setCaptchaInput] = useState<string>('');
+  const [captchaLoading, setCaptchaLoading] = useState<boolean>(false);
+
+  const [otpSent, setOtpSent] = useState<boolean>(false);
+  const [otpCode, setOtpCode] = useState<string>('');
+  const [otpToken, setOtpToken] = useState<string>('');
+  const [otpLoading, setOtpLoading] = useState<boolean>(false);
+  const [otpResendCountdown, setOtpResendCountdown] = useState<number>(0);
+  const [otpSuccessMessage, setOtpSuccessMessage] = useState<string>('');
 
   // Active Registered Vendor Session State
   const [registeredVendor, setRegisteredVendor] = useState<any | null>(null);
@@ -98,9 +113,39 @@ export default function PartnerOnboardPage() {
     }
   }, []);
 
-  // 1. Initial Quick Registration (Mobile & Email on Landing Page)
-  const handleQuickRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Fetch security captcha on component mount
+  const fetchCaptcha = async () => {
+    setCaptchaLoading(true);
+    try {
+      const res = await fetch('/api/auth/captcha');
+      const data = await res.json();
+      if (data.success) {
+        setCaptchaSvg(data.svg);
+        setCaptchaToken(data.token);
+        setCaptchaInput('');
+      }
+    } catch (err) {
+      console.error('Failed to load captcha:', err);
+    } finally {
+      setCaptchaLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCaptcha();
+  }, []);
+
+  // OTP Resend Countdown Timer
+  useEffect(() => {
+    if (otpResendCountdown > 0) {
+      const timer = setTimeout(() => setOtpResendCountdown((c) => c - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [otpResendCountdown]);
+
+  // 1. Initial Step: Send Email OTP (Validates inputs & Captcha)
+  const handleSendOtp = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setRegError('');
 
     if (!regForm.kennelName.trim()) {
@@ -119,40 +164,84 @@ export default function PartnerOnboardPage() {
       setRegError('Please enter your Kennel city/location');
       return;
     }
+    if (!captchaInput.trim()) {
+      setRegError('Please enter the security verification captcha code');
+      return;
+    }
 
     setRegLoading(true);
+    try {
+      const res = await fetch('/api/auth/otp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: regForm.email.trim(),
+          kennelName: regForm.kennelName.trim(),
+          captchaToken,
+          captchaInput: captchaInput.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        fetchCaptcha();
+        throw new Error(data.error || 'Failed to send verification code');
+      }
+
+      setOtpToken(data.otpToken);
+      setOtpSent(true);
+      setOtpCode('');
+      setOtpResendCountdown(30);
+      setOtpSuccessMessage(data.message || `Code dispatched to ${regForm.email.trim()}`);
+    } catch (err: any) {
+      setRegError(err.message);
+    } finally {
+      setRegLoading(false);
+    }
+  };
+
+  // 2. Final Step: Confirm OTP & Transition directly to Wizard
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setRegError('');
+
+    if (!otpCode.trim() || otpCode.trim().length !== 6) {
+      setRegError('Please enter the 6-digit verification code sent to your email');
+      return;
+    }
+
+    setOtpLoading(true);
     try {
       const fullName = regForm.contactName.trim()
         ? `${regForm.kennelName.trim()} (${regForm.contactName.trim()})`
         : regForm.kennelName.trim();
 
-      const res = await fetch('/api/vendor-onboarding', {
+      const res = await fetch('/api/auth/otp/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'QUICK_REGISTER',
-          name: fullName,
           email: regForm.email.trim(),
-          phone: regForm.phone.trim(),
-          city: regForm.city.trim(),
-          address: regForm.city.trim(),
+          otp: otpCode.trim(),
+          otpToken,
+          registrationData: {
+            kennelName: regForm.kennelName.trim(),
+            contactName: regForm.contactName.trim(),
+            name: fullName,
+            phone: regForm.phone.trim(),
+            city: regForm.city.trim(),
+            address: regForm.city.trim(),
+          },
         }),
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to register account');
-
-      if (data.isApproved) {
-        setRegError('This kennel is already verified and approved! You can log in directly.');
-        setTrackResult(data.data);
-        setPageMode('TRACK');
-        return;
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Verification failed. Please check the code or resend.');
       }
 
       setRegisteredVendor(data.data);
       setTrackResult(data.data);
 
-      // Pre-fill existing documents if resuming
       if (data.data) {
         setFormData((prev) => ({
           ...prev,
@@ -165,13 +254,13 @@ export default function PartnerOnboardPage() {
         }));
       }
 
-      // Transition from landing page directly into the details wizard!
+      // Transition smoothly from landing page into the details wizard!
       setPageMode('WIZARD');
       setWizardStep(1);
     } catch (err: any) {
       setRegError(err.message);
     } finally {
-      setRegLoading(false);
+      setOtpLoading(false);
     }
   };
 
@@ -474,138 +563,273 @@ export default function PartnerOnboardPage() {
                   </div>
                 </div>
 
-                {/* Right Column: Swiggy/Zomato style Registration Card */}
+                {/* Right Column: Swiggy/Zomato style Registration Card with Captcha & Email OTP */}
                 <div className="lg:col-span-5">
                   <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-7 shadow-xl shadow-slate-200/50">
-                    <div className="text-left mb-5">
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 inline-block mb-2">
-                        Partner Registration
-                      </span>
-                      <h2 className="text-lg font-black text-slate-900">Register Your Kennel</h2>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        Register with your mobile & email to start your onboarding application.
-                      </p>
-                    </div>
-
-                    {regError && (
-                      <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-start gap-2">
-                        <AlertTriangle className="w-4 h-4 text-rose-500 flex-shrink-0 mt-0.5" />
-                        <span>{regError}</span>
-                      </div>
-                    )}
-
-                    <form onSubmit={handleQuickRegister} className="space-y-3.5 text-left text-xs">
-                      <div>
-                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                          Kennel / Facility Name <span className="text-rose-500">*</span>
-                        </label>
-                        <div className="relative">
-                          <Building className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                          <input
-                            type="text"
-                            required
-                            placeholder="e.g. Royal Paws Kennels"
-                            value={regForm.kennelName}
-                            onChange={(e) => setRegForm({ ...regForm, kennelName: e.target.value })}
-                            className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-slate-800 text-xs transition"
-                          />
+                    {!otpSent ? (
+                      <>
+                        <div className="text-left mb-5">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 inline-block mb-2">
+                            Partner Registration
+                          </span>
+                          <h2 className="text-lg font-black text-slate-900">Register Your Kennel</h2>
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            Register with your mobile & email to start your onboarding application.
+                          </p>
                         </div>
-                      </div>
 
-                      <div>
-                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                          Proprietor / Contact Name
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="e.g. Rajesh Sharma"
-                          value={regForm.contactName}
-                          onChange={(e) => setRegForm({ ...regForm, contactName: e.target.value })}
-                          className="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-slate-800 text-xs transition"
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                            Mobile Number <span className="text-rose-500">*</span>
-                          </label>
-                          <div className="relative">
-                            <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                            <input
-                              type="tel"
-                              required
-                              placeholder="9876543210"
-                              value={regForm.phone}
-                              onChange={(e) => setRegForm({ ...regForm, phone: e.target.value })}
-                              className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-slate-800 text-xs transition"
-                            />
+                        {regError && (
+                          <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-start gap-2">
+                            <AlertTriangle className="w-4 h-4 text-rose-500 flex-shrink-0 mt-0.5" />
+                            <span>{regError}</span>
                           </div>
-                        </div>
+                        )}
 
-                        <div>
-                          <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                            City / State <span className="text-rose-500">*</span>
-                          </label>
-                          <div className="relative">
-                            <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <form onSubmit={handleSendOtp} className="space-y-3.5 text-left text-xs">
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                              Kennel / Facility Name <span className="text-rose-500">*</span>
+                            </label>
+                            <div className="relative">
+                              <Building className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                              <input
+                                type="text"
+                                required
+                                placeholder="e.g. Royal Paws Kennels"
+                                value={regForm.kennelName}
+                                onChange={(e) => setRegForm({ ...regForm, kennelName: e.target.value })}
+                                className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-slate-800 text-xs transition"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                              Proprietor / Contact Name
+                            </label>
                             <input
                               type="text"
-                              required
-                              placeholder="e.g. Pune, MH"
-                              value={regForm.city}
-                              onChange={(e) => setRegForm({ ...regForm, city: e.target.value })}
-                              className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-slate-800 text-xs transition"
+                              placeholder="e.g. Rajesh Sharma"
+                              value={regForm.contactName}
+                              onChange={(e) => setRegForm({ ...regForm, contactName: e.target.value })}
+                              className="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-slate-800 text-xs transition"
                             />
                           </div>
-                        </div>
-                      </div>
 
-                      <div>
-                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                          Contact Email Address <span className="text-rose-500">*</span>
-                        </label>
-                        <div className="relative">
-                          <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                          <input
-                            type="email"
-                            required
-                            placeholder="breeder@royalpaws.com"
-                            value={regForm.email}
-                            onChange={(e) => setRegForm({ ...regForm, email: e.target.value })}
-                            className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-slate-800 text-xs transition"
-                          />
-                        </div>
-                      </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                                Mobile Number <span className="text-rose-500">*</span>
+                              </label>
+                              <div className="relative">
+                                <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                                <input
+                                  type="tel"
+                                  required
+                                  placeholder="9876543210"
+                                  value={regForm.phone}
+                                  onChange={(e) => setRegForm({ ...regForm, phone: e.target.value })}
+                                  className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-slate-800 text-xs transition"
+                                />
+                              </div>
+                            </div>
 
-                      <button
-                        type="submit"
-                        disabled={regLoading}
-                        className="w-full mt-2 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition shadow-md shadow-amber-600/20 disabled:opacity-50"
-                      >
-                        {regLoading ? (
-                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        ) : (
-                          <>
-                            <span>Register & Start Onboarding</span>
-                            <ArrowRight className="w-4 h-4" />
-                          </>
+                            <div>
+                              <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                                City / State <span className="text-rose-500">*</span>
+                              </label>
+                              <div className="relative">
+                                <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                                <input
+                                  type="text"
+                                  required
+                                  placeholder="e.g. Pune, MH"
+                                  value={regForm.city}
+                                  onChange={(e) => setRegForm({ ...regForm, city: e.target.value })}
+                                  className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-slate-800 text-xs transition"
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                              Contact Email Address <span className="text-rose-500">*</span>
+                            </label>
+                            <div className="relative">
+                              <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                              <input
+                                type="email"
+                                required
+                                placeholder="breeder@royalpaws.com"
+                                value={regForm.email}
+                                onChange={(e) => setRegForm({ ...regForm, email: e.target.value })}
+                                className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-slate-800 text-xs transition"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Security Verification Captcha */}
+                          <div>
+                            <div className="flex items-center justify-between mb-1">
+                              <label className="block text-[11px] font-bold text-slate-700">
+                                Security Captcha <span className="text-rose-500">*</span>
+                              </label>
+                              <span className="text-[10px] text-slate-400">Case-insensitive</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="flex-shrink-0 border border-slate-200 rounded-xl overflow-hidden bg-slate-50 shadow-2xs">
+                                {captchaSvg ? (
+                                  <div dangerouslySetInnerHTML={{ __html: captchaSvg }} />
+                                ) : (
+                                  <div className="w-[130px] h-[42px] flex items-center justify-center text-[10px] text-slate-400">
+                                    Loading...
+                                  </div>
+                                )}
+                              </div>
+                              <button
+                                type="button"
+                                onClick={fetchCaptcha}
+                                className="p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-500 hover:text-slate-800 transition flex-shrink-0"
+                                title="Refresh Captcha"
+                              >
+                                <RotateCw className={`w-4 h-4 ${captchaLoading ? 'animate-spin' : ''}`} />
+                              </button>
+                              <input
+                                type="text"
+                                required
+                                maxLength={5}
+                                placeholder="Code"
+                                value={captchaInput}
+                                onChange={(e) => setCaptchaInput(e.target.value.toUpperCase())}
+                                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-slate-800 text-xs font-mono font-bold tracking-widest uppercase transition"
+                              />
+                            </div>
+                          </div>
+
+                          <button
+                            type="submit"
+                            disabled={regLoading}
+                            className="w-full mt-2 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition shadow-md shadow-amber-600/20 disabled:opacity-50"
+                          >
+                            {regLoading ? (
+                              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            ) : (
+                              <>
+                                <span>Confirm with Email OTP</span>
+                                <ArrowRight className="w-4 h-4" />
+                              </>
+                            )}
+                          </button>
+
+                          <div className="text-center pt-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPageMode('TRACK');
+                                setTrackError('');
+                              }}
+                              className="text-[11px] text-slate-500 hover:text-amber-600 font-semibold transition"
+                            >
+                              Already started an application? <span className="underline font-bold text-slate-800">Resume / Track</span>
+                            </button>
+                          </div>
+                        </form>
+                      </>
+                    ) : (
+                      /* OTP Verification Screen */
+                      <div className="text-left">
+                        <div className="text-left mb-5">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200 inline-block mb-2">
+                            Email Verification Required
+                          </span>
+                          <h2 className="text-lg font-black text-slate-900">Enter Verification Code</h2>
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            We&apos;ve sent a 6-digit verification code to{' '}
+                            <strong className="text-slate-800 font-bold">{regForm.email}</strong>.
+                          </p>
+                        </div>
+
+                        {regError && (
+                          <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-start gap-2">
+                            <AlertTriangle className="w-4 h-4 text-rose-500 flex-shrink-0 mt-0.5" />
+                            <span>{regError}</span>
+                          </div>
                         )}
-                      </button>
 
-                      <div className="text-center pt-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setPageMode('TRACK');
-                            setTrackError('');
-                          }}
-                          className="text-[11px] text-slate-500 hover:text-amber-600 font-semibold transition"
-                        >
-                          Already started an application? <span className="underline font-bold text-slate-800">Resume / Track</span>
-                        </button>
+                        {otpSuccessMessage && !regError && (
+                          <div className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                            <span>{otpSuccessMessage}</span>
+                          </div>
+                        )}
+
+                        <form onSubmit={handleVerifyOtp} className="space-y-4">
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-700 mb-1 text-center">
+                              Enter 6-Digit OTP Code <span className="text-rose-500">*</span>
+                            </label>
+                            <input
+                              type="text"
+                              maxLength={6}
+                              required
+                              autoFocus
+                              placeholder="• • • • • •"
+                              value={otpCode}
+                              onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                              className="w-full py-3.5 px-4 text-center text-2xl font-mono font-extrabold tracking-[0.45em] rounded-2xl border-2 border-amber-500/40 bg-amber-50/20 text-slate-900 focus:ring-4 focus:ring-amber-500/20 focus:border-amber-500 focus:outline-none transition shadow-inner"
+                            />
+                            <p className="text-[10px] text-slate-400 text-center mt-1.5">
+                              Check your inbox and spam folder &bull; Valid for 10 minutes
+                            </p>
+                          </div>
+
+                          <div className="flex items-center justify-between text-[11px] pt-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setOtpSent(false);
+                                setRegError('');
+                                fetchCaptcha();
+                              }}
+                              className="text-slate-500 hover:text-slate-800 font-semibold transition"
+                            >
+                              &larr; Change Email
+                            </button>
+
+                            {otpResendCountdown > 0 ? (
+                              <span className="text-slate-400 font-mono text-[11px]">
+                                Resend in 0:{otpResendCountdown < 10 ? '0' : ''}{otpResendCountdown}
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={handleSendOtp}
+                                disabled={regLoading}
+                                className="text-amber-600 hover:text-amber-700 font-bold hover:underline transition"
+                              >
+                                Resend Code
+                              </button>
+                            )}
+                          </div>
+
+                          <button
+                            type="submit"
+                            disabled={otpLoading || otpCode.length !== 6}
+                            className="w-full py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition shadow-md shadow-amber-600/20 disabled:opacity-50"
+                          >
+                            {otpLoading ? (
+                              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            ) : (
+                              <>
+                                <span>Verify Code & Start Onboarding</span>
+                                <ArrowRight className="w-4 h-4" />
+                              </>
+                            )}
+                          </button>
+                        </form>
                       </div>
-                    </form>
+                    )}
                   </div>
                 </div>
               </div>
