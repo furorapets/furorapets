@@ -30,7 +30,7 @@ async function main() {
     name: 'Furora Admin',
     role: 'ADMIN',
     phone: '+91 9876543210',
-    address: 'Furora HQ, Bangalore',
+    address: 'Furora HQ, Chennai',
     onboardingStatus: 'APPROVED',
   };
 

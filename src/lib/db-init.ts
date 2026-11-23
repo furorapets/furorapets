@@ -231,7 +231,7 @@ export async function ensureDatabaseSchema(libsqlClient: ReturnType<typeof creat
         'Furora Admin',
         'ADMIN',
         '+91 9876543210',
-        'Furora HQ, Bangalore',
+        'Furora HQ, Chennai',
         now,
         now,
         'APPROVED',

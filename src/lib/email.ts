@@ -87,7 +87,7 @@ export async function sendVendorWelcomeEmail(vendorEmail: string, vendorName: st
       </div>
       <div style="background: #f1f5f9; padding: 16px 24px; text-align: center; border-top: 1px solid #e2e8f0;">
         <p style="color: #94a3b8; font-size: 12px; margin: 0;">
-          Furora Partner Desk &bull; breeder@furora.in &bull; Bangalore HQ
+          Furora Partner Desk &bull; breeder@furora.in &bull; Chennai HQ
         </p>
       </div>
     </div>
@@ -130,7 +130,7 @@ export async function sendVendorApprovalEmail(vendorEmail: string, vendorName: s
       </div>
       <div style="background: #f1f5f9; padding: 16px 24px; text-align: center; border-top: 1px solid #e2e8f0;">
         <p style="color: #94a3b8; font-size: 12px; margin: 0;">
-          Furora Partner Desk &bull; breeder@furora.in &bull; Bangalore HQ
+          Furora Partner Desk &bull; breeder@furora.in &bull; Chennai HQ
         </p>
       </div>
     </div>

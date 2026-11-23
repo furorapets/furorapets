@@ -119,7 +119,7 @@ export async function sendOtpEmail(email: string, kennelName: string, otp: strin
       <!-- Footer -->
       <div style="background: #f8fafc; padding: 18px 24px; text-align: center; border-top: 1px solid #e2e8f0;">
         <p style="color: #94a3b8; font-size: 11px; margin: 0;">
-          Furora Partner Desk &bull; <a href="mailto:breeder@furora.in" style="color: #64748b; text-decoration: underline;">breeder@furora.in</a> &bull; Bangalore HQ
+          Furora Partner Desk &bull; <a href="mailto:breeder@furora.in" style="color: #64748b; text-decoration: underline;">breeder@furora.in</a> &bull; Chennai HQ
         </p>
       </div>
     </div>

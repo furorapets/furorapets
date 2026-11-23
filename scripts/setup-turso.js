@@ -100,7 +100,7 @@ async function main() {
       'Furora Admin',
       'ADMIN',
       '+91 9876543210',
-      'Furora HQ, Bangalore',
+      'Furora HQ, Chennai',
       'APPROVED',
     ],
   });

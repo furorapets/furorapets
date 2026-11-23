@@ -1017,7 +1017,7 @@ export default function PartnerOnboardPage() {
                 </button>
               </div>
               <p className="text-[11px] text-slate-500 pt-4 border-t border-slate-800">
-                Furora Partner Network &bull; breeder@furora.in &bull; Bangalore HQ
+                Furora Partner Network &bull; breeder@furora.in &bull; Chennai HQ
               </p>
             </div>
           </footer>
