@@ -2,8 +2,18 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaLibSQL } from '@prisma/adapter-libsql';
 import { createClient } from '@libsql/client';
 
+export interface PrismaDiagnostics {
+  tursoUrlSet: boolean;
+  tursoUrlMasked: string;
+  tokenLength: number;
+  hasValidTurso: boolean;
+  mode: 'TURSO_CLOUD_LIBSQL' | 'FALLBACK_LOCAL_SQLITE';
+  adapterError: string | null;
+}
+
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
+  prismaDiagnostics?: PrismaDiagnostics;
 };
 
 function createPrismaClient(): PrismaClient {
@@ -29,6 +39,15 @@ function createPrismaClient(): PrismaClient {
     tursoAuthToken !== 'your_turso_auth_token_here' &&
     !tursoAuthToken.includes('your_');
 
+  globalForPrisma.prismaDiagnostics = {
+    tursoUrlSet: Boolean(tursoUrl),
+    tursoUrlMasked: tursoUrl ? `${tursoUrl.slice(0, 15)}...${tursoUrl.slice(-15)}` : 'EMPTY',
+    tokenLength: tursoAuthToken.length,
+    hasValidTurso,
+    mode: hasValidTurso ? 'TURSO_CLOUD_LIBSQL' : 'FALLBACK_LOCAL_SQLITE',
+    adapterError: null,
+  };
+
   if (hasValidTurso) {
     try {
       console.log(`[Prisma] Connecting to Turso Cloud Database: ${tursoUrl.slice(0, 35)}...`);
@@ -43,6 +62,10 @@ function createPrismaClient(): PrismaClient {
       });
     } catch (err: any) {
       console.error('[Prisma] Error creating Turso LibSQL adapter:', err.message);
+      if (globalForPrisma.prismaDiagnostics) {
+        globalForPrisma.prismaDiagnostics.adapterError = err.message;
+        globalForPrisma.prismaDiagnostics.mode = 'FALLBACK_LOCAL_SQLITE';
+      }
     }
   }
 
@@ -59,6 +82,25 @@ function createPrismaClient(): PrismaClient {
   return new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
   });
+}
+
+export function getPrismaDiagnostics(): PrismaDiagnostics {
+  if (!globalForPrisma.prismaDiagnostics) {
+    // If not initialized yet, trigger client creation
+    if (!globalForPrisma.prisma) {
+      globalForPrisma.prisma = createPrismaClient();
+    }
+  }
+  return (
+    globalForPrisma.prismaDiagnostics || {
+      tursoUrlSet: false,
+      tursoUrlMasked: 'NOT_INITIALIZED',
+      tokenLength: 0,
+      hasValidTurso: false,
+      mode: 'FALLBACK_LOCAL_SQLITE',
+      adapterError: null,
+    }
+  );
 }
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();
