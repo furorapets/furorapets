@@ -60,4 +60,5 @@ export interface SessionUser {
   onboardingStatus?: string | null;
   onboardingNotes?: string | null;
   kennelRegNumber?: string | null;
+  assignedCategories?: string | null;
 }

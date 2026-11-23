@@ -274,6 +274,42 @@ export default function VendorPetsPage() {
         </div>
       </div>
 
+      {/* Authorized Categories Banner */}
+      <div className="card-clean p-3 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+            Authorized Pet Categories:
+          </span>
+          {categories.length > 0 ? (
+            categories.map((c) => (
+              <span
+                key={c.id}
+                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs"
+              >
+                ✓ {c.name}
+              </span>
+            ))
+          ) : (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+              ⚠️ No Categories Assigned by Admin
+            </span>
+          )}
+        </div>
+        <div className="text-[11px] text-slate-400">
+          {categories.length > 0 ? (
+            <span>
+              You are authorized to list pets under{' '}
+              <strong className="text-slate-700">{categories.length}</strong> assigned{' '}
+              {categories.length === 1 ? 'category' : 'categories'}.
+            </span>
+          ) : (
+            <span className="text-amber-700 font-medium">
+              Awaiting admin category assignment before pets can be listed.
+            </span>
+          )}
+        </div>
+      </div>
+
       {/* Pet List */}
       <div className="card-clean overflow-hidden">
         <div className="overflow-x-auto">
@@ -362,6 +398,19 @@ export default function VendorPetsPage() {
                 <X className="w-4 h-4" />
               </button>
             </div>
+
+            {categories.length === 0 && (
+              <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="font-bold text-sm text-amber-950">No Pet Categories Assigned</p>
+                  <p className="text-[11px] text-amber-800 leading-relaxed">
+                    Your breeding facility has not been assigned to any authorized categories by Furora Admin.
+                    Administrators assign specific categories (e.g. Dogs, Cats) to each vendor. Please contact Furora Admin to assign authorized categories to your kennel.
+                  </p>
+                </div>
+              </div>
+            )}
 
             <form onSubmit={handleCreatePet} className="space-y-4 text-xs">
               <div className="space-y-3">
@@ -510,7 +559,12 @@ export default function VendorPetsPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition"
+                  disabled={categories.length === 0}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold text-white transition ${
+                    categories.length === 0
+                      ? 'bg-slate-300 cursor-not-allowed'
+                      : 'bg-slate-900 hover:bg-slate-800 active:scale-95'
+                  }`}
                 >
                   Save Pet to Kennel Stock
                 </button>

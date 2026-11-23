@@ -38,6 +38,7 @@ function VendorsContent() {
 
   const { currentUser, switchToRoleName } = useSession();
   const [vendors, setVendors] = useState<any[]>([]);
+  const [allCategories, setAllCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Filter & Search states
@@ -52,9 +53,17 @@ function VendorsContent() {
   const [isOnboardModalOpen, setIsOnboardModalOpen] = useState(false);
   const [reviewingVendor, setReviewingVendor] = useState<any | null>(null);
 
+  // Assign Categories Modal state
+  const [assigningVendor, setAssigningVendor] = useState<any | null>(null);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [assignSubmitting, setAssignSubmitting] = useState(false);
+  const [assignError, setAssignError] = useState('');
+  const [assignSuccess, setAssignSuccess] = useState('');
+
   // Review & Feedback action states
   const [feedbackAction, setFeedbackAction] = useState<'APPROVE' | 'REQUEST_CHANGES' | 'REJECT'>('APPROVE');
   const [feedbackNotes, setFeedbackNotes] = useState('');
+  const [reviewAssignedCategories, setReviewAssignedCategories] = useState<string[]>([]);
   const [docFlags, setDocFlags] = useState<{ [key: string]: { status: 'VERIFIED' | 'NEEDS_UPDATE' | 'NONE'; reason?: string } }>({});
   const [activeFlaggingDoc, setActiveFlaggingDoc] = useState<string | null>(null);
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
@@ -74,6 +83,7 @@ function VendorsContent() {
     vetAffiliationDoc: '',
     bankDetailsDoc: '',
     onboardingStatus: 'APPROVED',
+    assignedCategories: [] as string[],
   });
   const [onboardSubmitting, setOnboardSubmitting] = useState(false);
   const [onboardError, setOnboardError] = useState('');
@@ -81,10 +91,17 @@ function VendorsContent() {
   const loadVendors = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/vendors');
-      const data = await res.json();
-      if (data.success) {
-        setVendors(data.data);
+      const [vRes, cRes] = await Promise.all([
+        fetch('/api/vendors'),
+        fetch('/api/categories?all=true'),
+      ]);
+      const vData = await vRes.json();
+      const cData = await cRes.json();
+      if (vData.success) {
+        setVendors(vData.data);
+      }
+      if (cData.success) {
+        setAllCategories(cData.data);
       }
     } catch (e) {
       console.error(e);
@@ -154,6 +171,7 @@ function VendorsContent() {
         vetAffiliationDoc: '',
         bankDetailsDoc: '',
         onboardingStatus: 'APPROVED',
+        assignedCategories: [],
       });
       loadVendors();
     } catch (err: any) {
@@ -179,6 +197,7 @@ function VendorsContent() {
         body: JSON.stringify({
           action: feedbackAction,
           onboardingNotes: feedbackNotes,
+          assignedCategories: reviewAssignedCategories,
         }),
       });
 
@@ -196,6 +215,54 @@ function VendorsContent() {
       setReviewError(err.message);
     } finally {
       setReviewSubmitting(false);
+    }
+  };
+
+  const openAssignCategoriesModal = (vendor: any) => {
+    setAssigningVendor(vendor);
+    let currentAssigned: string[] = [];
+    try {
+      if (vendor.assignedCategories) {
+        currentAssigned = JSON.parse(vendor.assignedCategories);
+      }
+    } catch (e) {
+      currentAssigned = [];
+    }
+    setSelectedCategories(Array.isArray(currentAssigned) ? currentAssigned : []);
+    setAssignError('');
+    setAssignSuccess('');
+  };
+
+  const handleSaveAssignedCategories = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!assigningVendor) return;
+
+    setAssignSubmitting(true);
+    setAssignError('');
+    setAssignSuccess('');
+
+    try {
+      const res = await fetch(`/api/vendors/${assigningVendor.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          assignedCategories: selectedCategories,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update assigned categories');
+
+      setAssignSuccess('Assigned categories saved successfully.');
+      setTimeout(() => {
+        setAssigningVendor(null);
+        setAssignSuccess('');
+        loadVendors();
+      }, 700);
+    } catch (err: any) {
+      setAssignError(err.message);
+    } finally {
+      setAssignSubmitting(false);
     }
   };
 
@@ -251,6 +318,15 @@ function VendorsContent() {
     setReviewingVendor(vendor);
     setFeedbackAction(vendor.onboardingStatus === 'APPROVED' ? 'APPROVE' : 'REQUEST_CHANGES');
     setFeedbackNotes(vendor.onboardingNotes || '');
+    let currentAssigned: string[] = [];
+    try {
+      if (vendor.assignedCategories) {
+        currentAssigned = JSON.parse(vendor.assignedCategories);
+      }
+    } catch (e) {
+      currentAssigned = [];
+    }
+    setReviewAssignedCategories(Array.isArray(currentAssigned) ? currentAssigned : []);
     setDocFlags({});
     setActiveFlaggingDoc(null);
     setReviewError('');
@@ -510,16 +586,17 @@ function VendorsContent() {
                 <th className="py-3 px-4 whitespace-nowrap min-w-[200px]">Kennel & Proprietor</th>
                 <th className="py-3 px-4 whitespace-nowrap min-w-[140px]">KCI / AWBI Reg #</th>
                 <th className="py-3 px-4 whitespace-nowrap min-w-[190px]">Contact & Location</th>
+                <th className="py-3 px-4 whitespace-nowrap min-w-[170px]">Assigned Categories</th>
                 <th className="py-3 px-4 whitespace-nowrap min-w-[140px]">Verification Status</th>
                 <th className="py-3 px-4 whitespace-nowrap min-w-[130px] text-center">Compliance Docs</th>
                 <th className="py-3 px-4 whitespace-nowrap min-w-[120px] text-center">Stock & Orders</th>
-                <th className="py-3 px-4 whitespace-nowrap text-right min-w-[140px]">Actions</th>
+                <th className="py-3 px-4 whitespace-nowrap text-right min-w-[170px]">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredVendors.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400 text-xs">
+                  <td colSpan={8} className="py-12 text-center text-slate-400 text-xs">
                     No vendor partners match your search or filter.
                   </td>
                 </tr>
@@ -592,6 +669,51 @@ function VendorsContent() {
                         </div>
                       </td>
 
+                      {/* Assigned Categories */}
+                      <td className="py-3 px-4">
+                        {(() => {
+                          let assignedIds: string[] = [];
+                          try {
+                            if (v.assignedCategories) {
+                              assignedIds = JSON.parse(v.assignedCategories);
+                            }
+                          } catch (e) {
+                            assignedIds = [];
+                          }
+                          const assignedNames = allCategories
+                            .filter((c) => assignedIds.includes(c.id))
+                            .map((c) => c.name);
+
+                          return (
+                            <div className="space-y-1">
+                              <div className="flex flex-wrap items-center gap-1 max-w-[190px]">
+                                {assignedNames.length > 0 ? (
+                                  assignedNames.map((name) => (
+                                    <span
+                                      key={name}
+                                      className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200"
+                                    >
+                                      {name}
+                                    </span>
+                                  ))
+                                ) : (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                                    0 Categories (Restricted)
+                                  </span>
+                                )}
+                              </div>
+                              <button
+                                onClick={() => openAssignCategoriesModal(v)}
+                                className="inline-flex items-center gap-1 text-[10px] font-bold text-sky-700 hover:text-sky-900 transition hover:underline"
+                              >
+                                <Layers className="w-2.5 h-2.5" />
+                                <span>Assign Categories ({assignedIds.length})</span>
+                              </button>
+                            </div>
+                          );
+                        })()}
+                      </td>
+
                       {/* Status */}
                       <td className="py-3 px-4">
                         <div className="space-y-1">
@@ -653,17 +775,27 @@ function VendorsContent() {
 
                       {/* Actions */}
                       <td className="py-3 px-4 text-right">
-                        <button
-                          onClick={() => openReviewModal(v)}
-                          className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-xs ${
-                            v.onboardingStatus === 'DRAFT'
-                              ? 'bg-sky-700 hover:bg-sky-800 text-white'
-                              : 'bg-slate-900 hover:bg-slate-800 text-white'
-                          }`}
-                        >
-                          <Eye className="w-3 h-3" />
-                          <span>{v.onboardingStatus === 'DRAFT' ? 'Inspect Details' : 'Review & Verify'}</span>
-                        </button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => openAssignCategoriesModal(v)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition shadow-xs"
+                            title="Assign authorized pet categories"
+                          >
+                            <Layers className="w-3 h-3 text-slate-500" />
+                            <span>Categories</span>
+                          </button>
+                          <button
+                            onClick={() => openReviewModal(v)}
+                            className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-xs ${
+                              v.onboardingStatus === 'DRAFT'
+                                ? 'bg-sky-700 hover:bg-sky-800 text-white'
+                                : 'bg-slate-900 hover:bg-slate-800 text-white'
+                            }`}
+                          >
+                            <Eye className="w-3 h-3" />
+                            <span>{v.onboardingStatus === 'DRAFT' ? 'Inspect Details' : 'Review & Verify'}</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -930,6 +1062,71 @@ function VendorsContent() {
                 </div>
               </div>
 
+              {/* Authorized Categories Section */}
+              <div className="pt-3 border-t border-slate-100 space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                    <Layers className="w-3.5 h-3.5 text-slate-500" />
+                    Authorized Pet Categories
+                  </h4>
+                  <div className="flex items-center gap-2 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setReviewAssignedCategories(allCategories.map((c) => c.id))}
+                      className="text-[10px] font-bold text-slate-600 hover:text-slate-900 hover:underline"
+                    >
+                      Select All
+                    </button>
+                    <span className="text-slate-300">•</span>
+                    <button
+                      type="button"
+                      onClick={() => setReviewAssignedCategories([])}
+                      className="text-[10px] font-bold text-slate-600 hover:text-slate-900 hover:underline"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+                <p className="text-[11px] text-slate-500 leading-relaxed">
+                  Vendor can only list pets under assigned categories (e.g. assign Dogs & Cats from the available categories).
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {allCategories.map((cat) => {
+                    const isChecked = reviewAssignedCategories.includes(cat.id);
+                    return (
+                      <button
+                        type="button"
+                        key={cat.id}
+                        onClick={() => {
+                          setReviewAssignedCategories((prev) =>
+                            isChecked ? prev.filter((id) => id !== cat.id) : [...prev, cat.id]
+                          );
+                        }}
+                        className={`p-2.5 rounded-xl border text-left transition flex items-center justify-between ${
+                          isChecked
+                            ? 'border-emerald-300 bg-emerald-50/60 ring-1 ring-emerald-200'
+                            : 'border-slate-200 bg-white hover:border-slate-300'
+                        }`}
+                      >
+                        <div>
+                          <p className="font-bold text-slate-900 text-xs">{cat.name}</p>
+                          <p className="text-[10px] text-slate-400">
+                            {cat.breeds?.filter((b: any) => b.active).length || 0} breeds
+                          </p>
+                        </div>
+                        <div
+                          className={`w-4 h-4 rounded-md flex items-center justify-center border text-white text-[10px] ${
+                            isChecked ? 'bg-emerald-600 border-emerald-600' : 'border-slate-300 bg-white'
+                          }`}
+                        >
+                          {isChecked && <Check className="w-3 h-3 text-white" />}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Action Form */}
               <form onSubmit={handleReviewSubmit} className="pt-3 border-t border-slate-100 space-y-3">
                 <div className="space-y-1.5">
@@ -1034,6 +1231,167 @@ function VendorsContent() {
                 </div>
               </form>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Assign Categories Modal */}
+      {assigningVendor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full flex flex-col overflow-hidden border border-slate-100">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-slate-50/50">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center">
+                  <Layers className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm text-slate-900">
+                    Assign Pet Categories
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    {assigningVendor.name} ({assigningVendor.email})
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setAssigningVendor(null)}
+                className="w-7 h-7 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 flex items-center justify-center transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveAssignedCategories} className="p-5 space-y-4">
+              {assignError && (
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold">
+                  {assignError}
+                </div>
+              )}
+              {assignSuccess && (
+                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold">
+                  {assignSuccess}
+                </div>
+              )}
+
+              <div className="space-y-1">
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Select which pet categories this vendor is permitted to list pets under. The vendor will only see and be able to add pets in the selected categories.
+                </p>
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                    Available Categories ({allCategories.length})
+                  </span>
+                  <div className="flex items-center gap-2 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCategories(allCategories.map((c) => c.id))}
+                      className="text-[11px] font-bold text-slate-600 hover:text-slate-900 hover:underline"
+                    >
+                      Select All
+                    </button>
+                    <span className="text-slate-300">•</span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCategories([])}
+                      className="text-[11px] font-bold text-slate-600 hover:text-slate-900 hover:underline"
+                    >
+                      Clear All
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Category Checkboxes List */}
+              <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                {allCategories.map((cat) => {
+                  const isChecked = selectedCategories.includes(cat.id);
+                  const activeBreeds = cat.breeds?.filter((b: any) => b.active) || [];
+
+                  return (
+                    <div
+                      key={cat.id}
+                      onClick={() => {
+                        setSelectedCategories((prev) =>
+                          isChecked ? prev.filter((id) => id !== cat.id) : [...prev, cat.id]
+                        );
+                      }}
+                      className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition select-none ${
+                        isChecked
+                          ? 'border-emerald-300 bg-emerald-50/50 ring-1 ring-emerald-200'
+                          : 'border-slate-200 hover:border-slate-300 bg-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-4 h-4 rounded-md flex items-center justify-center border text-white text-[10px] ${
+                            isChecked ? 'bg-emerald-600 border-emerald-600' : 'border-slate-300 bg-white'
+                          }`}
+                        >
+                          {isChecked && <Check className="w-3 h-3 text-white" />}
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-slate-900">{cat.name}</p>
+                          <p className="text-[10px] text-slate-400">
+                            {activeBreeds.length} active {activeBreeds.length === 1 ? 'breed' : 'breeds'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {isChecked ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                          <Check className="w-2.5 h-2.5" /> Assigned
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-slate-400">Not Assigned</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Summary */}
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/60 text-xs">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
+                  Assignment Summary
+                </span>
+                <p className="text-slate-700 text-[11px]">
+                  <strong>{assigningVendor.name}</strong> will be authorized to add pets under{' '}
+                  <strong className="text-emerald-700">{selectedCategories.length}</strong> of{' '}
+                  <strong>{allCategories.length}</strong> categories
+                  {selectedCategories.length > 0 && (
+                    <span>
+                      : {allCategories.filter((c) => selectedCategories.includes(c.id)).map((c) => c.name).join(', ')}
+                    </span>
+                  )}
+                  .
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setAssigningVendor(null)}
+                  className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={assignSubmitting}
+                  className="px-4 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm active:scale-95"
+                >
+                  {assignSubmitting ? (
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Save Assigned Categories</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

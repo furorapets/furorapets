@@ -31,6 +31,7 @@ model User {
   bankDetailsDoc     String?   // URL to Bank Passbook / Canceled Cheque
   onboardingStatus   String?   @default("APPROVED") // PENDING, APPROVED, REJECTED, CHANGES_REQUESTED
   onboardingNotes    String?   // Feedback / Reason when requesting resubmission or rejecting
+  assignedCategories String?   @default("[]") // JSON array of category IDs assigned to vendor by admin
 
   petsCreated        Pet[]              @relation("PetCreator")
   vendorPets         Pet[]              @relation("VendorInventory")

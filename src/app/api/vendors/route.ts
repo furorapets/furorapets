@@ -80,6 +80,7 @@ export async function POST(req: NextRequest) {
       bankDetailsDoc,
       onboardingStatus = 'APPROVED',
       onboardingNotes,
+      assignedCategories = [],
     } = body;
 
     if (!name || !name.trim()) {
@@ -123,6 +124,7 @@ export async function POST(req: NextRequest) {
         bankDetailsDoc: bankDetailsDoc.trim(),
         onboardingStatus,
         onboardingNotes: onboardingNotes || null,
+        assignedCategories: Array.isArray(assignedCategories) ? JSON.stringify(assignedCategories) : String(assignedCategories || '[]'),
       },
     });
 

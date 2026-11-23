@@ -11,12 +11,16 @@ export async function GET(req: NextRequest) {
     const user = await getCurrentUser(req);
     const isAdmin = user?.role === 'ADMIN';
 
-    // Non-admins only see active categories
-    const categories = await prisma.category.findMany({
-      where: isAdmin ? undefined : { active: true },
+    const { searchParams } = new URL(req.url);
+    const vendorId = searchParams.get('vendorId');
+    const all = searchParams.get('all') === 'true';
+
+    // Non-admins only see active categories unless all=true
+    let categories = await prisma.category.findMany({
+      where: isAdmin && all ? undefined : { active: true },
       include: {
         breeds: {
-          where: isAdmin ? undefined : { active: true },
+          where: isAdmin && all ? undefined : { active: true },
           select: {
             id: true,
             name: true,
@@ -29,6 +33,35 @@ export async function GET(req: NextRequest) {
       },
       orderBy: { name: 'asc' },
     });
+
+    // Check if filtering for a vendor (either logged-in vendor or explicit ?vendorId parameter)
+    const targetVendorId = user?.role === 'VENDOR' ? user.id : vendorId;
+    if (targetVendorId && !all) {
+      const vendorUser = await prisma.user.findUnique({
+        where: { id: targetVendorId },
+        select: { assignedCategories: true, role: true },
+      });
+
+      if (vendorUser && vendorUser.role === 'VENDOR') {
+        let assignedIds: string[] = [];
+        try {
+          if (vendorUser.assignedCategories) {
+            assignedIds = JSON.parse(vendorUser.assignedCategories);
+          }
+        } catch (e) {
+          assignedIds = [];
+        }
+
+        // Filter categories strictly to assigned categories for this vendor
+        const filtered = categories.filter((c) => assignedIds.includes(c.id));
+        return NextResponse.json({
+          success: true,
+          data: filtered,
+          vendorAssignedIds: assignedIds,
+          totalAssigned: assignedIds.length,
+        });
+      }
+    }
 
     return NextResponse.json({ success: true, data: categories });
   } catch (error) {

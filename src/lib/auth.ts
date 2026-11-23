@@ -38,6 +38,7 @@ export async function getCurrentUser(req?: NextRequest): Promise<SessionUser | n
       onboardingStatus: true,
       onboardingNotes: true,
       kennelRegNumber: true,
+      assignedCategories: true,
     },
   });
 
@@ -51,6 +52,7 @@ export async function getCurrentUser(req?: NextRequest): Promise<SessionUser | n
     onboardingStatus: user.onboardingStatus,
     onboardingNotes: user.onboardingNotes,
     kennelRegNumber: user.kennelRegNumber,
+    assignedCategories: user.assignedCategories,
   };
 }
 
@@ -67,6 +69,7 @@ export async function getAvailableUsers(): Promise<SessionUser[]> {
       onboardingStatus: true,
       onboardingNotes: true,
       kennelRegNumber: true,
+      assignedCategories: true,
     },
     orderBy: { role: 'asc' },
   });
@@ -78,5 +81,6 @@ export async function getAvailableUsers(): Promise<SessionUser[]> {
     onboardingStatus: u.onboardingStatus,
     onboardingNotes: u.onboardingNotes,
     kennelRegNumber: u.kennelRegNumber,
+    assignedCategories: u.assignedCategories,
   }));
 }

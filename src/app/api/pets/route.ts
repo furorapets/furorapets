@@ -189,6 +189,35 @@ export async function POST(req: NextRequest) {
     if (user.role === 'VENDOR') {
       finalOwner = 'VENDOR';
       finalVendorId = user.id;
+
+      // Category assignment enforcement for vendors
+      const vendorUser = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: { assignedCategories: true, name: true },
+      });
+
+      let assignedIds: string[] = [];
+      try {
+        if (vendorUser?.assignedCategories) {
+          assignedIds = JSON.parse(vendorUser.assignedCategories);
+        }
+      } catch (e) {
+        assignedIds = [];
+      }
+
+      if (!assignedIds || assignedIds.length === 0) {
+        return NextResponse.json(
+          { error: 'No pet categories have been assigned to your kennel yet. Please contact Furora Admin to assign authorized categories.' },
+          { status: 403 }
+        );
+      }
+
+      if (!assignedIds.includes(categoryId)) {
+        return NextResponse.json(
+          { error: 'You are only authorized to add pets under your assigned categories. Please select an authorized category.' },
+          { status: 403 }
+        );
+      }
     } else if (finalOwner === 'VENDOR' && !finalVendorId) {
       return NextResponse.json(
         { error: 'vendorId is required when inventoryOwner is VENDOR' },

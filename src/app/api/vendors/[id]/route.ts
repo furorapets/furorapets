@@ -69,7 +69,7 @@ export async function PUT(
 
     const { id } = await params;
     const body = await req.json();
-    const { action, onboardingNotes, name, phone, address, kennelRegNumber } = body;
+    const { action, onboardingNotes, name, phone, address, kennelRegNumber, assignedCategories } = body;
 
     const vendor = await prisma.user.findUnique({
       where: { id },
@@ -99,15 +99,23 @@ export async function PUT(
       updatedNotes = onboardingNotes?.trim() || 'Application does not meet Furora ethical breeder compliance guidelines';
     }
 
+    const assignedCategoriesData =
+      assignedCategories !== undefined
+        ? Array.isArray(assignedCategories)
+          ? JSON.stringify(assignedCategories)
+          : String(assignedCategories)
+        : undefined;
+
     const updated = await prisma.user.update({
       where: { id },
       data: {
-        onboardingStatus: newStatus,
-        onboardingNotes: updatedNotes,
+        ...(action && ['APPROVE', 'REQUEST_CHANGES', 'REJECT'].includes(action) ? { onboardingStatus: newStatus } : {}),
+        ...(updatedNotes !== undefined ? { onboardingNotes: updatedNotes } : {}),
         ...(name ? { name: name.trim() } : {}),
         ...(phone ? { phone: phone.trim() } : {}),
         ...(address ? { address: address.trim() } : {}),
         ...(kennelRegNumber ? { kennelRegNumber: kennelRegNumber.trim() } : {}),
+        ...(assignedCategoriesData !== undefined ? { assignedCategories: assignedCategoriesData } : {}),
       },
     });
 

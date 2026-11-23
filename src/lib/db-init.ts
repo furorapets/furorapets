@@ -21,7 +21,8 @@ export const SCHEMA_DDL: string[] = [
     "vetAffiliationDoc" TEXT,
     "bankDetailsDoc" TEXT,
     "onboardingStatus" TEXT DEFAULT 'APPROVED',
-    "onboardingNotes" TEXT
+    "onboardingNotes" TEXT,
+    "assignedCategories" TEXT DEFAULT '[]'
   )`,
   `CREATE TABLE IF NOT EXISTS "Category" (
     "id" TEXT NOT NULL PRIMARY KEY,
@@ -213,6 +214,13 @@ export async function ensureDatabaseSchema(libsqlClient: ReturnType<typeof creat
     } catch (err: any) {
       console.error(`[db-init] Error executing DDL: ${ddl.slice(0, 40)}:`, err.message);
     }
+  }
+
+  // Ensure assignedCategories column exists on User table for older databases
+  try {
+    await libsqlClient.execute(`ALTER TABLE "User" ADD COLUMN "assignedCategories" TEXT DEFAULT '[]'`);
+  } catch (err: any) {
+    // Column already exists or table freshly created
   }
 
   // Seed default admin and categories if not present
