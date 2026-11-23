@@ -100,11 +100,12 @@ function VendorsContent() {
   // Compute Metrics
   const metrics = useMemo(() => {
     const total = vendors.length;
+    const draft = vendors.filter((v) => v.onboardingStatus === 'DRAFT').length;
     const pending = vendors.filter((v) => v.onboardingStatus === 'PENDING').length;
     const changes = vendors.filter((v) => v.onboardingStatus === 'CHANGES_REQUESTED').length;
     const approved = vendors.filter((v) => v.onboardingStatus === 'APPROVED').length;
     const rejected = vendors.filter((v) => v.onboardingStatus === 'REJECTED').length;
-    return { total, pending, changes, approved, rejected };
+    return { total, draft, pending, changes, approved, rejected };
   }, [vendors]);
 
   // Filter vendors
@@ -270,6 +271,12 @@ function VendorsContent() {
             <Clock className="w-3 h-3 mr-1 text-amber-600" /> Pending Review
           </span>
         );
+      case 'DRAFT':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-sky-50 text-sky-700 border border-sky-200 shadow-xs">
+            <Sparkles className="w-3 h-3 mr-1 text-sky-600" /> Registered (Awaiting Docs)
+          </span>
+        );
       case 'CHANGES_REQUESTED':
         return (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-orange-50 text-orange-700 border border-orange-200 shadow-xs">
@@ -336,56 +343,102 @@ function VendorsContent() {
       </div>
 
       {/* Metrics Banner */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <div className="card-clean p-3.5 flex items-center justify-between">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <button
+          onClick={() => setStatusFilter('ALL')}
+          className={`card-clean p-3 flex items-center justify-between text-left transition hover:border-slate-300 ${
+            statusFilter === 'ALL' ? 'ring-2 ring-slate-900 bg-slate-50/50' : ''
+          }`}
+        >
           <div>
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Kennels</p>
             <p className="text-xl font-extrabold text-slate-900 mt-0.5">{metrics.total}</p>
+            <span className="text-[9px] text-slate-400 font-medium">All accounts</span>
           </div>
           <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600">
             <Building className="w-4 h-4" />
           </div>
-        </div>
+        </button>
 
-        <div className="card-clean p-3.5 flex items-center justify-between">
+        <button
+          onClick={() => setStatusFilter('DRAFT')}
+          className={`card-clean p-3 flex items-center justify-between text-left transition hover:border-sky-300 ${
+            statusFilter === 'DRAFT' ? 'ring-2 ring-sky-600 bg-sky-50/50' : ''
+          }`}
+        >
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Pending Review</p>
-            <p className="text-xl font-extrabold text-slate-900 mt-0.5">{metrics.pending}</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-sky-600">New Registered</p>
+            <p className="text-xl font-extrabold text-sky-900 mt-0.5">{metrics.draft}</p>
+            <span className="text-[9px] text-sky-600 font-medium">OTP Verified • In Wizard</span>
           </div>
-          <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600">
+          <div className="w-8 h-8 rounded-xl bg-sky-100 flex items-center justify-center text-sky-600">
+            <Sparkles className="w-4 h-4" />
+          </div>
+        </button>
+
+        <button
+          onClick={() => setStatusFilter('PENDING')}
+          className={`card-clean p-3 flex items-center justify-between text-left transition hover:border-amber-300 ${
+            statusFilter === 'PENDING' ? 'ring-2 ring-amber-600 bg-amber-50/50' : ''
+          }`}
+        >
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-amber-600">Pending Review</p>
+            <p className="text-xl font-extrabold text-amber-900 mt-0.5">{metrics.pending}</p>
+            <span className="text-[9px] text-amber-600 font-medium">Docs Submitted</span>
+          </div>
+          <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600">
             <Clock className="w-4 h-4" />
           </div>
-        </div>
+        </button>
 
-        <div className="card-clean p-3.5 flex items-center justify-between">
+        <button
+          onClick={() => setStatusFilter('CHANGES_REQUESTED')}
+          className={`card-clean p-3 flex items-center justify-between text-left transition hover:border-orange-300 ${
+            statusFilter === 'CHANGES_REQUESTED' ? 'ring-2 ring-orange-500 bg-orange-50/50' : ''
+          }`}
+        >
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Changes Requested</p>
-            <p className="text-xl font-extrabold text-slate-900 mt-0.5">{metrics.changes}</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-orange-500">Changes Req.</p>
+            <p className="text-xl font-extrabold text-orange-900 mt-0.5">{metrics.changes}</p>
+            <span className="text-[9px] text-orange-500 font-medium">Action Pending</span>
           </div>
-          <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600">
+          <div className="w-8 h-8 rounded-xl bg-orange-100 flex items-center justify-center text-orange-600">
             <AlertTriangle className="w-4 h-4" />
           </div>
-        </div>
+        </button>
 
-        <div className="card-clean p-3.5 flex items-center justify-between">
+        <button
+          onClick={() => setStatusFilter('APPROVED')}
+          className={`card-clean p-3 flex items-center justify-between text-left transition hover:border-emerald-300 ${
+            statusFilter === 'APPROVED' ? 'ring-2 ring-emerald-600 bg-emerald-50/50' : ''
+          }`}
+        >
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Approved Active</p>
-            <p className="text-xl font-extrabold text-slate-900 mt-0.5">{metrics.approved}</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">Approved</p>
+            <p className="text-xl font-extrabold text-emerald-900 mt-0.5">{metrics.approved}</p>
+            <span className="text-[9px] text-emerald-600 font-medium">Active Partners</span>
           </div>
-          <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600">
+          <div className="w-8 h-8 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600">
             <CheckCircle2 className="w-4 h-4" />
           </div>
-        </div>
+        </button>
 
-        <div className="card-clean p-3.5 flex items-center justify-between col-span-2 sm:col-span-1">
+        <button
+          onClick={() => setStatusFilter('REJECTED')}
+          className={`card-clean p-3 flex items-center justify-between text-left transition hover:border-rose-300 ${
+            statusFilter === 'REJECTED' ? 'ring-2 ring-rose-600 bg-rose-50/50' : ''
+          }`}
+        >
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Rejected</p>
-            <p className="text-xl font-extrabold text-slate-900 mt-0.5">{metrics.rejected}</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-rose-500">Rejected</p>
+            <p className="text-xl font-extrabold text-rose-900 mt-0.5">{metrics.rejected}</p>
+            <span className="text-[9px] text-rose-500 font-medium">Not Qualified</span>
           </div>
-          <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600">
+          <div className="w-8 h-8 rounded-xl bg-rose-100 flex items-center justify-center text-rose-600">
             <XCircle className="w-4 h-4" />
           </div>
-        </div>
+        </button>
       </div>
 
       {/* Filter & Search Toolbar */}
@@ -414,22 +467,30 @@ function VendorsContent() {
           {/* Status Filter Pills */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
             {[
-              { id: 'ALL', label: 'All Kennels' },
-              { id: 'PENDING', label: 'Pending Review' },
-              { id: 'CHANGES_REQUESTED', label: 'Changes Requested' },
-              { id: 'APPROVED', label: 'Approved Active' },
-              { id: 'REJECTED', label: 'Rejected' },
+              { id: 'ALL', label: 'All Kennels', count: metrics.total },
+              { id: 'DRAFT', label: 'New Registered', count: metrics.draft, badgeClass: 'bg-sky-100 text-sky-800' },
+              { id: 'PENDING', label: 'Pending Review', count: metrics.pending, badgeClass: 'bg-amber-100 text-amber-800' },
+              { id: 'CHANGES_REQUESTED', label: 'Changes Requested', count: metrics.changes, badgeClass: 'bg-orange-100 text-orange-800' },
+              { id: 'APPROVED', label: 'Approved Active', count: metrics.approved, badgeClass: 'bg-emerald-100 text-emerald-800' },
+              { id: 'REJECTED', label: 'Rejected', count: metrics.rejected, badgeClass: 'bg-rose-100 text-rose-800' },
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setStatusFilter(tab.id)}
-                className={`px-3 py-1 rounded-xl text-xs font-semibold whitespace-nowrap transition ${
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold whitespace-nowrap transition ${
                   statusFilter === tab.id
                     ? 'bg-slate-900 text-white shadow-xs'
                     : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
                 }`}
               >
-                {tab.label}
+                <span>{tab.label}</span>
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    statusFilter === tab.id ? 'bg-white/20 text-white' : tab.badgeClass || 'bg-slate-200 text-slate-700'
+                  }`}
+                >
+                  {tab.count}
+                </span>
               </button>
             ))}
           </div>
@@ -472,12 +533,32 @@ function VendorsContent() {
                       {/* Kennel Name */}
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center font-bold text-xs flex-shrink-0 border border-amber-200">
+                          <div
+                            className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs flex-shrink-0 border ${
+                              v.onboardingStatus === 'DRAFT'
+                                ? 'bg-sky-50 text-sky-700 border-sky-200'
+                                : 'bg-amber-50 text-amber-700 border-amber-200'
+                            }`}
+                          >
                             <Store className="w-4 h-4" />
                           </div>
                           <div>
-                            <span className="font-extrabold text-slate-900 block leading-tight">{v.name}</span>
-                            <span className="text-[10px] text-slate-400 font-mono block mt-0.5">{v.id}</span>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-extrabold text-slate-900 block leading-tight">{v.name}</span>
+                              {v.onboardingStatus === 'DRAFT' && (
+                                <span className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.2 rounded bg-sky-50 text-sky-700 border border-sky-200">
+                                  <Sparkles className="w-2.5 h-2.5 text-sky-600" /> New Signup
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <span className="text-[10px] text-slate-400 font-mono">{v.id}</span>
+                              {v.createdAt && (
+                                <span className="text-[10px] text-slate-400">
+                                  • {new Date(v.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </td>
@@ -485,7 +566,7 @@ function VendorsContent() {
                       {/* Reg Number */}
                       <td className="py-3 px-4">
                         <span className="font-mono text-xs font-semibold text-slate-700 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
-                          {v.kennelRegNumber || 'Under Review'}
+                          {v.kennelRegNumber || (v.onboardingStatus === 'DRAFT' ? 'Awaiting Wizard' : 'Under Review')}
                         </span>
                       </td>
 
@@ -525,18 +606,29 @@ function VendorsContent() {
 
                       {/* Compliance Docs */}
                       <td className="py-3 px-4 text-center">
-                        <button
-                          onClick={() => openReviewModal(v)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg text-[11px] font-semibold border border-slate-200 transition"
-                        >
-                          <FileText className="w-3 h-3 text-slate-500" />
-                          <span>5 Docs</span>
-                          {hasAllDocs ? (
-                            <CheckCircle2 className="w-3 h-3 text-emerald-600 ml-0.5" />
-                          ) : (
-                            <AlertTriangle className="w-3 h-3 text-amber-600 ml-0.5" />
-                          )}
-                        </button>
+                        {v.onboardingStatus === 'DRAFT' ? (
+                          <button
+                            onClick={() => openReviewModal(v)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-sky-50 hover:bg-sky-100 text-sky-700 rounded-lg text-[11px] font-bold border border-sky-200 transition"
+                            title="Partner completed email OTP and is currently in the onboarding wizard"
+                          >
+                            <Clock className="w-3 h-3 text-sky-600" />
+                            <span>Filling in Wizard</span>
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => openReviewModal(v)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg text-[11px] font-semibold border border-slate-200 transition"
+                          >
+                            <FileText className="w-3 h-3 text-slate-500" />
+                            <span>5 Docs</span>
+                            {hasAllDocs ? (
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600 ml-0.5" />
+                            ) : (
+                              <AlertTriangle className="w-3 h-3 text-amber-600 ml-0.5" />
+                            )}
+                          </button>
+                        )}
                       </td>
 
                       {/* Live Stock & Orders - Direct Bridges to Inventory & Orders */}
@@ -563,10 +655,14 @@ function VendorsContent() {
                       <td className="py-3 px-4 text-right">
                         <button
                           onClick={() => openReviewModal(v)}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition shadow-xs"
+                          className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-xs ${
+                            v.onboardingStatus === 'DRAFT'
+                              ? 'bg-sky-700 hover:bg-sky-800 text-white'
+                              : 'bg-slate-900 hover:bg-slate-800 text-white'
+                          }`}
                         >
                           <Eye className="w-3 h-3" />
-                          <span>Review & Verify</span>
+                          <span>{v.onboardingStatus === 'DRAFT' ? 'Inspect Details' : 'Review & Verify'}</span>
                         </button>
                       </td>
                     </tr>
@@ -618,6 +714,41 @@ function VendorsContent() {
                 </div>
               )}
 
+              {/* Informational Banner for DRAFT applicants */}
+              {reviewingVendor.onboardingStatus === 'DRAFT' && (
+                <div className="p-3.5 rounded-xl bg-sky-50 border border-sky-200 text-sky-950 text-xs flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Sparkles className="w-4 h-4 text-sky-600" />
+                  </div>
+                  <div className="space-y-1.5 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-extrabold text-sky-950 text-xs">Landing Page Registration (Draft Mode)</p>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-200/80 text-sky-900 border border-sky-300">
+                        <CheckCircle2 className="w-2.5 h-2.5 mr-1 text-sky-700" /> Email OTP Verified
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-sky-800 leading-relaxed">
+                      This partner registered on the public landing page (<code>/partner/onboard</code>) and verified their email with a 6-digit OTP. Their account is securely created in the database and they are currently filling their kennel facility details and uploading compliance documents. Once submitted, their application will automatically move to <strong>Pending Review</strong>.
+                    </p>
+                    <div className="pt-1 flex flex-wrap items-center gap-3 text-[11px] font-semibold text-sky-900 border-t border-sky-200/60 mt-1">
+                      <span className="flex items-center gap-1">
+                        <Mail className="w-3 h-3 text-sky-600" /> {reviewingVendor.email}
+                      </span>
+                      {reviewingVendor.phone && (
+                        <span className="flex items-center gap-1">
+                          <Phone className="w-3 h-3 text-sky-600" /> {reviewingVendor.phone}
+                        </span>
+                      )}
+                      {reviewingVendor.address && (
+                        <span className="flex items-center gap-1">
+                          <MapPin className="w-3 h-3 text-sky-600" /> {reviewingVendor.address}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Status Header Bar */}
               <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
                 <div>
@@ -626,7 +757,9 @@ function VendorsContent() {
                 </div>
                 <div>
                   <span className="text-[10px] font-bold uppercase text-slate-400 block text-right">KCI / AWBI Reg</span>
-                  <span className="font-mono text-xs font-bold text-slate-800">{reviewingVendor.kennelRegNumber || 'N/A'}</span>
+                  <span className="font-mono text-xs font-bold text-slate-800">
+                    {reviewingVendor.kennelRegNumber || (reviewingVendor.onboardingStatus === 'DRAFT' ? 'Awaiting Wizard' : 'N/A')}
+                  </span>
                 </div>
               </div>
 
@@ -713,6 +846,10 @@ function VendorsContent() {
                               >
                                 <ExternalLink className="w-3 h-3" /> View Doc
                               </a>
+                            ) : reviewingVendor.onboardingStatus === 'DRAFT' ? (
+                              <span className="text-[11px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                                Awaiting Wizard Upload
+                              </span>
                             ) : (
                               <span className="text-[11px] font-semibold text-rose-500 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
                                 Missing
