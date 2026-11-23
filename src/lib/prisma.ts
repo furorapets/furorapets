@@ -55,6 +55,12 @@ function createPrismaClient(): PrismaClient {
         url: tursoUrl,
         authToken: tursoAuthToken,
       });
+
+      // Self-healing migration: ensure assignedCategories column exists on User table
+      libsql
+        .execute(`ALTER TABLE "User" ADD COLUMN "assignedCategories" TEXT DEFAULT '[]'`)
+        .catch(() => {}); // safely ignore if already exists or during table creation
+
       const adapter = new PrismaLibSQL(libsql);
       return new PrismaClient({
         adapter: adapter as any,

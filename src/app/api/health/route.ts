@@ -54,6 +54,21 @@ export async function GET() {
             directTables = updated.rows.map((r) => String(r.name));
           }
         }
+
+        // Self-healing check: ensure assignedCategories column exists on User table
+        if (directTables.includes('User')) {
+          const tableInfo = await directClient.execute('PRAGMA table_info("User")');
+          const cols = tableInfo.rows.map((r) => String(r.name));
+          if (!cols.includes('assignedCategories')) {
+            console.log('[api/health] assignedCategories column missing on User table. Adding...');
+            try {
+              await directClient.execute(`ALTER TABLE "User" ADD COLUMN "assignedCategories" TEXT DEFAULT '[]'`);
+              console.log('[api/health] assignedCategories column added successfully.');
+            } catch (err: any) {
+              console.error('[api/health] Error adding assignedCategories column:', err.message);
+            }
+          }
+        }
       } catch (err: any) {
         directError = err.message;
       }
