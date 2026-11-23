@@ -5,7 +5,18 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   const currentUser = await getCurrentUser(req);
-  const availableUsers = await getAvailableUsers();
+  
+  if (!currentUser) {
+    return NextResponse.json({
+      success: true,
+      user: null,
+      availableUsers: [],
+    });
+  }
+
+  // Only Admin accounts can view all personas for switching / testing
+  const availableUsers =
+    currentUser.role === 'ADMIN' ? await getAvailableUsers() : [currentUser];
 
   return NextResponse.json({
     success: true,

@@ -9,6 +9,7 @@ export async function POST(req: NextRequest) {
   });
 
   res.cookies.delete('furora_user_id');
+  res.cookies.delete('furora_user_role');
 
   return res;
 }

@@ -383,6 +383,12 @@ function SalesCatalogContent() {
                     )}
                   </div>
 
+                  {pet.microchipNumber && (
+                    <div className="absolute top-3 right-3 inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-700/90 backdrop-blur-xs text-white shadow-sm">
+                      <Check className="w-3 h-3 mr-1" /> Chip: {pet.microchipNumber}
+                    </div>
+                  )}
+
                   {pet.kciRegistered && (
                     <div className="absolute bottom-3 right-3 inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-md bg-indigo-600/90 backdrop-blur-xs text-white">
                       <ShieldCheck className="w-3 h-3 mr-1" /> KCI Pedigree
@@ -400,21 +406,13 @@ function SalesCatalogContent() {
                       <span className="text-[11px] text-slate-400 font-semibold">{pet.category?.name}</span>
                     </div>
 
-                    {/* Age, DOB, Sex, Colour grid */}
+                    {/* Age, DOB, Sex, Colour, Microchip grid */}
                     <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50/80 p-2.5 rounded-xl border border-slate-100/80 mt-2.5">
                       <div>
                         <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider block">
                           Age
                         </span>
                         <span className="font-extrabold text-slate-800 text-xs">{pet.age}</span>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider block">
-                          DOB
-                        </span>
-                        <span className="font-bold text-slate-800 text-xs">
-                          {new Date(pet.dob).toLocaleDateString()}
-                        </span>
                       </div>
                       <div>
                         <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider block">
@@ -427,6 +425,14 @@ function SalesCatalogContent() {
                           Colour
                         </span>
                         <span className="font-bold text-slate-800 text-xs truncate block">{pet.colour}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider block">
+                          Microchip
+                        </span>
+                        <span className="font-mono font-bold text-emerald-700 text-xs truncate block">
+                          {pet.microchipNumber || 'Pending'}
+                        </span>
                       </div>
                     </div>
 
@@ -719,6 +725,14 @@ function SalesCatalogContent() {
                     </span>
                     <span className="font-bold text-slate-800 text-xs">
                       {selectedPet.kciRegistered ? 'Verified KCI Pedigree' : 'Standard Purebred'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                      Microchip Number
+                    </span>
+                    <span className="font-mono font-bold text-emerald-700 text-xs">
+                      {selectedPet.microchipNumber || 'Pending Implantation'}
                     </span>
                   </div>
                 </div>

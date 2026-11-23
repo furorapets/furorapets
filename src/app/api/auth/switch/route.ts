@@ -34,6 +34,12 @@ export async function POST(req: NextRequest) {
       sameSite: 'lax',
     });
 
+    res.cookies.set('furora_user_role', user.role, {
+      path: '/',
+      httpOnly: false,
+      sameSite: 'lax',
+    });
+
     return res;
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

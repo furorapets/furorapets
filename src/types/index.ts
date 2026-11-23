@@ -57,6 +57,9 @@ export interface SessionUser {
   email: string;
   name: string;
   role: Role;
+  phone?: string | null;
+  address?: string | null;
+  assignedHub?: string | null;
   onboardingStatus?: string | null;
   onboardingNotes?: string | null;
   kennelRegNumber?: string | null;

@@ -59,11 +59,11 @@ export async function POST(req: NextRequest) {
     }
 
     // Determine target redirect based on user role
-    let redirectTo = '/admin/orders';
+    let redirectTo = '/admin';
     if (user.role === 'SALES') redirectTo = '/sales';
-    else if (user.role === 'DELIVERY_AGENT') redirectTo = '/agent/order';
-    else if (user.role === 'VENDOR') redirectTo = '/vendor/orders';
-    else if (user.role === 'CUSTOMER') redirectTo = '/track';
+    else if (user.role === 'DELIVERY_AGENT') redirectTo = '/agent';
+    else if (user.role === 'VENDOR') redirectTo = '/vendor';
+    else if (user.role === 'CUSTOMER') redirectTo = '/customer/order';
 
     const res = NextResponse.json({
       success: true,
@@ -79,8 +79,15 @@ export async function POST(req: NextRequest) {
       redirectTo,
     });
 
-    // Set authenticated user cookie
+    // Set authenticated user cookies
     res.cookies.set('furora_user_id', user.id, {
+      path: '/',
+      httpOnly: false,
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 30, // 30 days
+    });
+
+    res.cookies.set('furora_user_role', user.role, {
       path: '/',
       httpOnly: false,
       sameSite: 'lax',

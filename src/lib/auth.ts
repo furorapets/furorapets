@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { cookies } from 'next/headers';
 import prisma from './prisma';
 import { Role, SessionUser } from '@/types';
 
@@ -7,9 +8,9 @@ export const DEFAULT_DEMO_USER_ID = 'usr_admin';
 /**
  * Resolves the authenticated user from request headers or cookies.
  * Supports:
- * - 'x-furora-user-id' header (great for tests & API requests)
+ * - 'x-furora-user-id' header (for API requests / tests)
  * - 'furora_user_id' cookie (for browser navigation)
- * Fallback in dev/test: Admin user
+ * If unauthenticated, returns null (enforcing strict security).
  */
 export async function getCurrentUser(req?: NextRequest): Promise<SessionUser | null> {
   let userId: string | null = null;
@@ -22,10 +23,22 @@ export async function getCurrentUser(req?: NextRequest): Promise<SessionUser | n
         userId = cookie.value;
       }
     }
+  } else {
+    // If req is not passed (e.g. in React Server Components), read from next/headers cookies
+    try {
+      const cookieStore = cookies();
+      const cookie = cookieStore.get('furora_user_id');
+      if (cookie) {
+        userId = cookie.value;
+      }
+    } catch {
+      // Outside of request scope
+    }
   }
 
+  // If no user ID is provided, user is unauthenticated
   if (!userId) {
-    userId = DEFAULT_DEMO_USER_ID;
+    return null;
   }
 
   const user = await prisma.user.findUnique({
@@ -35,6 +48,9 @@ export async function getCurrentUser(req?: NextRequest): Promise<SessionUser | n
       email: true,
       name: true,
       role: true,
+      phone: true,
+      address: true,
+      assignedHub: true,
       onboardingStatus: true,
       onboardingNotes: true,
       kennelRegNumber: true,
@@ -49,6 +65,9 @@ export async function getCurrentUser(req?: NextRequest): Promise<SessionUser | n
     email: user.email,
     name: user.name,
     role: user.role as Role,
+    phone: user.phone,
+    address: user.address,
+    assignedHub: user.assignedHub,
     onboardingStatus: user.onboardingStatus,
     onboardingNotes: user.onboardingNotes,
     kennelRegNumber: user.kennelRegNumber,
@@ -66,6 +85,9 @@ export async function getAvailableUsers(): Promise<SessionUser[]> {
       email: true,
       name: true,
       role: true,
+      phone: true,
+      address: true,
+      assignedHub: true,
       onboardingStatus: true,
       onboardingNotes: true,
       kennelRegNumber: true,
@@ -78,6 +100,9 @@ export async function getAvailableUsers(): Promise<SessionUser[]> {
     email: u.email,
     name: u.name,
     role: u.role as Role,
+    phone: u.phone,
+    address: u.address,
+    assignedHub: u.assignedHub,
     onboardingStatus: u.onboardingStatus,
     onboardingNotes: u.onboardingNotes,
     kennelRegNumber: u.kennelRegNumber,

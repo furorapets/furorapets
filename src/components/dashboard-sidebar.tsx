@@ -35,25 +35,36 @@ interface NavItem {
 export default function DashboardSidebar({ currentUser, onOpenSwitchModal }: DashboardSidebarProps) {
   const pathname = usePathname();
 
+  const getRoleHomeHref = (): string => {
+    const role = currentUser?.role || 'ADMIN';
+    if (role === 'VENDOR') return '/vendor';
+    if (role === 'DELIVERY_AGENT') return '/agent';
+    if (role === 'SALES') return '/sales';
+    if (role === 'CUSTOMER') return '/customer/order';
+    return '/admin';
+  };
+
   const getNavItems = (): NavItem[] => {
     const role = currentUser?.role || 'ADMIN';
 
     if (role === 'VENDOR') {
       return [
-        { label: 'Vendor Orders', href: '/vendor/orders', icon: Store, badge: 'Orders' },
+        { label: 'Vendor Dashboard', href: '/vendor', icon: LayoutGrid, badge: 'Overview' },
         { label: 'My Pets & Inventory', href: '/vendor/pets', icon: Layers, badge: 'Stock' },
+        { label: 'Dispatch Orders', href: '/vendor/orders', icon: Store, badge: 'Orders' },
       ];
     }
 
     if (role === 'DELIVERY_AGENT') {
       return [
-        { label: 'Delivery & Ops Portal', href: '/agent/order', icon: Truck, badge: 'Agent' },
+        { label: 'Operations Dashboard', href: '/agent', icon: LayoutGrid, badge: 'Overview' },
+        { label: 'Delivery & Inspection', href: '/agent/order', icon: Truck, badge: 'Field' },
       ];
     }
 
     if (role === 'SALES') {
       return [
-        { label: 'Sales Catalog', href: '/sales', icon: ShoppingBag, badge: 'Available' },
+        { label: 'Sales Dashboard', href: '/sales', icon: ShoppingBag, badge: 'Live' },
       ];
     }
 
@@ -64,23 +75,25 @@ export default function DashboardSidebar({ currentUser, onOpenSwitchModal }: Das
       ];
     }
 
-    // Admin: Clean, focused operational management (Category & Pet Inventory, Orders & Dispatch, Customers, Vendors, Staff Accounts)
+    // Admin: Complete operational control suite
     return [
+      { label: 'Command Center', href: '/admin', icon: LayoutGrid, badge: 'HQ' },
       { label: 'Category & Pet Inventory', href: '/admin/categories', icon: Layers },
       { label: 'Orders & Dispatch', href: '/admin/orders', icon: ClipboardList },
       { label: 'Customers', href: '/admin/customers', icon: UserCheck },
-      { label: 'Vendors', href: '/admin/vendors', icon: Store },
+      { label: 'Vendors & Breeders', href: '/admin/vendors', icon: Store },
       { label: 'Staff & Accounts', href: '/admin/users', icon: Users },
     ];
   };
 
   const navItems = getNavItems();
+  const brandHomeHref = getRoleHomeHref();
 
   return (
     <aside className="w-64 bg-white border-r border-slate-100 flex flex-col justify-between flex-shrink-0 min-h-screen p-5 select-none">
       <div className="space-y-6">
         {/* Brand Header */}
-        <Link href="/admin/categories" className="flex items-center px-2 pt-1 group">
+        <Link href={brandHomeHref} className="flex items-center px-2 pt-1 group">
           <span className="text-xl font-extrabold tracking-tight text-slate-900">furora</span>
         </Link>
 
@@ -88,10 +101,14 @@ export default function DashboardSidebar({ currentUser, onOpenSwitchModal }: Das
         <nav className="space-y-1">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive =
-              item.href === '/admin/categories'
-                ? pathname === '/admin/categories' || pathname.startsWith('/admin/categories')
-                : pathname === item.href || pathname.startsWith(item.href);
+            const isRootRoute =
+              item.href === '/admin' ||
+              item.href === '/vendor' ||
+              item.href === '/agent' ||
+              item.href === '/sales';
+            const isActive = isRootRoute
+              ? pathname === item.href
+              : pathname === item.href || pathname.startsWith(item.href);
 
             return (
               <Link
