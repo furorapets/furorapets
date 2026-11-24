@@ -1503,12 +1503,12 @@ function VendorsContent() {
                 />
               </div>
 
-              {/* 5 Compliance Docs (Cloudflare R2 Direct Upload) */}
+              {/* 5 Compliance Docs */}
               <div className="space-y-3 pt-2 border-t border-slate-100">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-slate-900 block">5 Compliance Accreditation Documents *</span>
                   <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    ⚡ Stored on Cloudflare R2
+                    ⚡ Secure Encrypted Storage
                   </span>
                 </div>
 

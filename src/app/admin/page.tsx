@@ -137,22 +137,15 @@ export default function AdminDashboardPage() {
           </p>
         </div>
 
-        {/* System Health Badges */}
+        {/* Platform Status */}
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200/80 text-[11px] font-bold text-slate-700 shadow-xs">
-            <Database className="w-3.5 h-3.5 text-blue-600" />
-            <span>Turso Cloud LibSQL</span>
-            <CheckCircle2 className="w-3 h-3 text-emerald-600 ml-1" />
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-[11px] font-bold text-emerald-800 shadow-xs">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Platform Operational</span>
           </div>
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200/80 text-[11px] font-bold text-slate-700 shadow-xs">
-            <Cloud className="w-3.5 h-3.5 text-amber-500" />
-            <span>Cloudflare R2</span>
-            <CheckCircle2 className="w-3 h-3 text-emerald-600 ml-1" />
-          </div>
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200/80 text-[11px] font-bold text-slate-700 shadow-xs">
-            <Mail className="w-3.5 h-3.5 text-indigo-500" />
-            <span>Hostinger SMTP</span>
-            <CheckCircle2 className="w-3 h-3 text-emerald-600 ml-1" />
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+            <span>All Services Online</span>
           </div>
         </div>
       </div>
@@ -265,7 +258,7 @@ export default function AdminDashboardPage() {
                 Category & Pet Inventory
               </h3>
               <p className="text-xs text-slate-500 leading-relaxed mb-4">
-                Manage 6 pet categories, 16 breeds, individual pet profiles, microchip IDs, Cloudflare R2 photos/videos, and public QR code verification.
+                Manage pet categories, breeds, individual pet profiles, microchip IDs, high-resolution media, and public QR code verification.
               </p>
             </div>
             <div className="pt-4 border-t border-slate-100 flex items-center justify-between">

@@ -172,7 +172,7 @@ export default function LineageProvenanceUpload({
           {/* Father Photo Upload */}
           <div>
             <label className="text-[11px] font-bold text-slate-600 block mb-1">
-              Father Photo (Cloudflare R2 Compressed)
+              Father Photo
             </label>
             <input
               ref={fatherPhotoInputRef}
@@ -202,7 +202,7 @@ export default function LineageProvenanceUpload({
                     Sire Photo Uploaded
                   </span>
                   <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3" /> WebP in Cloudflare R2
+                    <CheckCircle2 className="w-3 h-3" /> Verified Photo
                   </span>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
@@ -305,7 +305,7 @@ export default function LineageProvenanceUpload({
                 {uploadingFatherDoc && (
                   <div className="p-2 rounded-lg bg-blue-50 text-[11px] text-blue-700 flex items-center gap-2">
                     <div className="w-3.5 h-3.5 rounded-full border-2 border-blue-600 border-t-transparent animate-spin"></div>
-                    <span>Uploading document to R2...</span>
+                    <span>Uploading document...</span>
                   </div>
                 )}
 
@@ -382,7 +382,7 @@ export default function LineageProvenanceUpload({
           {/* Mother Photo Upload */}
           <div>
             <label className="text-[11px] font-bold text-slate-600 block mb-1">
-              Mother Photo (Cloudflare R2 Compressed)
+              Mother Photo
             </label>
             <input
               ref={motherPhotoInputRef}
@@ -412,7 +412,7 @@ export default function LineageProvenanceUpload({
                     Dam Photo Uploaded
                   </span>
                   <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3" /> WebP in Cloudflare R2
+                    <CheckCircle2 className="w-3 h-3" /> Verified Photo
                   </span>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
@@ -515,7 +515,7 @@ export default function LineageProvenanceUpload({
                 {uploadingMotherDoc && (
                   <div className="p-2 rounded-lg bg-blue-50 text-[11px] text-blue-700 flex items-center gap-2">
                     <div className="w-3.5 h-3.5 rounded-full border-2 border-blue-600 border-t-transparent animate-spin"></div>
-                    <span>Uploading document to R2...</span>
+                    <span>Uploading document...</span>
                   </div>
                 )}
 

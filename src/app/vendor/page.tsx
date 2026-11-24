@@ -284,7 +284,7 @@ export default function VendorDashboardPage() {
               Kennel Inventory & Microchip Registry
             </h3>
             <p className="text-xs text-slate-500 leading-relaxed">
-              Add individual puppies, kittens, and companion animals. Attach Cloudflare R2 photos, Sire & Dam pedigree documents, KCI certificates, and dedicated 15-digit microchip identification numbers.
+              Add individual puppies, kittens, and companion animals. Attach high-resolution photos, Sire & Dam pedigree documents, KCI certificates, and dedicated 15-digit microchip identification numbers.
             </p>
           </div>
           <div className="pt-2 flex items-center justify-between border-t border-slate-100">

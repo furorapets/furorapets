@@ -128,7 +128,7 @@ export default function PetMediaUpload({
 
     setErrorMsg('');
     setIsUploadingVideo(true);
-    setUploadProgressText(`Uploading video "${file.name}" to Cloudflare R2...`);
+    setUploadProgressText(`Uploading video "${file.name}"...`);
 
     try {
       const formData = new FormData();
@@ -199,9 +199,9 @@ export default function PetMediaUpload({
         <div className="flex items-center justify-between">
           <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
             <ImageIcon className="w-4 h-4 text-slate-700" />
-            <span>Pet Photos (Cloudflare R2 • Auto-WebP Compressed)</span>
-            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-              ⚡ WebP 80% Smaller
+            <span>Pet Photos</span>
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+              High Resolution
             </span>
           </label>
           <button
@@ -277,7 +277,7 @@ export default function PetMediaUpload({
                 Click to upload or drag & drop pet photos
               </p>
               <p className="text-[11px] text-slate-400 mt-0.5">
-                PNG, JPG, HEIC, WebP • Auto-resized to 1600px & compressed into WebP on Cloudflare R2
+                PNG, JPG, HEIC, WebP • High-resolution images up to 10MB each
               </p>
             </div>
           </div>
@@ -287,7 +287,7 @@ export default function PetMediaUpload({
         {isUploadingPhoto && (
           <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 flex items-center gap-2.5 text-xs text-blue-800">
             <div className="w-4 h-4 rounded-full border-2 border-blue-600 border-t-transparent animate-spin shrink-0"></div>
-            <span className="font-semibold">{uploadProgressText || 'Compressing & uploading image to R2...'}</span>
+            <span className="font-semibold">{uploadProgressText || 'Uploading image...'}</span>
           </div>
         )}
 
@@ -351,10 +351,10 @@ export default function PetMediaUpload({
                   <X className="w-3.5 h-3.5" />
                 </button>
 
-                {/* Bottom Bar: R2 indicator & Full Preview */}
+                {/* Bottom Bar: Verified indicator & Full Preview */}
                 <div className="absolute inset-x-0 bottom-0 p-1.5 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex items-center justify-between text-[10px] text-white">
                   <span className="font-mono text-[9px] truncate max-w-[100px] opacity-80">
-                    {url.includes('r2.dev') || url.includes('r2.furora.com') ? '⚡ Cloudflare R2' : 'CDN Hosted'}
+                    Verified Media
                   </span>
                   <a
                     href={url}
@@ -378,7 +378,7 @@ export default function PetMediaUpload({
           <div className="flex items-center justify-between">
             <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
               <Video className="w-4 h-4 text-slate-700" />
-              <span>Pet Videos (Cloudflare R2 Direct Upload or Video URL)</span>
+              <span>Pet Videos (Direct Upload or Video URL)</span>
             </label>
             <button
               type="button"
@@ -427,7 +427,7 @@ export default function PetMediaUpload({
               className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition cursor-pointer"
             >
               <Film className="w-3.5 h-3.5 text-slate-700" />
-              <span>Upload Video to R2 (MP4 / WebM up to 100MB)</span>
+              <span>Upload Video (MP4 / WebM up to 100MB)</span>
             </button>
           </div>
 

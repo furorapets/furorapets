@@ -1331,31 +1331,31 @@ export default function PartnerOnboardPage() {
                     <div className="flex items-center justify-between text-slate-700">
                       <span>1. KCI / AWBI Certificate:</span>
                       <span className="text-emerald-700 font-bold flex items-center gap-1">
-                        <Check className="w-3 h-3 text-emerald-600" /> Uploaded to R2
+                        <Check className="w-3 h-3 text-emerald-600" /> Uploaded Securely
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-slate-700">
                       <span>2. Breeder Govt ID:</span>
                       <span className="text-emerald-700 font-bold flex items-center gap-1">
-                        <Check className="w-3 h-3 text-emerald-600" /> Uploaded to R2
+                        <Check className="w-3 h-3 text-emerald-600" /> Uploaded Securely
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-slate-700">
                       <span>3. Municipal / Trade License:</span>
                       <span className="text-emerald-700 font-bold flex items-center gap-1">
-                        <Check className="w-3 h-3 text-emerald-600" /> Uploaded to R2
+                        <Check className="w-3 h-3 text-emerald-600" /> Uploaded Securely
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-slate-700">
                       <span>4. Vet Clinic MoU:</span>
                       <span className="text-emerald-700 font-bold flex items-center gap-1">
-                        <Check className="w-3 h-3 text-emerald-600" /> Uploaded to R2
+                        <Check className="w-3 h-3 text-emerald-600" /> Uploaded Securely
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-slate-700">
                       <span>5. Bank Proof (Cheque):</span>
                       <span className="text-emerald-700 font-bold flex items-center gap-1">
-                        <Check className="w-3 h-3 text-emerald-600" /> Uploaded to R2
+                        <Check className="w-3 h-3 text-emerald-600" /> Uploaded Securely
                       </span>
                     </div>
                   </div>
@@ -1442,7 +1442,7 @@ export default function PartnerOnboardPage() {
                   </div>
                   <div>
                     <strong className="text-slate-900 block">Step 2: 5 Compliance Documents Uploaded</strong>
-                    <span className="text-[10px] text-slate-500">Stored securely on Cloudflare R2</span>
+                    <span className="text-[10px] text-slate-500">Stored securely on encrypted cloud storage</span>
                   </div>
                 </div>
 

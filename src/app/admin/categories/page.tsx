@@ -1707,7 +1707,7 @@ function CategoriesContent() {
                 </div>
               </div>
 
-              {/* SECTION: Photos & Videos (Cloudflare R2 Direct Upload) */}
+              {/* SECTION: Photos & Videos */}
               <div className="pt-2 border-t border-slate-100">
                 <PetMediaUpload
                   photos={petFormData.photos}

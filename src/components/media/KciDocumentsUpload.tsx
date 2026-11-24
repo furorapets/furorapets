@@ -74,7 +74,7 @@ export default function KciDocumentsUpload({
       <div className="flex items-center justify-between">
         <label className="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
           <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
-          <span>KCI Registration Certificates & Pedigree Export (Cloudflare R2)</span>
+          <span>KCI Registration Certificates & Pedigree Export</span>
         </label>
         <button
           type="button"
@@ -98,7 +98,7 @@ export default function KciDocumentsUpload({
       {isUploading && (
         <div className="p-2.5 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-800 flex items-center gap-2">
           <div className="w-3.5 h-3.5 rounded-full border-2 border-blue-600 border-t-transparent animate-spin"></div>
-          <span>Uploading certificate to Cloudflare R2...</span>
+          <span>Uploading certificate...</span>
         </div>
       )}
 
@@ -115,7 +115,7 @@ export default function KciDocumentsUpload({
                   {url.split('/').pop() || 'KCI-Certificate.pdf'}
                 </span>
                 <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-150">
-                  R2 Verified
+                  Verified Document
                 </span>
               </div>
               <div className="flex items-center gap-1 shrink-0">
@@ -149,7 +149,7 @@ export default function KciDocumentsUpload({
           <p className="text-xs font-semibold text-slate-700">
             Upload official KCI registration certificate (PDF / Image)
           </p>
-          <p className="text-[10px] text-slate-400">Stored safely and encrypted on Cloudflare R2</p>
+          <p className="text-[10px] text-slate-400">Stored safely on encrypted cloud storage</p>
         </div>
       )}
     </div>
