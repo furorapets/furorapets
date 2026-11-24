@@ -63,12 +63,13 @@ export default function DashboardLayoutShell({ children }: DashboardLayoutShellP
     };
   }, []);
 
-  // Standalone public pages (Login, Live Tracking, Public Records, Certificates, Partner Landing) render full-page without internal dashboard sidebar
+  // Standalone public pages (Login, Live Tracking, Public Records, Certificates, Partner Landing, Pet Provenance) render full-page without internal dashboard sidebar
   const isStandalonePage =
     pathname.startsWith('/certificate/') ||
     pathname.startsWith('/login') ||
     pathname.startsWith('/track') ||
     pathname.startsWith('/records/') ||
+    pathname.startsWith('/pets/') ||
     pathname.startsWith('/partner/onboard');
 
   if (isStandalonePage) {
