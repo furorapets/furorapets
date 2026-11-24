@@ -14,7 +14,7 @@ interface SessionContextType {
 const defaultAdminUser: SessionUser = {
   id: 'usr_admin',
   email: 'admin@furora.com',
-  name: 'Furora Admin',
+  name: 'Ganesan (Admin)',
   role: 'ADMIN',
 };
 
