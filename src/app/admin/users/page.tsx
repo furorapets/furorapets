@@ -156,7 +156,8 @@ function UsersContent() {
   };
 
   const handleCopyCredentials = (u: any) => {
-    const credText = `🐾 FURORA STAFF CREDENTIALS\nName: ${u.name}\nRole: ${u.role}\nUsername: ${u.username || u.email.split('@')[0]}\nPassword: ${u.tempPassword || 'Furora@2026'}\nLogin URL: http://localhost:3000${u.role === 'SALES' ? '/sales' : '/agent/order'}\nNote: Passwords can only be changed by Admin.`;
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://breeder.furora.in';
+    const credText = `🐾 FURORA STAFF CREDENTIALS\nName: ${u.name}\nRole: ${u.role}\nUsername: ${u.username || u.email.split('@')[0]}\nPassword: ${u.tempPassword || 'Furora@2026'}\nLogin URL: ${origin}${u.role === 'SALES' ? '/sales' : '/agent/order'}\nNote: Passwords can only be changed by Admin.`;
     navigator.clipboard.writeText(credText);
     setCopiedId(u.id);
     setTimeout(() => setCopiedId(null), 2500);

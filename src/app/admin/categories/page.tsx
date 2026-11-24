@@ -591,7 +591,8 @@ function CategoriesContent() {
     setViewingQrPet(p);
     setCopiedLink(false);
     try {
-      const res = await fetch(`/api/pets/${p.id}`);
+      const origin = typeof window !== 'undefined' ? window.location.origin : '';
+      const res = await fetch(`/api/pets/${p.id}?baseUrl=${encodeURIComponent(origin)}`);
       const data = await res.json();
       if (data.success && data.data?.qrCodeUrl) {
         setQrCodeDataUrl(data.data.qrCodeUrl);
@@ -714,7 +715,7 @@ function CategoriesContent() {
 
   const copyCustomerLink = () => {
     if (!viewingQrPet) return;
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://breeder.furora.in';
     const link = `${origin}/pets/${viewingQrPet.petId}`;
     navigator.clipboard.writeText(link);
     setCopiedLink(true);

@@ -60,7 +60,11 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     try { motherDocs = JSON.parse(pet.motherDocs || '[]'); } catch (e) {}
     try { kciDocuments = JSON.parse(pet.kciDocuments || '[]'); } catch (e) {}
 
-    const { qrCodeUrl, verificationUrl } = await generatePetQr(pet.petId);
+    const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
+    const proto = req.headers.get('x-forwarded-proto') || 'https';
+    const clientBase = req.nextUrl?.searchParams?.get('baseUrl');
+    const baseUrl = clientBase || (host ? `${proto}://${host}` : undefined);
+    const { qrCodeUrl, verificationUrl } = await generatePetQr(pet.petId, baseUrl);
 
     // Public / Customer / Sales verified view
     if (!user || user.role === 'CUSTOMER' || user.role === 'SALES') {

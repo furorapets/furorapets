@@ -3,8 +3,10 @@ import QRCode from 'qrcode';
 import { generateCertificateId } from './id-generator';
 import { logAudit } from './audit';
 import { calculateAge } from './age-calculator';
+import { resolveBaseUrl } from './pet-qr';
 
-export async function generatePetCertificate(orderIdOrDbId: string, baseUrl = 'http://localhost:3000') {
+export async function generatePetCertificate(orderIdOrDbId: string, baseUrl?: string) {
+  const rootUrl = resolveBaseUrl(baseUrl);
   const order = await prisma.order.findFirst({
     where: { OR: [{ id: orderIdOrDbId }, { orderId: orderIdOrDbId }] },
     include: {
@@ -30,7 +32,7 @@ export async function generatePetCertificate(orderIdOrDbId: string, baseUrl = 'h
   }
 
   const certificateId = await generateCertificateId();
-  const verificationUrl = `${baseUrl}/records/${order.orderId}`;
+  const verificationUrl = `${rootUrl}/records/${order.orderId}`;
 
   // Generate QR Code data URL
   const qrCodeUrl = await QRCode.toDataURL(verificationUrl, {

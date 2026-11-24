@@ -119,7 +119,12 @@ export async function GET(req: NextRequest, { params }: { params: { orderId: str
     });
 
     // Generate or use certificate QR code
-    const baseUrl = req.nextUrl.origin || 'http://localhost:3000';
+    const host = req.headers.get('x-forwarded-host') || req.headers.get('host') || req.nextUrl?.host;
+    const proto = req.headers.get('x-forwarded-proto') || 'https';
+    let baseUrl = host ? `${proto}://${host}` : (req.nextUrl?.origin || 'https://breeder.furora.in');
+    if (baseUrl.includes('localhost') && (process.env.VERCEL || process.env.NODE_ENV === 'production' || host?.includes('furora.in'))) {
+      baseUrl = 'https://breeder.furora.in';
+    }
     const verificationUrl = `${baseUrl}/records/${order.orderId}`;
     let qrCodeUrl = order.certificate?.qrCodeUrl;
     let certificateId = order.certificate?.certificateId || `FUR-CERT-${order.orderId.replace(/[^0-9]/g, '').slice(-6) || '001025'}`;

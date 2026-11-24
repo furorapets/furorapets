@@ -13,9 +13,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'orderId is required' }, { status: 400 });
     }
 
-    const host = req.headers.get('host') || 'localhost:3000';
-    const protocol = req.headers.get('x-forwarded-proto') || 'http';
-    const baseUrl = `${protocol}://${host}`;
+    const host = req.headers.get('x-forwarded-host') || req.headers.get('host') || 'breeder.furora.in';
+    const protocol = req.headers.get('x-forwarded-proto') || 'https';
+    let baseUrl = `${protocol}://${host}`;
+    if (baseUrl.includes('localhost') && (process.env.VERCEL || process.env.NODE_ENV === 'production' || host?.includes('furora.in'))) {
+      baseUrl = 'https://breeder.furora.in';
+    }
 
     const cert = await generatePetCertificate(orderId, baseUrl);
     return NextResponse.json({ success: true, data: cert });
