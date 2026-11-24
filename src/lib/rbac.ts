@@ -55,6 +55,12 @@ export function rbacErrorResponse(err: unknown) {
  * PRD §3 & §5 Module H: Agent can only access the ONE order currently assigned to them.
  */
 export async function assertAgentOrderAccess(agentId: string, orderId: string): Promise<boolean> {
+  const user = await prisma.user.findUnique({
+    where: { id: agentId },
+    select: { role: true },
+  });
+  if (user?.role === 'ADMIN') return true;
+
   const order = await prisma.order.findUnique({
     where: { id: orderId },
     select: { agentId: true, orderId: true },

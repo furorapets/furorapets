@@ -19,6 +19,9 @@ export async function POST(req: NextRequest) {
       physicalCondition,
       result,
       failureReason,
+      documents = [],
+      microchipVerified,
+      microchipNumber,
     } = body;
 
     if (!orderId || !result || !physicalCondition || !notes) {
@@ -37,6 +40,9 @@ export async function POST(req: NextRequest) {
       physicalCondition,
       result,
       failureReason,
+      documents,
+      microchipVerified,
+      microchipNumber,
     });
 
     return NextResponse.json({ success: true, data: inspection }, { status: 201 });

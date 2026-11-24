@@ -11,6 +11,14 @@ export interface SubmitInspectionInput {
   physicalCondition: string;
   result: 'ACCEPT' | 'FAIL';
   failureReason?: string | null;
+  microchipVerified?: boolean;
+  microchipNumber?: string | null;
+  documents?: Array<{
+    type: string;
+    visibility?: string;
+    fileUrl: string;
+    fileName: string;
+  }>;
 }
 
 export async function submitPickupInspection(input: SubmitInspectionInput) {
@@ -44,6 +52,47 @@ export async function submitPickupInspection(input: SubmitInspectionInput) {
         failureReason: input.result === 'FAIL' ? input.failureReason : null,
       },
     });
+
+    // 2. Attach any collected vendor compliance documents (Vaccination, Deworming, Pedigree)
+    if (input.documents && input.documents.length > 0) {
+      for (const doc of input.documents) {
+        if (!doc.fileUrl) continue;
+        await tx.document.create({
+          data: {
+            orderId: order.id,
+            petId: order.petId!,
+            type: doc.type,
+            visibility: doc.visibility || 'CUSTOMER_VISIBLE',
+            fileUrl: doc.fileUrl,
+            fileName: doc.fileName || `${doc.type}.pdf`,
+            uploadedById: input.agentId,
+          },
+        });
+      }
+    }
+
+    // 3. Register pickup photo as a document if present
+    if (input.photos && input.photos.length > 0) {
+      await tx.document.create({
+        data: {
+          orderId: order.id,
+          petId: order.petId!,
+          type: 'PET_PICKUP_PHOTO',
+          visibility: 'CUSTOMER_VISIBLE',
+          fileUrl: input.photos[0],
+          fileName: 'Breeder Kennel Physical Pickup Photo.jpg',
+          uploadedById: input.agentId,
+        },
+      });
+    }
+
+    // 4. Update microchip number on Pet if confirmed/provided
+    if (input.microchipNumber) {
+      await tx.pet.update({
+        where: { id: order.petId! },
+        data: { microchipNumber: input.microchipNumber.trim() },
+      });
+    }
 
     if (input.result === 'ACCEPT') {
       // Pass Branch: Order -> PICKUP_ACCEPTED -> MEDICAL_CHECK, Pet -> IN_TRANSIT -> MEDICAL_PENDING

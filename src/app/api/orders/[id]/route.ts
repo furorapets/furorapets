@@ -122,6 +122,15 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
     // Direct status change
     if (status && status !== existingOrder.status) {
+      // Role permission check: Delivery Agent can transition status on their assigned order
+      if (user.role === 'DELIVERY_AGENT') {
+        if (existingOrder.agentId !== user.id) {
+          return NextResponse.json({ error: 'Delivery agent unauthorized for this order' }, { status: 403 });
+        }
+      } else if (user.role !== 'ADMIN') {
+        return NextResponse.json({ error: 'Unauthorized to change order status' }, { status: 403 });
+      }
+
       // Validate transition
       validateOrderTransition(
         existingOrder.status as OrderStatus,

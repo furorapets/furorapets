@@ -60,14 +60,17 @@ export default function AgentDashboardPage() {
   const pendingPickups = orders.filter(
     (o) =>
       o.status === 'PICKUP_ASSIGNED' ||
+      o.status === 'PICKUP_INSPECTION' ||
       o.status === 'VENDOR_ACCEPTED' ||
       o.status === 'PET_ASSIGNED'
   );
   const pendingMedical = orders.filter(
     (o) =>
       o.status === 'PICKUP_ACCEPTED' ||
-      o.status === 'PICKUP_INSPECTION' ||
       o.status === 'MEDICAL_CHECK'
+  );
+  const outForDelivery = orders.filter(
+    (o) => o.status === 'READY_FOR_DELIVERY'
   );
   const completedDeliveries = orders.filter(
     (o) => o.status === 'DELIVERY_COMPLETED'
@@ -289,8 +292,9 @@ export default function AgentDashboardPage() {
             {orders.map((order) => {
               const isCompleted = order.status === 'DELIVERY_COMPLETED';
               const isReadyForDelivery = order.status === 'READY_FOR_DELIVERY';
-              const isMedical = order.status === 'PICKUP_ACCEPTED' || order.status === 'MEDICAL_CHECK';
-              const isPickup = !isCompleted && !isReadyForDelivery && !isMedical;
+              const isMedical = order.status === 'MEDICAL_CHECK' || order.status === 'PICKUP_ACCEPTED';
+              const isInspection = order.status === 'PICKUP_INSPECTION';
+              const isPickupAssigned = order.status === 'PICKUP_ASSIGNED';
 
               return (
                 <div
@@ -300,7 +304,7 @@ export default function AgentDashboardPage() {
                   <div className="space-y-2">
                     <div className="flex flex-wrap items-center gap-2.5">
                       <span className="font-mono font-bold text-xs text-slate-900">
-                        {order.orderNumber || order.id.slice(0, 8)}
+                        {order.orderId || order.orderNumber || order.id.slice(0, 8)}
                       </span>
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
@@ -310,10 +314,20 @@ export default function AgentDashboardPage() {
                             ? 'bg-blue-100 text-blue-800'
                             : isMedical
                             ? 'bg-indigo-100 text-indigo-800'
+                            : isInspection
+                            ? 'bg-purple-100 text-purple-800'
                             : 'bg-amber-100 text-amber-800'
                         }`}
                       >
-                        {order.status.replace(/_/g, ' ')}
+                        {isCompleted
+                          ? 'Stage 4: Delivered'
+                          : isReadyForDelivery
+                          ? 'Stage 4: Out for Delivery'
+                          : isMedical
+                          ? 'Stage 3: Vet Medical Center'
+                          : isInspection
+                          ? 'Stage 2: Kennel Pickup & Docs'
+                          : 'Stage 1: Awaiting Acceptance'}
                       </span>
                       {order.pet?.microchipNumber && (
                         <span className="font-mono text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
@@ -333,10 +347,10 @@ export default function AgentDashboardPage() {
                           <span>Breeder: {order.vendor.name}</span>
                         </div>
                       )}
-                      {order.deliveryCity && (
+                      {(order.deliveryAddress || order.deliveryCity) && (
                         <div className="flex items-center gap-1">
                           <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                          <span>Destination: {order.deliveryCity}</span>
+                          <span>Destination: {order.deliveryCity || order.deliveryAddress}</span>
                         </div>
                       )}
                     </div>
@@ -352,7 +366,9 @@ export default function AgentDashboardPage() {
                           ? 'bg-blue-600 hover:bg-blue-700 text-white'
                           : isMedical
                           ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
-                          : 'bg-amber-600 hover:bg-amber-700 text-white'
+                          : isInspection
+                          ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                          : 'bg-emerald-600 hover:bg-emerald-700 text-white animate-pulse'
                       }`}
                     >
                       <CheckSquare className="w-3.5 h-3.5" />
@@ -360,10 +376,12 @@ export default function AgentDashboardPage() {
                         {isCompleted
                           ? 'View Verification Log'
                           : isReadyForDelivery
-                          ? 'Verify Customer OTP'
+                          ? 'Show QR & Complete Handover'
                           : isMedical
                           ? 'Submit Vet Sign-Off'
-                          : 'Start 10-Point Pickup'}
+                          : isInspection
+                          ? 'Collect Pet & Documents'
+                          : 'Accept Delivery Assignment'}
                       </span>
                     </Link>
                   </div>

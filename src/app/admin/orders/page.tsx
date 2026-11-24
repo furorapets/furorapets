@@ -148,6 +148,11 @@ function OrdersContent() {
 
   useEffect(() => {
     loadData();
+    // Auto-refresh orders every 10 seconds so delivery agent updates show live in real-time
+    const timer = setInterval(() => {
+      loadData();
+    }, 10000);
+    return () => clearInterval(timer);
   }, []);
 
   // Update filters if URL parameters change
@@ -369,6 +374,9 @@ function OrdersContent() {
       MEDICAL_FAILED: { dot: 'bg-rose-500', text: 'text-rose-700', bg: 'bg-rose-50 border-rose-200' },
       VENDOR_REJECTED: { dot: 'bg-rose-500', text: 'text-rose-700', bg: 'bg-rose-50 border-rose-200' },
       ORDER_RECEIVED: { dot: 'bg-amber-500', text: 'text-amber-700', bg: 'bg-amber-50 border-amber-200' },
+      PICKUP_ASSIGNED: { dot: 'bg-amber-500', text: 'text-amber-700', bg: 'bg-amber-50 border-amber-200' },
+      PICKUP_INSPECTION: { dot: 'bg-purple-500', text: 'text-purple-700', bg: 'bg-purple-50 border-purple-200' },
+      PICKUP_ACCEPTED: { dot: 'bg-purple-500', text: 'text-purple-700', bg: 'bg-purple-50 border-purple-200' },
       PICKUP_INSPECTION_PENDING: { dot: 'bg-amber-500', text: 'text-amber-700', bg: 'bg-amber-50 border-amber-200' },
       MEDICAL_PENDING: { dot: 'bg-amber-500', text: 'text-amber-700', bg: 'bg-amber-50 border-amber-200' },
       MEDICAL_CHECK: { dot: 'bg-amber-500', text: 'text-amber-700', bg: 'bg-amber-50 border-amber-200' },
@@ -544,9 +552,11 @@ function OrdersContent() {
               <option value="VENDOR_REJECTED">VENDOR REJECTED</option>
               <option value="PET_ASSIGNED">PET ASSIGNED</option>
               <option value="PICKUP_ASSIGNED">PICKUP ASSIGNED</option>
+              <option value="PICKUP_INSPECTION">PICKUP INSPECTION (AT KENNEL)</option>
               <option value="PICKUP_INSPECTION_PENDING">PICKUP INSPECTION PENDING</option>
               <option value="INSPECTION_PASSED">INSPECTION PASSED</option>
               <option value="INSPECTION_FAILED">INSPECTION FAILED</option>
+              <option value="MEDICAL_CHECK">MEDICAL CHECK (AT CLINIC)</option>
               <option value="MEDICAL_PENDING">MEDICAL PENDING</option>
               <option value="MEDICAL_APPROVED">MEDICAL APPROVED</option>
               <option value="MEDICAL_FAILED">MEDICAL FAILED</option>
@@ -837,6 +847,19 @@ function OrdersContent() {
                           >
                             <Truck className="w-3 h-3 mr-1 text-amber-600 animate-pulse" />
                             <span>Dispatched</span>
+                            <ExternalLink className="w-2.5 h-2.5 ml-1 opacity-70 group-hover:opacity-100" />
+                          </Link>
+                        )}
+
+                        {o.status === 'PICKUP_INSPECTION' && (
+                          <Link
+                            href={`/records/${o.orderId}`}
+                            target="_blank"
+                            className="inline-flex items-center text-[10px] font-bold px-2.5 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 transition shadow-2xs group"
+                            title="Live Tracking: Agent at Kennel Collecting Pet & Documents"
+                          >
+                            <Store className="w-3 h-3 mr-1 text-purple-600 animate-pulse" />
+                            <span>At Kennel (Collecting Docs)</span>
                             <ExternalLink className="w-2.5 h-2.5 ml-1 opacity-70 group-hover:opacity-100" />
                           </Link>
                         )}

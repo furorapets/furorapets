@@ -170,16 +170,21 @@ export async function GET(req: NextRequest, { params }: { params: { orderId: str
       statusHeadline = 'Delivery Partner En Route to Kennel';
       statusSubtext = `${order.agent?.name || 'Ops Specialist'} is heading to the kennel for pet verification and pickup.`;
       etaText = 'Pickup expected within 2 hours';
-    } else if (['PICKUP_INSPECTION_PENDING', 'INSPECTION_PASSED'].includes(status)) {
+    } else if (status === 'PICKUP_INSPECTION') {
+      currentMilestone = 1;
+      statusHeadline = 'Agent at Kennel — Document & Health Verification';
+      statusSubtext = `${order.agent?.name || 'Delivery Agent'} is at ${order.vendor?.name || 'Breeder Kennel'} verifying 15-digit microchip, physical health, and collecting pedigree records.`;
+      etaText = 'Inspection & document collection underway';
+    } else if (['PICKUP_ACCEPTED', 'MEDICAL_CHECK', 'PICKUP_INSPECTION_PENDING', 'INSPECTION_PASSED'].includes(status)) {
       currentMilestone = 2;
-      statusHeadline = 'Pet Collected from Kennel — 10-Pt Check Complete';
-      statusSubtext = 'Pet safely onboarded into climate-controlled carrier with physical health inspection verified.';
-      etaText = 'Heading to Veterinary Medical Examination Center';
+      statusHeadline = 'Pet Collected & Verified — Arrived at Medical Center';
+      statusSubtext = `Pet safely onboarded with physical health passed (10/10). Arrived at partner medical clinic for viral antigen tests and vet clearance.`;
+      etaText = 'Veterinary examination in progress';
     } else if (['MEDICAL_PENDING', 'MEDICAL_APPROVED'].includes(status)) {
       currentMilestone = 3;
       statusHeadline = 'Medical Examination & Health Clearance Passed';
-      statusSubtext = `Examined at ${order.vetClinicName || 'Furora Certified Veterinary Clinic'}. Parvo and Distemper tests Negative.`;
-      etaText = 'Final delivery transit dispatching shortly';
+      statusSubtext = `Examined at ${order.vetClinicName || 'Furora Certified Veterinary Clinic'}. Viral antigen tests Negative.`;
+      etaText = 'Preparing for customer doorstep transit';
     } else if (status === 'READY_FOR_DELIVERY') {
       currentMilestone = 3;
       statusHeadline = 'Out for Delivery — In Transit to Your Doorstep!';
@@ -188,7 +193,7 @@ export async function GET(req: NextRequest, { params }: { params: { orderId: str
     } else if (status === 'DELIVERY_COMPLETED') {
       currentMilestone = 4;
       statusHeadline = 'Delivered Safely — Welcome Home! 🐾';
-      statusSubtext = 'Handover complete. Proof of delivery captured and lifetime digital passport activated.';
+      statusSubtext = 'Doorstep handover complete. Proof of delivery captured and lifetime digital passport activated.';
       etaText = 'Completed Handover';
     }
 

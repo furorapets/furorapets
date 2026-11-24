@@ -88,9 +88,13 @@ export default function VerifiedCustomerRecordPage() {
       d.type?.startsWith('KENNEL') ||
       d.type?.includes('REGISTRATION') ||
       d.type?.includes('PEDIGREE') ||
-      d.type?.includes('DEWORMING') ||
+      d.type?.includes('DEWORM') ||
+      d.type?.includes('VACCIN') ||
+      d.type?.includes('PICKUP') ||
       d.fileName?.toLowerCase().includes('vaccin') ||
-      d.fileName?.toLowerCase().includes('deworm')
+      d.fileName?.toLowerCase().includes('deworm') ||
+      d.fileName?.toLowerCase().includes('pedigree') ||
+      d.fileName?.toLowerCase().includes('pickup')
   );
   const vetDocs = (record.verifiedDocuments || []).filter(
     (d: any) =>
