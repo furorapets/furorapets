@@ -19,6 +19,7 @@ import {
   Play,
   RotateCcw,
   Check,
+  Store,
 } from 'lucide-react';
 import { useSession } from '@/context/session-context';
 import { useSearchParams } from 'next/navigation';
@@ -361,40 +362,36 @@ function SalesCatalogContent() {
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
 
-                  {/* Monospace Pet ID */}
-                  <div className="absolute top-3 left-3 bg-slate-900/85 backdrop-blur-xs text-white font-mono text-[11px] font-bold px-2.5 py-1 rounded-lg shadow-sm">
-                    {pet.petId}
-                  </div>
-
-                  {/* Available Badge */}
-                  <div className="absolute top-3 right-3 inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500 text-white shadow-sm">
-                    <span className="w-1.5 h-1.5 rounded-full bg-white mr-1.5 inline-block"></span>
-                    AVAILABLE
-                  </div>
-
-                  {/* Media Indicator Pills */}
-                  <div className="absolute bottom-3 left-3 flex items-center gap-1.5">
-                    <span className="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-900/70 backdrop-blur-xs text-white">
-                      <Camera className="w-3 h-3 mr-1" /> {photosCount}
+                  {/* Top Bar: Monospace Pet ID on Left, AVAILABLE Status on Right */}
+                  <div className="absolute top-3 inset-x-3 flex items-center justify-between gap-2 pointer-events-none">
+                    <span className="bg-slate-900/90 backdrop-blur-xs text-white font-mono text-[11px] font-bold px-2.5 py-1 rounded-lg shadow-sm">
+                      {pet.petId}
                     </span>
-                    {hasVideo && (
-                      <span className="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-md bg-rose-600/90 backdrop-blur-xs text-white">
-                        <Video className="w-3 h-3 mr-1" /> Video
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-500 text-white shadow-sm shrink-0">
+                      <span className="w-1.5 h-1.5 rounded-full bg-white mr-1.5 inline-block"></span>
+                      AVAILABLE
+                    </span>
+                  </div>
+
+                  {/* Bottom Bar: Media Pills on Left, KCI Pedigree on Right */}
+                  <div className="absolute bottom-3 inset-x-3 flex items-center justify-between gap-2 pointer-events-none">
+                    <div className="flex items-center gap-1.5">
+                      <span className="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-900/75 backdrop-blur-xs text-white">
+                        <Camera className="w-3 h-3 mr-1" /> {photosCount}
+                      </span>
+                      {hasVideo && (
+                        <span className="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-md bg-rose-600/90 backdrop-blur-xs text-white">
+                          <Video className="w-3 h-3 mr-1" /> Video
+                        </span>
+                      )}
+                    </div>
+
+                    {pet.kciRegistered && (
+                      <span className="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-md bg-indigo-600/90 backdrop-blur-xs text-white shadow-sm">
+                        <ShieldCheck className="w-3 h-3 mr-1" /> KCI Pedigree
                       </span>
                     )}
                   </div>
-
-                  {pet.microchipNumber && (
-                    <div className="absolute top-3 right-3 inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-700/90 backdrop-blur-xs text-white shadow-sm">
-                      <Check className="w-3 h-3 mr-1" /> Chip: {pet.microchipNumber}
-                    </div>
-                  )}
-
-                  {pet.kciRegistered && (
-                    <div className="absolute bottom-3 right-3 inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-md bg-indigo-600/90 backdrop-blur-xs text-white">
-                      <ShieldCheck className="w-3 h-3 mr-1" /> KCI Pedigree
-                    </div>
-                  )}
                 </div>
 
                 {/* Details Body */}
@@ -405,6 +402,25 @@ function SalesCatalogContent() {
                         {pet.breed?.name}
                       </h3>
                       <span className="text-[11px] text-slate-400 font-semibold">{pet.category?.name}</span>
+                    </div>
+
+                    {/* Breeder / Ownership Origin Tag */}
+                    <div className="mt-2">
+                      {pet.inventoryOwner === 'VENDOR' && (pet.vendor?.name || pet.vendor) ? (
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-indigo-50 text-indigo-800 border border-indigo-200/90 w-full">
+                          <Store className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                          <span className="truncate">
+                            Vendor: <strong className="font-extrabold text-indigo-950">{pet.vendor?.name || 'Consignment Partner'}</strong>
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200/90 w-full">
+                          <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                          <span className="truncate">
+                            Source: <strong className="font-extrabold text-emerald-950">Furora HQ Direct Stock</strong>
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Age, DOB, Sex, Colour, Microchip grid */}
@@ -429,9 +445,9 @@ function SalesCatalogContent() {
                       </div>
                       <div>
                         <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider block">
-                          Microchip
+                          Microchip / ID
                         </span>
-                        <span className="font-mono font-bold text-emerald-700 text-xs truncate block">
+                        <span className="font-mono font-bold text-emerald-700 text-xs truncate block" title={pet.microchipNumber || 'Pending'}>
                           {pet.microchipNumber || 'Pending'}
                         </span>
                       </div>
@@ -743,6 +759,14 @@ function SalesCatalogContent() {
                     </span>
                     <span className="font-mono font-bold text-emerald-700 text-xs">
                       {selectedPet.microchipNumber || 'Pending Implantation'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                      Origin & Breeder Partner
+                    </span>
+                    <span className="font-bold text-indigo-700 text-xs">
+                      {selectedPet.inventoryOwner === 'VENDOR' ? (selectedPet.vendor?.name || 'Partner Breeder Consignment') : 'Furora HQ Direct Stock'}
                     </span>
                   </div>
                 </div>

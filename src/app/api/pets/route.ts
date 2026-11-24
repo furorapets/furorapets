@@ -71,7 +71,7 @@ export async function GET(req: NextRequest) {
       include: {
         category: { select: { id: true, name: true } },
         breed: { select: { id: true, name: true, active: true } },
-        vendor: role === 'ADMIN' ? { select: { id: true, name: true, email: true } } : false,
+        vendor: { select: { id: true, name: true, email: role === 'ADMIN' } },
         order: role === 'ADMIN' ? { select: { id: true, orderId: true, status: true, customerName: true } } : false,
       },
       orderBy: { createdAt: 'desc' },
@@ -116,6 +116,8 @@ export async function GET(req: NextRequest) {
           motherPhoto: p.motherPhoto,
           status: p.status,
           kciRegistered: p.kciRegistered,
+          inventoryOwner: p.inventoryOwner,
+          vendor: p.vendor ? { id: p.vendor.id, name: p.vendor.name } : null,
           verificationUrl: `/pets/${p.petId}`,
         };
       }
