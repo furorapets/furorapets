@@ -62,7 +62,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       const data = await res.json();
       if (data.success && data.user) {
         setCurrentUser(data.user);
-        window.location.reload();
+        let targetUrl = '/admin';
+        if (data.user.role === 'VENDOR') targetUrl = '/vendor';
+        else if (data.user.role === 'DELIVERY_AGENT') targetUrl = '/agent';
+        else if (data.user.role === 'SALES') targetUrl = '/sales';
+        else if (data.user.role === 'CUSTOMER') targetUrl = '/customer/order';
+        window.location.href = targetUrl;
       }
     } catch (e) {
       console.error('Failed to switch user:', e);

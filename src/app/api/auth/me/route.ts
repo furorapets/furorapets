@@ -14,9 +14,8 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  // Only Admin accounts can view all personas for switching / testing
-  const availableUsers =
-    currentUser.role === 'ADMIN' ? await getAvailableUsers() : [currentUser];
+  // Always return all available demo personas so testers can switch between Admin, Vendor, Delivery Agent, and Sales
+  const availableUsers = await getAvailableUsers();
 
   return NextResponse.json({
     success: true,

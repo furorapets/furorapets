@@ -44,6 +44,7 @@ function SalesCatalogContent() {
   const [selectedPet, setSelectedPet] = useState<any | null>(null);
   const [activeMediaIndex, setActiveMediaIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<'MEDIA' | 'LINEAGE' | 'DETAILS' | 'PRIVACY'>('MEDIA');
+  const [reservedToast, setReservedToast] = useState<string | null>(null);
 
   // Infinite Scroll Pagination
   const [visibleCount, setVisibleCount] = useState(24);
@@ -473,13 +474,22 @@ function SalesCatalogContent() {
                     <Eye className="w-3.5 h-3.5 mr-1" /> View Media
                   </button>
 
-                  <Link
-                    href={`/admin/orders?q=${pet.petId}`}
+                  <button
+                    onClick={() => {
+                      if (currentUser?.role === 'ADMIN') {
+                        window.location.href = `/admin/orders?q=${pet.petId}`;
+                      } else {
+                        const link = `${window.location.origin}/pets/${pet.petId}`;
+                        navigator.clipboard.writeText(link);
+                        setReservedToast(pet.petId);
+                        setTimeout(() => setReservedToast(null), 3000);
+                      }
+                    }}
                     className="inline-flex items-center justify-center text-xs font-bold px-3 py-2 bg-white text-slate-700 border border-slate-200/90 rounded-xl hover:bg-slate-50 transition cursor-pointer"
-                    title="Book / Allocate this pet to an order"
+                    title={currentUser?.role === 'ADMIN' ? 'Allocate to Order' : 'Copy Client Reservation Link'}
                   >
                     <ShoppingBag className="w-3.5 h-3.5 text-slate-500" />
-                  </Link>
+                  </button>
                 </div>
               </div>
             );
@@ -816,12 +826,27 @@ function SalesCatalogContent() {
                 >
                   Close
                 </button>
-                <Link
-                  href={`/admin/orders?q=${selectedPet.petId}`}
-                  className="px-4 py-2 bg-slate-900 text-white font-bold rounded-xl text-xs hover:bg-slate-800 transition cursor-pointer flex items-center gap-1.5 shadow-soft"
-                >
-                  <ShoppingBag className="w-3.5 h-3.5" /> Book / Allocate to Order
-                </Link>
+                {currentUser?.role === 'ADMIN' ? (
+                  <Link
+                    href={`/admin/orders?q=${selectedPet.petId}`}
+                    className="px-4 py-2 bg-slate-900 text-white font-bold rounded-xl text-xs hover:bg-slate-800 transition cursor-pointer flex items-center gap-1.5 shadow-soft"
+                  >
+                    <ShoppingBag className="w-3.5 h-3.5" /> Allocate to Order
+                  </Link>
+                ) : (
+                  <button
+                    onClick={() => {
+                      const link = `${window.location.origin}/pets/${selectedPet.petId}`;
+                      navigator.clipboard.writeText(link);
+                      setReservedToast(selectedPet.petId);
+                      setTimeout(() => setReservedToast(null), 3000);
+                    }}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition cursor-pointer flex items-center gap-1.5 shadow-soft"
+                  >
+                    <ShoppingBag className="w-3.5 h-3.5" />
+                    <span>{reservedToast === selectedPet.petId ? '✓ Client Link Copied!' : 'Share Booking Link'}</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>

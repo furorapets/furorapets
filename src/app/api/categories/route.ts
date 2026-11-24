@@ -53,12 +53,23 @@ export async function GET(req: NextRequest) {
         }
 
         // Filter categories strictly to assigned categories for this vendor
-        const filtered = categories.filter((c) => assignedIds.includes(c.id));
+        // If the vendor has specific assigned categories, return only those.
+        // If assignedIds is empty (no restriction assigned yet), do NOT lock the vendor out with 0 categories: return all active categories!
+        if (assignedIds.length > 0) {
+          const filtered = categories.filter((c) => assignedIds.includes(c.id));
+          return NextResponse.json({
+            success: true,
+            data: filtered,
+            vendorAssignedIds: assignedIds,
+            totalAssigned: assignedIds.length,
+          });
+        }
+
         return NextResponse.json({
           success: true,
-          data: filtered,
-          vendorAssignedIds: assignedIds,
-          totalAssigned: assignedIds.length,
+          data: categories,
+          vendorAssignedIds: [],
+          totalAssigned: 0,
         });
       }
     }

@@ -37,16 +37,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  // 2. Already logged in navigating to '/login'
-  if (pathname === '/login' && userId) {
-    if (userRole === 'ADMIN') return NextResponse.redirect(new URL('/admin', request.url));
-    if (userRole === 'VENDOR') return NextResponse.redirect(new URL('/vendor', request.url));
-    if (userRole === 'SALES') return NextResponse.redirect(new URL('/sales', request.url));
-    if (userRole === 'DELIVERY_AGENT') return NextResponse.redirect(new URL('/agent', request.url));
-    return NextResponse.redirect(new URL('/admin', request.url));
-  }
-
-  // 3. Strict Admin Security Guard: '/admin/*'
+  // 2. Strict Admin Security Guard: '/admin/*'
   if (pathname.startsWith('/admin')) {
     if (!userId) {
       const loginUrl = new URL('/login', request.url);

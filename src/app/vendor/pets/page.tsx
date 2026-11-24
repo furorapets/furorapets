@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Plus, ShieldAlert, X, Sparkles, Clock, AlertCircle, XCircle, ArrowRight, Image as ImageIcon, QrCode } from 'lucide-react';
+import { Plus, ShieldAlert, X, Sparkles, Clock, AlertCircle, XCircle, ArrowRight, Image as ImageIcon, QrCode, Eye, ExternalLink, Copy, Check } from 'lucide-react';
 import { useSession } from '@/context/session-context';
 import PetMediaUpload from '@/components/media/PetMediaUpload';
 import LineageProvenanceUpload from '@/components/media/LineageProvenanceUpload';
@@ -14,6 +14,8 @@ export default function VendorPetsPage() {
   const [categories, setCategories] = useState<any[]>([]);
   const [breeds, setBreeds] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedPet, setSelectedPet] = useState<any | null>(null);
+  const [copiedId, setCopiedId] = useState(false);
 
   // New Pet modal
   const [creatingPet, setCreatingPet] = useState(false);
@@ -324,18 +326,23 @@ export default function VendorPetsPage() {
                 <th className="px-6 py-3.5 text-left">Age / Sex / Colour</th>
                 <th className="px-6 py-3.5 text-left">Parents / Pedigree</th>
                 <th className="px-6 py-3.5 text-center">Status</th>
+                <th className="px-6 py-3.5 text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {pets.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-slate-400 text-xs">
+                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400 text-xs">
                     You have no pets in your kennel inventory yet. Click &ldquo;Add Pet to Inventory&rdquo; to add your first pet.
                   </td>
                 </tr>
               ) : (
                 pets.map((p) => (
-                  <tr key={p.id} className="hover:bg-slate-50/70 transition">
+                  <tr
+                    key={p.id}
+                    onClick={() => setSelectedPet(p)}
+                    className="hover:bg-slate-50/80 transition cursor-pointer group"
+                  >
                     <td className="px-6 py-4 font-mono font-bold text-slate-900">
                       <div className="flex items-center gap-2.5">
                         {p.photos && p.photos.length > 0 ? (
@@ -350,7 +357,7 @@ export default function VendorPetsPage() {
                           </div>
                         )}
                         <div>
-                          <span className="block leading-tight">{p.petId}</span>
+                          <span className="block leading-tight group-hover:text-indigo-600 transition">{p.petId}</span>
                           {p.microchipNumber && (
                             <span className="text-[10px] text-slate-500 font-mono flex items-center gap-1 mt-0.5" title="RFID Microchip">
                               <QrCode className="w-2.5 h-2.5 text-slate-400" />
@@ -382,6 +389,18 @@ export default function VendorPetsPage() {
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 inline-block"></span>
                         {p.status}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedPet(p);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-slate-100 group-hover:bg-slate-900 group-hover:text-white text-slate-700 transition"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>Inspect</span>
+                      </button>
                     </td>
                   </tr>
                 ))
@@ -598,6 +617,133 @@ export default function VendorPetsPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Pet Inspection & Details Modal */}
+      {selectedPet && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-6 space-y-5 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <span className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs">
+                  <QrCode className="w-4 h-4" />
+                </span>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <span>{selectedPet.petId}</span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                      {selectedPet.status}
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    {selectedPet.category?.name} • {selectedPet.breed?.name}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedPet(null)}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Photos Carousel / Grid */}
+            {selectedPet.photos && selectedPet.photos.length > 0 && (
+              <div className="grid grid-cols-3 gap-2">
+                {selectedPet.photos.map((url: string, i: number) => (
+                  <div key={i} className="aspect-square rounded-xl overflow-hidden border border-slate-200 bg-slate-100">
+                    <img src={url} alt={`Pet ${i + 1}`} className="w-full h-full object-cover" />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Microchip Banner */}
+            <div className="p-3.5 rounded-2xl bg-emerald-50/80 border border-emerald-200/80 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 block">
+                  15-Digit RFID Microchip Number
+                </span>
+                <span className="font-mono font-black text-sm text-emerald-950">
+                  {selectedPet.microchipNumber || 'Pending Implantation'}
+                </span>
+              </div>
+              {selectedPet.microchipNumber && (
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(selectedPet.microchipNumber);
+                    setCopiedId(true);
+                    setTimeout(() => setCopiedId(false), 2000);
+                  }}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white border border-emerald-300 text-xs font-bold text-emerald-800 hover:bg-emerald-100/50 transition cursor-pointer"
+                >
+                  {copiedId ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedId ? 'Copied!' : 'Copy Chip'}</span>
+                </button>
+              )}
+            </div>
+
+            {/* Vitals Grid */}
+            <div className="grid grid-cols-2 gap-3 text-xs bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
+              <div>
+                <span className="text-slate-400 text-[10px] font-bold uppercase">Age</span>
+                <p className="font-bold text-slate-800">{selectedPet.age}</p>
+              </div>
+              <div>
+                <span className="text-slate-400 text-[10px] font-bold uppercase">Date of Birth</span>
+                <p className="font-bold text-slate-800">{new Date(selectedPet.dob).toLocaleDateString()}</p>
+              </div>
+              <div>
+                <span className="text-slate-400 text-[10px] font-bold uppercase">Sex</span>
+                <p className="font-bold text-slate-800">{selectedPet.sex}</p>
+              </div>
+              <div>
+                <span className="text-slate-400 text-[10px] font-bold uppercase">Colour</span>
+                <p className="font-bold text-slate-800">{selectedPet.colour}</p>
+              </div>
+            </div>
+
+            {/* Lineage Info */}
+            <div className="space-y-2 text-xs bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
+              <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">
+                Pedigree & Parentage
+              </span>
+              <div className="flex justify-between py-1 border-b border-slate-200/50">
+                <span className="text-slate-500">Sire (Father):</span>
+                <span className="font-bold text-slate-800">{selectedPet.fatherName || 'Not recorded'}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-slate-200/50">
+                <span className="text-slate-500">Dam (Mother):</span>
+                <span className="font-bold text-slate-800">{selectedPet.motherName || 'Not recorded'}</span>
+              </div>
+              <div className="flex justify-between py-1">
+                <span className="text-slate-500">KCI / Breed Registry:</span>
+                <span className="font-bold text-slate-800">
+                  {selectedPet.kciRegistered ? '✓ KCI Certified' : 'Standard Purebred'}
+                </span>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center justify-between pt-2">
+              <Link
+                href={`/pets/${selectedPet.petId}`}
+                target="_blank"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-800 transition"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span>View Public Customer Certificate</span>
+              </Link>
+
+              <button
+                onClick={() => setSelectedPet(null)}
+                className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

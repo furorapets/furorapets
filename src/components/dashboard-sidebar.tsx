@@ -148,71 +148,61 @@ export default function DashboardSidebar({ currentUser, onOpenSwitchModal }: Das
       </div>
 
       {/* Bottom Persona / Active Role Card */}
-      <div className="pt-4 border-t border-slate-100">
-        {currentUser?.role === 'ADMIN' ? (
-          <div className="w-full flex items-center justify-between p-2.5 rounded-2xl bg-slate-50 border border-slate-200/60">
-            <div className="flex items-center space-x-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs uppercase flex-shrink-0 shadow-sm">
-                {currentUser?.name?.[0] || 'A'}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold text-slate-800 truncate leading-tight">
-                  {currentUser?.name || 'Furora Admin'}
-                </p>
-                <p className="text-[10px] text-slate-400 font-medium truncate">
-                  ADMIN
-                </p>
+      <div className="pt-4 border-t border-slate-100 space-y-2">
+        <div className="w-full flex items-center justify-between p-2.5 rounded-2xl bg-slate-50 border border-slate-200/60">
+          <button
+            onClick={onOpenSwitchModal}
+            className="flex items-center space-x-2.5 min-w-0 flex-1 text-left cursor-pointer hover:opacity-80 transition"
+            title="Click to Switch Persona / Role"
+          >
+            <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs uppercase flex-shrink-0 shadow-sm">
+              {currentUser?.name?.[0] || 'U'}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold text-slate-800 truncate leading-tight">
+                {currentUser?.name || 'User'}
+              </p>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] text-slate-400 font-semibold truncate">
+                  {currentUser?.role?.replace('_', ' ')}
+                </span>
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
+                  Switch
+                </span>
               </div>
             </div>
-            <button
-              onClick={async () => {
-                try {
-                  await fetch('/api/auth/logout', { method: 'POST' });
-                } catch (e) {
-                  console.error('Logout error', e);
-                }
-                window.location.href = '/login';
-              }}
-              title="Log Out"
-              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            <button
-              onClick={onOpenSwitchModal}
-              className="w-full flex items-center justify-between p-2.5 rounded-2xl bg-slate-50 hover:bg-slate-100/90 border border-slate-200/60 transition group text-left cursor-pointer"
-              title="Switch Active Persona / Role"
-            >
-              <div className="flex items-center space-x-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs uppercase flex-shrink-0 shadow-sm">
-                  {currentUser?.name?.[0] || 'U'}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-bold text-slate-800 truncate leading-tight">
-                    {currentUser?.name || 'User'}
-                  </p>
-                  <p className="text-[10px] text-slate-400 font-medium truncate">
-                    {currentUser?.role?.replace('_', ' ')}
-                  </p>
-                </div>
-              </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 group-hover:bg-blue-100 transition flex-shrink-0 ml-1">
-                Switch
-              </span>
-            </button>
+          </button>
 
-            <Link
-              href="/login"
-              className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[11px] font-semibold text-slate-400 hover:text-slate-700 transition rounded-xl hover:bg-slate-50"
-            >
-              <LogOut className="w-3 h-3" />
-              <span>Sign In as Another User</span>
-            </Link>
-          </div>
-        )}
+          <button
+            onClick={async () => {
+              try {
+                await fetch('/api/auth/logout', { method: 'POST' });
+              } catch (e) {
+                console.error('Logout error', e);
+              }
+              window.location.href = '/login';
+            }}
+            title="Log Out"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer flex-shrink-0 ml-1"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        </div>
+
+        <button
+          onClick={async () => {
+            try {
+              await fetch('/api/auth/logout', { method: 'POST' });
+            } catch (e) {
+              console.error('Logout error', e);
+            }
+            window.location.href = '/login';
+          }}
+          className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[11px] font-semibold text-slate-400 hover:text-slate-700 transition rounded-xl hover:bg-slate-50 cursor-pointer"
+        >
+          <LogOut className="w-3 h-3" />
+          <span>Sign In as Another User</span>
+        </button>
       </div>
     </aside>
   );
