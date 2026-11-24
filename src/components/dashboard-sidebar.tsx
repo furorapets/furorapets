@@ -44,10 +44,11 @@ export default function DashboardSidebar({ currentUser, onOpenSwitchModal }: Das
   };
 
   const getNavItems = (): NavItem[] => {
-    // 1. Sales Portal Navigation - Strictly isolated to Sales Catalog
+    // 1. Sales Portal Navigation - Catalog & Customer Orders
     if (pathname.startsWith('/sales') || currentUser?.role === 'SALES') {
       const items: NavItem[] = [
-        { label: 'Sales Catalog', href: '/sales', icon: ShoppingBag, badge: 'Live' },
+        { label: 'Sales Catalog', href: '/sales', icon: ShoppingBag, badge: 'Stock' },
+        { label: 'Orders & Bookings', href: '/sales/orders', icon: ClipboardList, badge: 'Orders' },
       ];
       if (currentUser?.role === 'ADMIN') {
         items.push({ label: 'Return to Admin HQ', href: '/admin', icon: LayoutGrid, badge: 'HQ' });

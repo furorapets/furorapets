@@ -30,8 +30,8 @@ export async function GET(req: NextRequest) {
     } else if (user.role === 'CUSTOMER') {
       where.customerId = user.id;
     } else if (user.role === 'SALES') {
-      // Sales has no order modification access
-      return NextResponse.json({ error: 'Sales team cannot view customer orders' }, { status: 403 });
+      // Sales team can view customer orders to manage bookings and customer fulfillment
+      if (status) where.status = status;
     }
 
     const orders = await prisma.order.findMany({
@@ -99,6 +99,20 @@ export async function GET(req: NextRequest) {
       orderBy: { createdAt: 'desc' },
     });
 
+    // Redact sensitive vendor wholesale financials and escrow payout details for SALES role
+    if (user.role === 'SALES') {
+      const sanitizedOrders = orders.map((o: any) => {
+        const {
+          procurementCost,
+          vendorPayoutRef,
+          vendorPayoutStatus,
+          ...safeOrder
+        } = o;
+        return safeOrder;
+      });
+      return NextResponse.json({ success: true, data: sanitizedOrders });
+    }
+
     return NextResponse.json({ success: true, data: orders });
   } catch (error) {
     return rbacErrorResponse(error);
@@ -133,7 +147,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Determine customer ID (Supports manual order creation for existing or new customer)
-    const customerId = body.customerId || user?.id || 'usr_cust_1';
+    const customerId = body.customerId || user?.id || 'usr_admin';
 
     const order = await createOrder({
       customerId,

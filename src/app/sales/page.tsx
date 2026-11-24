@@ -20,6 +20,10 @@ import {
   RotateCcw,
   Check,
   Store,
+  ClipboardList,
+  MapPin,
+  Phone,
+  User,
 } from 'lucide-react';
 import { useSession } from '@/context/session-context';
 import { useSearchParams } from 'next/navigation';
@@ -47,9 +51,71 @@ function SalesCatalogContent() {
   const [activeTab, setActiveTab] = useState<'MEDIA' | 'LINEAGE' | 'DETAILS' | 'PRIVACY'>('MEDIA');
   const [reservedToast, setReservedToast] = useState<string | null>(null);
 
+  // Instant Pet Booking State
+  const [bookingPet, setBookingPet] = useState<any | null>(null);
+  const [customerName, setCustomerName] = useState('');
+  const [customerContact, setCustomerContact] = useState('');
+  const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [paymentMode, setPaymentMode] = useState('ADVANCE_COD');
+  const [advancePaid, setAdvancePaid] = useState('15000');
+  const [packageTitle, setPackageTitle] = useState('Standard Verified Pet Delivery Package');
+  const [bookingSubmitting, setBookingSubmitting] = useState(false);
+  const [bookingError, setBookingError] = useState('');
+  const [bookingSuccess, setBookingSuccess] = useState<string | null>(null);
+
   // Infinite Scroll Pagination
   const [visibleCount, setVisibleCount] = useState(24);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  const handleInstantBookPet = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bookingPet) return;
+    if (!customerName || !customerContact || !deliveryAddress) {
+      setBookingError('Please enter Customer Name, Contact Number, and Delivery Address.');
+      return;
+    }
+
+    setBookingSubmitting(true);
+    setBookingError('');
+
+    try {
+      const payload: any = {
+        categoryId: bookingPet.categoryId || bookingPet.category?.id,
+        breedId: bookingPet.breedId || bookingPet.breed?.id,
+        petId: bookingPet.id,
+        customerName: customerName.trim(),
+        customerContact: customerContact.trim(),
+        deliveryAddress: deliveryAddress.trim(),
+        productOrPackage: packageTitle,
+        paymentStatus: 'PAID',
+        paymentMode,
+        advancePaid: advancePaid ? Number(advancePaid) : 0,
+        orderSource: 'DIRECT_SALES_ENQUIRY',
+      };
+
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to book pet for customer.');
+      }
+
+      setBookingSuccess(`Pet ${bookingPet.petId} booked successfully! Order ID: ${data.data.orderId}`);
+      setTimeout(() => setBookingSuccess(null), 6000);
+      setBookingPet(null);
+
+      // Refresh stock
+      await loadData();
+    } catch (err: any) {
+      setBookingError(err.message || 'An error occurred during booking.');
+    } finally {
+      setBookingSubmitting(false);
+    }
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -191,12 +257,25 @@ function SalesCatalogContent() {
 
   return (
     <div className="w-full pb-16 space-y-4 animate-fadeIn">
+      {/* Success Booking Toast */}
+      {bookingSuccess && (
+        <div className="fixed top-5 right-5 z-50 bg-emerald-950 text-white px-4 py-3 rounded-2xl shadow-xl flex items-center space-x-3 border border-emerald-700 animate-in fade-in slide-in-from-top-4">
+          <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+          <div>
+            <p className="text-xs font-bold">{bookingSuccess}</p>
+            <Link href="/sales/orders" className="text-[11px] text-emerald-300 underline font-semibold hover:text-white">
+              View in Customer Orders &rarr;
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Compact Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2.5">
             <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">
-              Sales Catalog & Provenance
+              Sales Catalog & Stock
             </h1>
             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-800 border border-slate-200">
               <span className="w-1.5 h-1.5 rounded-full bg-slate-900"></span>
@@ -204,13 +283,20 @@ function SalesCatalogContent() {
             </span>
           </div>
           <p className="text-xs text-slate-400 font-medium mt-0.5">
-            Verified customer-ready pets with certified health history and provenance.
+            Verified customer-ready pets available for instant client reservation and booking.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="inline-flex items-center text-slate-700 bg-slate-100 px-2.5 py-1 rounded-xl text-xs font-semibold border border-slate-200">
-            <Lock className="w-3 h-3 mr-1.5 text-slate-500" /> Private Records Protected
+          <Link
+            href="/sales/orders"
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition shadow-soft cursor-pointer"
+          >
+            <ClipboardList className="w-3.5 h-3.5" />
+            <span>Customer Orders & Bookings</span>
+          </Link>
+          <span className="hidden sm:inline-flex items-center text-slate-700 bg-slate-100 px-2.5 py-1 rounded-xl text-xs font-semibold border border-slate-200">
+            <Lock className="w-3 h-3 mr-1.5 text-slate-500" /> Private Costs Protected
           </span>
         </div>
       </div>
@@ -485,26 +571,23 @@ function SalesCatalogContent() {
                       setActiveMediaIndex(0);
                       setActiveTab('MEDIA');
                     }}
-                    className="flex-1 inline-flex items-center justify-center text-xs font-bold px-3 py-2 bg-slate-900 text-white rounded-xl hover:bg-slate-800 shadow-soft transition cursor-pointer"
+                    className="flex-1 inline-flex items-center justify-center text-xs font-bold px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl transition cursor-pointer"
                   >
                     <Eye className="w-3.5 h-3.5 mr-1" /> View Media
                   </button>
 
                   <button
                     onClick={() => {
-                      if (currentUser?.role === 'ADMIN') {
-                        window.location.href = `/admin/orders?q=${pet.petId}`;
-                      } else {
-                        const link = `${window.location.origin}/pets/${pet.petId}`;
-                        navigator.clipboard.writeText(link);
-                        setReservedToast(pet.petId);
-                        setTimeout(() => setReservedToast(null), 3000);
-                      }
+                      setBookingPet(pet);
+                      setCustomerName('');
+                      setCustomerContact('');
+                      setDeliveryAddress('');
+                      setBookingError('');
                     }}
-                    className="inline-flex items-center justify-center text-xs font-bold px-3 py-2 bg-white text-slate-700 border border-slate-200/90 rounded-xl hover:bg-slate-50 transition cursor-pointer"
-                    title={currentUser?.role === 'ADMIN' ? 'Allocate to Order' : 'Copy Client Reservation Link'}
+                    className="flex-1 inline-flex items-center justify-center text-xs font-bold px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-soft transition cursor-pointer"
+                    title="Book this Pet for Customer"
                   >
-                    <ShoppingBag className="w-3.5 h-3.5 text-slate-500" />
+                    <ShoppingBag className="w-3.5 h-3.5 mr-1.5" /> Book Pet
                   </button>
                 </div>
               </div>
@@ -822,15 +905,15 @@ function SalesCatalogContent() {
                     </span>
                   </div>
                   <div className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-white">
-                    <span className="text-slate-600 font-semibold">Customer Order Modification Access</span>
-                    <span className="text-[11px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
-                      BLOCKED (403 Forbidden)
+                    <span className="text-slate-600 font-semibold">Customer Booking & Order Creation</span>
+                    <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                      ENABLED (Full Booking Access)
                     </span>
                   </div>
                   <div className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-white">
-                    <span className="text-slate-600 font-semibold">Audit Logs & System History</span>
+                    <span className="text-slate-600 font-semibold">Audit Logs & Admin Infrastructure</span>
                     <span className="text-[11px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
-                      BLOCKED (403 Forbidden)
+                      BLOCKED (Admin Restricted)
                     </span>
                   </div>
                 </div>
@@ -860,19 +943,197 @@ function SalesCatalogContent() {
                 ) : (
                   <button
                     onClick={() => {
-                      const link = `${window.location.origin}/pets/${selectedPet.petId}`;
-                      navigator.clipboard.writeText(link);
-                      setReservedToast(selectedPet.petId);
-                      setTimeout(() => setReservedToast(null), 3000);
+                      const targetPet = selectedPet;
+                      setSelectedPet(null);
+                      setBookingPet(targetPet);
+                      setCustomerName('');
+                      setCustomerContact('');
+                      setDeliveryAddress('');
+                      setBookingError('');
                     }}
                     className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition cursor-pointer flex items-center gap-1.5 shadow-soft"
                   >
                     <ShoppingBag className="w-3.5 h-3.5" />
-                    <span>{reservedToast === selectedPet.petId ? '✓ Client Link Copied!' : 'Share Booking Link'}</span>
+                    <span>Book this Pet for Customer</span>
                   </button>
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Instant Pet Booking Modal */}
+      {bookingPet && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 space-y-4 my-8">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900">Book Pet for Customer</h3>
+                <p className="text-xs text-slate-400">
+                  Instant reservation and order creation for this verified pet.
+                </p>
+              </div>
+              <button
+                onClick={() => setBookingPet(null)}
+                className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center hover:bg-slate-200 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {bookingError && (
+              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                <span>{bookingError}</span>
+              </div>
+            )}
+
+            {/* Selected Pet Summary Card */}
+            <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100 flex items-center gap-3">
+              <img
+                src={getPetImage(bookingPet, 0)}
+                alt={bookingPet.breed?.name}
+                className="w-14 h-14 rounded-xl object-cover border border-slate-200"
+              />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-extrabold text-slate-900 text-xs truncate">
+                    {bookingPet.breed?.name}
+                  </h4>
+                  <span className="font-mono text-[10px] font-bold bg-slate-200 text-slate-800 px-1.5 py-0.5 rounded">
+                    {bookingPet.petId}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500 font-medium">
+                  {bookingPet.category?.name} • {bookingPet.sex} • {bookingPet.age}
+                </p>
+                <div className="text-[10px] font-mono text-emerald-700 font-bold truncate">
+                  Chip: {bookingPet.microchipNumber || 'Pending'}
+                </div>
+              </div>
+            </div>
+
+            <form onSubmit={handleInstantBookPet} className="space-y-3 text-xs">
+              {/* Customer Name & Phone */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                    Customer Full Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    placeholder="e.g. Ananya Sharma"
+                    className="w-full border border-slate-200 rounded-xl p-2.5 text-xs bg-white font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                    Phone / WhatsApp *
+                  </label>
+                  <input
+                    type="text"
+                    value={customerContact}
+                    onChange={(e) => setCustomerContact(e.target.value)}
+                    placeholder="+91 98765 43210"
+                    className="w-full border border-slate-200 rounded-xl p-2.5 text-xs bg-white font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Delivery Address */}
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                  Customer Delivery Destination Address *
+                </label>
+                <textarea
+                  value={deliveryAddress}
+                  onChange={(e) => setDeliveryAddress(e.target.value)}
+                  placeholder="Street address, City, State, Pincode"
+                  rows={2}
+                  className="w-full border border-slate-200 rounded-xl p-2.5 text-xs bg-white font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900"
+                  required
+                />
+              </div>
+
+              {/* Payment Mode & Advance */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                    Payment Mode
+                  </label>
+                  <select
+                    value={paymentMode}
+                    onChange={(e) => setPaymentMode(e.target.value)}
+                    className="w-full border border-slate-200 rounded-xl p-2.5 text-xs bg-white font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900"
+                  >
+                    <option value="ADVANCE_COD">Advance Token + Balance on Delivery</option>
+                    <option value="FULL_PREPAID">Full Prepaid Online</option>
+                    <option value="COD">Full Cash on Handover</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                    Advance Amount Paid (₹)
+                  </label>
+                  <input
+                    type="number"
+                    value={advancePaid}
+                    onChange={(e) => setAdvancePaid(e.target.value)}
+                    placeholder="15000"
+                    className="w-full border border-slate-200 rounded-xl p-2.5 text-xs bg-white font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900"
+                  />
+                </div>
+              </div>
+
+              {/* Package Title */}
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                  Package / Delivery Plan
+                </label>
+                <input
+                  type="text"
+                  value={packageTitle}
+                  onChange={(e) => setPackageTitle(e.target.value)}
+                  placeholder="Standard Verified Pet Delivery Package"
+                  className="w-full border border-slate-200 rounded-xl p-2.5 text-xs bg-white font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900"
+                />
+              </div>
+
+              {/* Buttons */}
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setBookingPet(null)}
+                  className="px-4 py-2 border border-slate-200 text-slate-600 rounded-xl text-xs font-semibold hover:bg-slate-50 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={bookingSubmitting}
+                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition disabled:opacity-50 cursor-pointer shadow-soft flex items-center gap-1.5"
+                >
+                  {bookingSubmitting ? (
+                    <>
+                      <div className="w-3.5 h-3.5 rounded-full border-2 border-white border-t-transparent animate-spin"></div>
+                      <span>Booking Pet...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Confirm & Book Pet</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
