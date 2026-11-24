@@ -53,6 +53,31 @@ function VendorsContent() {
   const [isOnboardModalOpen, setIsOnboardModalOpen] = useState(false);
   const [reviewingVendor, setReviewingVendor] = useState<any | null>(null);
 
+  // Vendor Pets Inspect Modal state
+  const [inspectingVendorPets, setInspectingVendorPets] = useState<any | null>(null);
+  const [vendorPetsList, setVendorPetsList] = useState<any[]>([]);
+  const [vendorPetsLoading, setVendorPetsLoading] = useState(false);
+  const [vendorPetsError, setVendorPetsError] = useState('');
+
+  const openVendorPetsModal = async (v: any) => {
+    setInspectingVendorPets(v);
+    setVendorPetsLoading(true);
+    setVendorPetsError('');
+    try {
+      const res = await fetch(`/api/pets?vendorId=${encodeURIComponent(v.id)}`);
+      const data = await res.json();
+      if (data.success) {
+        setVendorPetsList(data.data || []);
+      } else {
+        setVendorPetsError(data.error || 'Failed to fetch vendor pets');
+      }
+    } catch (e: any) {
+      setVendorPetsError(e.message || 'Error fetching vendor pets');
+    } finally {
+      setVendorPetsLoading(false);
+    }
+  };
+
   // Assign Categories Modal state
   const [assigningVendor, setAssigningVendor] = useState<any | null>(null);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -766,15 +791,17 @@ function VendorsContent() {
 
                       {/* Live Stock & Orders */}
                       <td className="py-2.5 px-3.5 text-center whitespace-nowrap">
-                        <div className="text-[11px] leading-tight">
-                          <Link
-                            href={`/admin/categories?vendor=${v.id}&q=${encodeURIComponent(v.name)}`}
-                            className="font-bold text-slate-800 hover:text-slate-900 hover:underline transition"
-                            title={`Inspect ${v._count?.vendorPets || 0} pets from ${v.name}`}
+                        <div className="text-[11px] leading-tight flex items-center justify-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => openVendorPetsModal(v)}
+                            className="font-bold px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition inline-flex items-center gap-1 cursor-pointer shadow-2xs"
+                            title={`Click to inspect ${v._count?.vendorPets || 0} pets registered by ${v.name}`}
                           >
-                            {v._count?.vendorPets || 0} Pets
-                          </Link>
-                          <span className="text-slate-300 mx-1">•</span>
+                            <Layers className="w-3 h-3 text-blue-600" />
+                            <span>{v._count?.vendorPets || 0} Pets</span>
+                          </button>
+                          <span className="text-slate-300">•</span>
                           <Link
                             href={`/admin/orders?vendor=${v.id}&q=${encodeURIComponent(v.name)}`}
                             className="text-slate-400 hover:text-slate-700 hover:underline transition text-[10px]"
@@ -1584,6 +1611,150 @@ function VendorsContent() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* VENDOR PETS INSPECT MODAL */}
+      {inspectingVendorPets && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden border border-slate-100">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-slate-50/70">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center">
+                  <Layers className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm text-slate-900">
+                    Pets Listed by {inspectingVendorPets.name}
+                  </h3>
+                  <p className="text-xs text-slate-500 font-mono">
+                    Vendor ID: {inspectingVendorPets.id} • {vendorPetsList.length} Pet{vendorPetsList.length === 1 ? '' : 's'} Registered
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setInspectingVendorPets(null)}
+                className="w-8 h-8 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 flex items-center justify-center transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-5 overflow-y-auto space-y-3 flex-1">
+              {vendorPetsLoading ? (
+                <div className="py-12 flex flex-col items-center justify-center space-y-2 text-slate-500 text-xs">
+                  <div className="w-7 h-7 rounded-full border-2 border-slate-900 border-t-transparent animate-spin" />
+                  <span>Loading vendor pets...</span>
+                </div>
+              ) : vendorPetsError ? (
+                <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold">
+                  {vendorPetsError}
+                </div>
+              ) : vendorPetsList.length === 0 ? (
+                <div className="py-12 text-center space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+                    <Layers className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-800">No Pets Registered Yet</h4>
+                    <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+                      This vendor partner has not listed any pets yet under their assigned categories.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                vendorPetsList.map((pet) => (
+                  <div
+                    key={pet.id}
+                    className="p-4 rounded-2xl border border-slate-200 bg-white hover:border-slate-300 transition shadow-2xs space-y-3"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        {pet.photos && pet.photos.length > 0 ? (
+                          <img
+                            src={pet.photos[0]}
+                            alt={pet.petId}
+                            className="w-14 h-14 rounded-xl object-cover border border-slate-100 shrink-0"
+                          />
+                        ) : (
+                          <div className="w-14 h-14 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center shrink-0">
+                            <Layers className="w-6 h-6" />
+                          </div>
+                        )}
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-bold text-slate-900 text-xs">
+                              {pet.petId}
+                            </span>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              {pet.status}
+                            </span>
+                          </div>
+                          <h4 className="text-xs font-extrabold text-slate-800">
+                            {pet.category?.name} • {pet.breed?.name}
+                          </h4>
+                          <p className="text-[11px] text-slate-500">
+                            {pet.sex} • {pet.colour} • Age: <strong className="text-slate-800 font-semibold">{pet.age}</strong>
+                          </p>
+                        </div>
+                      </div>
+
+                      {pet.microchipNumber && (
+                        <div className="text-right shrink-0">
+                          <span className="text-[10px] font-bold text-slate-400 block uppercase">Microchip</span>
+                          <span className="font-mono text-xs font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded-md">
+                            {pet.microchipNumber}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {(pet.fatherName || pet.motherName) && (
+                      <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-[11px] text-slate-600 flex items-center justify-between">
+                        <span>Sire (Father): <strong className="text-slate-800">{pet.fatherName || 'Not recorded'}</strong></span>
+                        <span>Dam (Mother): <strong className="text-slate-800">{pet.motherName || 'Not recorded'}</strong></span>
+                      </div>
+                    )}
+
+                    <div className="pt-2 border-t border-slate-100 flex items-center justify-end gap-2">
+                      <Link
+                        href={`/pets/${pet.petId}`}
+                        target="_blank"
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
+                      >
+                        <span>Customer Page</span>
+                        <ExternalLink className="w-3 h-3 text-slate-500" />
+                      </Link>
+                      <Link
+                        href={`/admin/categories?vendor=${inspectingVendorPets.id}&q=${encodeURIComponent(inspectingVendorPets.name)}`}
+                        onClick={() => setInspectingVendorPets(null)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white transition shadow-2xs"
+                      >
+                        <span>Manage in Category Inventory</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Link>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between text-xs">
+              <span className="text-slate-500 text-[11px]">
+                Showing pets listed under vendor consignment
+              </span>
+              <button
+                type="button"
+                onClick={() => setInspectingVendorPets(null)}
+                className="px-4 py-1.5 rounded-xl font-bold bg-slate-200 hover:bg-slate-300 text-slate-800 transition"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

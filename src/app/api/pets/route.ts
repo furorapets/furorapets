@@ -19,11 +19,15 @@ export async function GET(req: NextRequest) {
     const breedId = url.searchParams.get('breedId');
     const status = url.searchParams.get('status');
     const inventoryOwner = url.searchParams.get('inventoryOwner');
+    const vendorId = url.searchParams.get('vendorId') || url.searchParams.get('vendor');
     const q = url.searchParams.get('q')?.trim();
 
     const where: any = {};
     if (categoryId) where.categoryId = categoryId;
     if (breedId) where.breedId = breedId;
+    if (vendorId && (role === 'ADMIN' || !role)) {
+      where.vendorId = vendorId;
+    }
     if (q) {
       where.OR = [
         { petId: { contains: q } },
@@ -31,6 +35,10 @@ export async function GET(req: NextRequest) {
         { microchipNumber: { contains: q } },
         { fatherName: { contains: q } },
         { motherName: { contains: q } },
+        { breed: { name: { contains: q } } },
+        { category: { name: { contains: q } } },
+        { vendor: { name: { contains: q } } },
+        { vendor: { email: { contains: q } } },
       ];
     }
 

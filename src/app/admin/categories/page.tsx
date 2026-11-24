@@ -121,6 +121,10 @@ function CategoriesContent() {
   const [loading, setLoading] = useState(true);
   const [selectedCatId, setSelectedCatId] = useState<string>('');
 
+  // Vendor filter state when navigated from /admin/vendors
+  const [selectedVendorFilter, setSelectedVendorFilter] = useState<string>(vendorParam || '');
+  const [vendorFilterName, setVendorFilterName] = useState<string>(queryParam || '');
+
   // Expanded Breeds (which breeds show their individual pets)
   const [expandedBreedIds, setExpandedBreedIds] = useState<string[]>([]);
   const [petsByBreed, setPetsByBreed] = useState<Record<string, any[]>>({});
@@ -219,49 +223,105 @@ function CategoriesContent() {
         const data = await res.json();
         const cats = data.data || [];
         setCategories(cats);
-        if ((!selectedCatId || !cats.some((c: any) => c.id === selectedCatId)) && cats.length > 0) {
-          setSelectedCatId(cats[0].id);
-        }
+        setSelectedCatId((curr) => {
+          if (curr && cats.some((c: any) => c.id === curr)) return curr;
+          return cats[0]?.id || '';
+        });
       }
     } catch (err) {
       console.error('Failed to load categories', err);
-    } finally {
-      setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadData();
-    if (queryParam) {
-      setPetSearchQuery(queryParam);
-      // Auto-locate pet by querying /api/pets?q=... to find category and breed
-      fetch(`/api/pets?q=${encodeURIComponent(queryParam)}`)
-        .then((r) => r.json())
-        .then((res) => {
-          if (res.success && res.data && res.data.length > 0) {
-            const matchedPet = res.data[0];
-            if (matchedPet.categoryId) setSelectedCatId(matchedPet.categoryId);
-            if (matchedPet.breedId) {
-              setExpandedBreedIds((prev) => Array.from(new Set([...prev, matchedPet.breedId])));
-              fetchPetsForBreed(matchedPet.breedId);
+    let isCancelled = false;
+
+    async function initializeCategories() {
+      try {
+        setLoading(true);
+        const res = await fetch('/api/categories');
+        const data = await res.json();
+        const cats = data.data || [];
+        if (isCancelled) return;
+        setCategories(cats);
+
+        let targetCatId = '';
+        let targetBreedId = '';
+
+        // Check if filtering by vendor (from /admin/vendors)
+        if (vendorParam) {
+          setSelectedVendorFilter(vendorParam);
+          setOwnerFilter('VENDOR');
+          if (queryParam) setVendorFilterName(queryParam);
+
+          try {
+            const petRes = await fetch(`/api/pets?vendorId=${encodeURIComponent(vendorParam)}`);
+            const petData = await petRes.json();
+            if (petData.success && petData.data && petData.data.length > 0) {
+              const matchedPet = petData.data[0];
+              if (matchedPet.category?.id || matchedPet.categoryId) {
+                targetCatId = matchedPet.category?.id || matchedPet.categoryId;
+              }
+              if (matchedPet.breed?.id || matchedPet.breedId) {
+                targetBreedId = matchedPet.breed?.id || matchedPet.breedId;
+              }
+              if (matchedPet.vendor?.name) {
+                setVendorFilterName(matchedPet.vendor.name);
+              }
             }
+          } catch (e) {
+            console.error('Failed to locate vendor pets', e);
           }
-        })
-        .catch(console.error);
-    }
+        } else if (queryParam) {
+          setPetSearchQuery(queryParam);
+          try {
+            const petRes = await fetch(`/api/pets?q=${encodeURIComponent(queryParam)}`);
+            const petData = await petRes.json();
+            if (petData.success && petData.data && petData.data.length > 0) {
+              const matchedPet = petData.data[0];
+              if (matchedPet.category?.id || matchedPet.categoryId) {
+                targetCatId = matchedPet.category?.id || matchedPet.categoryId;
+              }
+              if (matchedPet.breed?.id || matchedPet.breedId) {
+                targetBreedId = matchedPet.breed?.id || matchedPet.breedId;
+              }
+            }
+          } catch (e) {
+            console.error('Failed to locate query pets', e);
+          }
+        }
 
-    if (vendorParam) {
-      setOwnerFilter('VENDOR');
-    }
+        if (isCancelled) return;
 
-    if (typeof window !== 'undefined' && window.location.search.includes('expand=')) {
-      const params = new URLSearchParams(window.location.search);
-      const expandId = params.get('expand');
-      if (expandId) {
-        setExpandedBreedIds([expandId]);
-        fetchPetsForBreed(expandId);
+        if (targetCatId) {
+          setSelectedCatId(targetCatId);
+        } else if (cats.length > 0) {
+          setSelectedCatId((curr) => curr || cats[0].id);
+        }
+
+        if (targetBreedId) {
+          setExpandedBreedIds((prev) => Array.from(new Set([...prev, targetBreedId])));
+          fetchPetsForBreed(targetBreedId);
+        } else if (typeof window !== 'undefined' && window.location.search.includes('expand=')) {
+          const params = new URLSearchParams(window.location.search);
+          const expandId = params.get('expand');
+          if (expandId) {
+            setExpandedBreedIds([expandId]);
+            fetchPetsForBreed(expandId);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load categories', err);
+      } finally {
+        if (!isCancelled) setLoading(false);
       }
     }
+
+    initializeCategories();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [queryParam, vendorParam]);
 
   // Escape key listener for all modals
@@ -765,6 +825,37 @@ function CategoriesContent() {
         </div>
       </div>
 
+      {/* Active Vendor Filter Banner */}
+      {selectedVendorFilter && (
+        <div className="bg-blue-50/90 border border-blue-200 rounded-2xl p-3.5 px-4 flex items-center justify-between shadow-2xs">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
+              <Store className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-blue-950">
+                Viewing Consignment Pets from Vendor: <span className="underline decoration-blue-400 font-extrabold">{vendorFilterName || selectedVendorFilter}</span>
+              </p>
+              <p className="text-[11px] text-blue-700">
+                Displaying matching category and expanded breed inventory for this vendor partner.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedVendorFilter('');
+              setOwnerFilter('ALL');
+              setVendorFilterName('');
+            }}
+            className="px-3 py-1.5 bg-white hover:bg-blue-100 text-blue-700 font-bold text-xs rounded-xl border border-blue-200 transition shadow-2xs flex items-center gap-1.5 shrink-0 active:scale-95 cursor-pointer"
+          >
+            <X className="w-3.5 h-3.5" />
+            <span>Clear Filter</span>
+          </button>
+        </div>
+      )}
+
       {/* Category Pills Bar */}
       <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-1">
         {loading ? (
@@ -1098,6 +1189,7 @@ function CategoriesContent() {
                       {isExpanded && (() => {
                         const allBreedPets = petsByBreed[b.id] || [];
                         const displayedPets = allBreedPets.filter((pet) => {
+                          if (selectedVendorFilter && pet.vendorId !== selectedVendorFilter) return false;
                           if (ownerFilter !== 'ALL' && pet.inventoryOwner !== ownerFilter) return false;
                           if (statusFilter !== 'ALL' && pet.status !== statusFilter) return false;
                           if (petSearchQuery.trim()) {
