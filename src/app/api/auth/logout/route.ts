@@ -8,8 +8,19 @@ export async function POST(req: NextRequest) {
     message: 'Logged out successfully',
   });
 
-  res.cookies.delete('furora_user_id');
-  res.cookies.delete('furora_user_role');
+  res.cookies.set('furora_user_id', '', {
+    path: '/',
+    expires: new Date(0),
+    maxAge: 0,
+    sameSite: 'lax',
+  });
+
+  res.cookies.set('furora_user_role', '', {
+    path: '/',
+    expires: new Date(0),
+    maxAge: 0,
+    sameSite: 'lax',
+  });
 
   return res;
 }

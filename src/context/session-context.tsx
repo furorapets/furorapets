@@ -1,34 +1,31 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { SessionUser } from '@/types';
 
 interface SessionContextType {
-  currentUser: SessionUser;
+  currentUser: SessionUser | null;
   availableUsers: SessionUser[];
   loading: boolean;
   switchRole: (userId: string) => Promise<void>;
   switchToRoleName: (roleName: string) => Promise<void>;
+  refreshSession: () => Promise<void>;
 }
 
-const defaultAdminUser: SessionUser = {
-  id: 'usr_admin',
-  email: 'admin@furora.com',
-  name: 'Ganesan (Admin)',
-  role: 'ADMIN',
-};
-
 const SessionContext = createContext<SessionContextType>({
-  currentUser: defaultAdminUser,
-  availableUsers: [defaultAdminUser],
-  loading: false,
+  currentUser: null,
+  availableUsers: [],
+  loading: true,
   switchRole: async () => {},
   switchToRoleName: async () => {},
+  refreshSession: async () => {},
 });
 
 export function SessionProvider({ children }: { children: React.ReactNode }) {
-  const [currentUser, setCurrentUser] = useState<SessionUser>(defaultAdminUser);
-  const [availableUsers, setAvailableUsers] = useState<SessionUser[]>([defaultAdminUser]);
+  const pathname = usePathname();
+  const [currentUser, setCurrentUser] = useState<SessionUser | null>(null);
+  const [availableUsers, setAvailableUsers] = useState<SessionUser[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchSession = async () => {
@@ -40,9 +37,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         if (data.availableUsers) {
           setAvailableUsers(data.availableUsers);
         }
+      } else {
+        setCurrentUser(null);
       }
     } catch (e) {
       console.error('Session fetch error:', e);
+      setCurrentUser(null);
     } finally {
       setLoading(false);
     }
@@ -50,7 +50,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     fetchSession();
-  }, []);
+  }, [pathname]);
 
   const switchRole = async (userId: string) => {
     try {
@@ -89,6 +89,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         loading,
         switchRole,
         switchToRoleName,
+        refreshSession: fetchSession,
       }}
     >
       {children}

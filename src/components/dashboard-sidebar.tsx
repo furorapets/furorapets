@@ -36,46 +36,59 @@ export default function DashboardSidebar({ currentUser, onOpenSwitchModal }: Das
   const pathname = usePathname();
 
   const getRoleHomeHref = (): string => {
-    const role = currentUser?.role || 'ADMIN';
-    if (role === 'VENDOR') return '/vendor';
-    if (role === 'DELIVERY_AGENT') return '/agent';
-    if (role === 'SALES') return '/sales';
-    if (role === 'CUSTOMER') return '/customer/order';
+    if (pathname.startsWith('/sales') || currentUser?.role === 'SALES') return '/sales';
+    if (pathname.startsWith('/vendor') || currentUser?.role === 'VENDOR') return '/vendor';
+    if (pathname.startsWith('/agent') || currentUser?.role === 'DELIVERY_AGENT') return '/agent';
+    if (currentUser?.role === 'CUSTOMER') return '/customer/order';
     return '/admin';
   };
 
   const getNavItems = (): NavItem[] => {
-    const role = currentUser?.role || 'ADMIN';
+    // 1. Sales Portal Navigation - Strictly isolated to Sales Catalog
+    if (pathname.startsWith('/sales') || currentUser?.role === 'SALES') {
+      const items: NavItem[] = [
+        { label: 'Sales Catalog', href: '/sales', icon: ShoppingBag, badge: 'Live' },
+      ];
+      if (currentUser?.role === 'ADMIN') {
+        items.push({ label: 'Return to Admin HQ', href: '/admin', icon: LayoutGrid, badge: 'HQ' });
+      }
+      return items;
+    }
 
-    if (role === 'VENDOR') {
-      return [
+    // 2. Vendor Portal Navigation - Isolated to Vendor features
+    if (pathname.startsWith('/vendor') || currentUser?.role === 'VENDOR') {
+      const items: NavItem[] = [
         { label: 'Vendor Dashboard', href: '/vendor', icon: LayoutGrid, badge: 'Overview' },
         { label: 'My Pets & Inventory', href: '/vendor/pets', icon: Layers, badge: 'Stock' },
         { label: 'Dispatch Orders', href: '/vendor/orders', icon: Store, badge: 'Orders' },
       ];
+      if (currentUser?.role === 'ADMIN') {
+        items.push({ label: 'Return to Admin HQ', href: '/admin', icon: LayoutGrid, badge: 'HQ' });
+      }
+      return items;
     }
 
-    if (role === 'DELIVERY_AGENT') {
-      return [
+    // 3. Delivery Agent Portal Navigation - Isolated to logistics
+    if (pathname.startsWith('/agent') || currentUser?.role === 'DELIVERY_AGENT') {
+      const items: NavItem[] = [
         { label: 'Operations Dashboard', href: '/agent', icon: LayoutGrid, badge: 'Overview' },
         { label: 'Delivery & Inspection', href: '/agent/order', icon: Truck, badge: 'Field' },
       ];
+      if (currentUser?.role === 'ADMIN') {
+        items.push({ label: 'Return to Admin HQ', href: '/admin', icon: LayoutGrid, badge: 'HQ' });
+      }
+      return items;
     }
 
-    if (role === 'SALES') {
-      return [
-        { label: 'Sales Dashboard', href: '/sales', icon: ShoppingBag, badge: 'Live' },
-      ];
-    }
-
-    if (role === 'CUSTOMER') {
+    // 4. Customer Portal Navigation
+    if (currentUser?.role === 'CUSTOMER') {
       return [
         { label: 'My Orders & Tracking', href: '/customer/order', icon: HeartHandshake },
         { label: 'Browse Pets', href: '/sales', icon: ShoppingBag },
       ];
     }
 
-    // Admin: Complete operational control suite
+    // 5. Admin HQ Navigation - ONLY rendered on /admin routes or for verified ADMIN
     return [
       { label: 'Command Center', href: '/admin', icon: LayoutGrid, badge: 'HQ' },
       { label: 'Category & Pet Inventory', href: '/admin/categories', icon: Layers },
@@ -156,15 +169,15 @@ export default function DashboardSidebar({ currentUser, onOpenSwitchModal }: Das
             title="Click to Switch Persona / Role"
           >
             <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs uppercase flex-shrink-0 shadow-sm">
-              {currentUser?.name?.[0] || 'U'}
+              {currentUser?.name?.[0] || (pathname.startsWith('/sales') ? 'S' : pathname.startsWith('/vendor') ? 'V' : pathname.startsWith('/agent') ? 'A' : 'U')}
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-xs font-bold text-slate-800 truncate leading-tight">
-                {currentUser?.name || 'User'}
+                {currentUser?.name || (pathname.startsWith('/sales') ? 'Furora Sales Team' : pathname.startsWith('/vendor') ? 'Vendor Partner' : pathname.startsWith('/agent') ? 'Delivery Agent' : 'User')}
               </p>
               <div className="flex items-center gap-1.5">
                 <span className="text-[10px] text-slate-400 font-semibold truncate">
-                  {currentUser?.role?.replace('_', ' ')}
+                  {currentUser?.role?.replace('_', ' ') || (pathname.startsWith('/sales') ? 'SALES' : pathname.startsWith('/vendor') ? 'VENDOR' : pathname.startsWith('/agent') ? 'DELIVERY AGENT' : '')}
                 </span>
                 <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
                   Switch

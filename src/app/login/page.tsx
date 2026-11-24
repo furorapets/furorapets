@@ -56,8 +56,8 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (data.success) {
-        // Redirect to role-specific dashboard
-        router.push(data.redirectTo || '/admin/orders');
+        // Full navigation ensures all React session contexts, headers, and cookies re-initialize cleanly
+        window.location.href = data.redirectTo || '/admin';
       } else {
         setErrorMessage(data.error || 'Invalid credentials. Please try again.');
       }
