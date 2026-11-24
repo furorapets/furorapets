@@ -879,9 +879,9 @@ export default function AdminInventoryPage() {
                           Furora HQ
                         </span>
                       ) : (
-                        <div className="max-w-[130px] truncate" title={pet.vendor?.name || 'Vendor Kennel'}>
-                          <span className="inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200 truncate">
-                            {pet.vendor?.name?.replace(/ Kennel| Breeders| Facility/gi, '') || 'Vendor'}
+                        <div className="max-w-[150px] truncate" title={pet.vendor?.name || 'Vendor Kennel'}>
+                          <span className="inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 truncate">
+                            {pet.vendor?.name || 'Vendor Kennel'}
                           </span>
                         </div>
                       )}

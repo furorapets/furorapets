@@ -26,6 +26,7 @@ import {
   Filter,
   RefreshCw,
   ShoppingBag,
+  Store,
 } from 'lucide-react';
 import { calculateAge } from '@/lib/age-calculator';
 import PetMediaUpload from '@/components/media/PetMediaUpload';
@@ -1106,7 +1107,8 @@ function CategoriesContent() {
                             const matchColour = pet.colour?.toLowerCase().includes(q);
                             const matchSire = pet.fatherName?.toLowerCase().includes(q);
                             const matchDam = pet.motherName?.toLowerCase().includes(q);
-                            if (!matchId && !matchColour && !matchSire && !matchDam) return false;
+                            const matchVendor = pet.vendor?.name?.toLowerCase().includes(q);
+                            if (!matchId && !matchColour && !matchSire && !matchDam && !matchVendor) return false;
                           }
                           return true;
                         });
@@ -1234,16 +1236,17 @@ function CategoriesContent() {
                                             <td className="py-2.5">
                                               <div className="flex items-center space-x-1.5">
                                                 {pet.inventoryOwner === 'FURORA' ? (
-                                                  <span className="inline-block px-2 py-0.5 rounded-full text-[9px] font-bold border bg-emerald-50 text-emerald-700 border-emerald-200">
-                                                    Furora HQ
+                                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border bg-emerald-50 text-emerald-700 border-emerald-200">
+                                                    <span>Furora HQ</span>
                                                   </span>
                                                 ) : (
                                                   <Link
                                                     href={`/admin/vendors?q=${encodeURIComponent(pet.vendor?.name || '')}`}
-                                                    className="inline-block px-2 py-0.5 rounded-full text-[9px] font-bold border bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 transition"
-                                                    title="View vendor details in Vendors tab"
+                                                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 transition max-w-[160px]"
+                                                    title={`Breeder Facility: ${pet.vendor?.name || 'Vendor Kennel'}`}
                                                   >
-                                                    {pet.vendor?.name ? `Vendor (${pet.vendor.name.split(' ')[0]})` : 'Vendor Kennel'}
+                                                    <Store className="w-3 h-3 text-indigo-500 shrink-0" />
+                                                    <span className="truncate">{pet.vendor?.name || 'Vendor Kennel'}</span>
                                                   </Link>
                                                 )}
                                                 <button

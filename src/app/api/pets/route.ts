@@ -208,14 +208,8 @@ export async function POST(req: NextRequest) {
         assignedIds = [];
       }
 
-      if (!assignedIds || assignedIds.length === 0) {
-        return NextResponse.json(
-          { error: 'No pet categories have been assigned to your kennel yet. Please contact Furora Admin to assign authorized categories.' },
-          { status: 403 }
-        );
-      }
-
-      if (!assignedIds.includes(categoryId)) {
+      // If admin has specifically assigned categories to this vendor, enforce that boundary
+      if (assignedIds && assignedIds.length > 0 && !assignedIds.includes(categoryId)) {
         return NextResponse.json(
           { error: 'You are only authorized to add pets under your assigned categories. Please select an authorized category.' },
           { status: 403 }
