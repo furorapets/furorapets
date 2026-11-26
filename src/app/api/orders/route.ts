@@ -49,6 +49,8 @@ export async function GET(req: NextRequest) {
             photos: true,
             dob: true,
             microchipNumber: true,
+            fatherName: true,
+            motherName: true,
           },
         },
         vendor: { select: { id: true, name: true, email: true, phone: true, address: true } },

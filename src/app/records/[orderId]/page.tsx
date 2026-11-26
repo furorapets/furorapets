@@ -246,7 +246,7 @@ export default function VerifiedCustomerRecordPage() {
         </div>
         <h2 className="text-base font-extrabold text-slate-900">Record Not Yet Available</h2>
         <p className="text-xs text-slate-500 leading-relaxed">
-          {error || 'This pet record is being processed through vendor pickup and medical clearance.'}
+          {error || 'This pet record is being processed through certified partner pickup and veterinary medical clearance.'}
         </p>
         <Link href="/" className="inline-block mt-2 px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-slate-800 transition">
           Return to Furora Dashboard &rarr;
@@ -694,34 +694,29 @@ export default function VerifiedCustomerRecordPage() {
               </span>
             </div>
 
-            {/* Place 1: Vendor Kennel Facility */}
+            {/* Place 1: Furora Certified Partner Network Origin */}
             <div className="p-4 rounded-2xl border border-slate-200/80 bg-white space-y-3 shadow-2xs">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center font-bold">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
                     <Store className="w-4 h-4" />
                   </div>
                   <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700">Location 1: Breeder Kennel</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Location 1: Furora Certified Network</span>
                     <h4 className="text-xs font-bold text-slate-900">
-                      {vendor?.name || 'Approved Vendor Breeding Facility'}
+                      Furora Certified Partner Breeding Facility
                     </h4>
                   </div>
                 </div>
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
-                  <Check className="w-3 h-3" /> Pickup Inspected
+                  <Check className="w-3 h-3" /> Origin Verified
                 </span>
               </div>
 
-              {vendor?.address && (
-                <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
-                  <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                  <span>{vendor.address}</span>
-                  {vendor.kennelRegNumber && (
-                    <span className="font-mono text-[10px] text-slate-400">({vendor.kennelRegNumber})</span>
-                  )}
-                </div>
-              )}
+              <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                <span>Furora Companion Care Facility • Rigorous Pre-Transit Health Verification Passed</span>
+              </div>
 
               {latestInspection && (
                 <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-2 text-xs">

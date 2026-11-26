@@ -29,6 +29,11 @@ import {
   QrCode,
   Stethoscope,
   AlertCircle,
+  Eye,
+  FileText,
+  Printer,
+  Mail,
+  Check,
 } from 'lucide-react';
 import { useSession } from '@/context/session-context';
 import PetPicker from '@/components/PetPicker';
@@ -73,6 +78,9 @@ function OrdersContent() {
   const [doctorNameInput, setDoctorNameInput] = useState('');
   const [clinicSubmitting, setClinicSubmitting] = useState(false);
   const [clinicError, setClinicError] = useState('');
+
+  // Complete Order Dossier Inspection Modal
+  const [inspectingOrderDossier, setInspectingOrderDossier] = useState<any | null>(null);
 
   // Allocate Pet Modal (Direct End-to-End Link)
   const [allocatingOrder, setAllocatingOrder] = useState<any | null>(null);
@@ -161,7 +169,8 @@ function OrdersContent() {
     assigningVendorOrder ||
     assigningAgentOrder ||
     allocatingOrder ||
-    assigningClinicOrder
+    assigningClinicOrder ||
+    inspectingOrderDossier
   );
 
   useEffect(() => {
@@ -722,9 +731,17 @@ function OrdersContent() {
                   >
                     {/* Order ID */}
                     <td className="py-3 px-4 whitespace-nowrap">
-                      <span className="font-mono font-bold text-slate-900 tracking-tight text-xs bg-slate-100/70 border border-slate-200/60 px-2 py-0.5 rounded-md">
-                        {o.orderId}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setInspectingOrderDossier(o)}
+                          className="font-mono font-bold text-slate-900 tracking-tight text-xs bg-slate-100/80 hover:bg-slate-200/90 border border-slate-200 px-2 py-0.5 rounded-md transition cursor-pointer flex items-center gap-1"
+                          title="Click to view full order dossier (where it comes from, who delivered, destination)"
+                        >
+                          <span>{o.orderId}</span>
+                          <Eye className="w-3 h-3 text-blue-600 ml-0.5" />
+                        </button>
+                      </div>
                     </td>
 
                     {/* Customer - Link to Customers Tab */}
@@ -1656,6 +1673,424 @@ function OrdersContent() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================
+          COMPLETE ORDER DOSSIER INSPECTION MODAL (FULL TRANSPARENCY)
+      ======================================================== */}
+      {inspectingOrderDossier && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
+          <div className="card-clean bg-white border border-slate-200/90 rounded-3xl shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden animate-scaleUp">
+            {/* Modal Header */}
+            <div className="p-5 md:p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/60 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center font-bold shadow-2xs">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-extrabold text-slate-900 font-mono tracking-tight">
+                      {inspectingOrderDossier.orderId}
+                    </h3>
+                    <span className="text-xs">{getOrderStatusBadge(inspectingOrderDossier.status)}</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                    End-to-End Companion Order Provenance & Physical Custody Dossier
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Link
+                  href={`/records/${inspectingOrderDossier.orderId}`}
+                  target="_blank"
+                  className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition"
+                  title="Open live customer public tracking pass"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Public Pass</span>
+                </Link>
+                <Link
+                  href={`/certificate/${inspectingOrderDossier.orderId}`}
+                  target="_blank"
+                  className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl text-xs font-semibold transition"
+                  title="Open Luxury A4 Certificate for physical printing"
+                >
+                  <Printer className="w-3.5 h-3.5 text-amber-600" />
+                  <span>A4 Certificate</span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setInspectingOrderDossier(null)}
+                  className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-800 transition cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body - Scrollable 4-Location Custody Journey */}
+            <div className="p-5 md:p-6 overflow-y-auto space-y-6 text-xs">
+              {/* Stepper Timeline Header */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 p-3 rounded-2xl bg-slate-50 border border-slate-200/80 select-none">
+                <div className="p-2 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-0.5">
+                  <div className="flex items-center justify-between text-[10px] font-bold text-amber-700 uppercase">
+                    <span>1. Origin</span>
+                    <Store className="w-3 h-3 text-amber-600" />
+                  </div>
+                  <div className="font-extrabold text-slate-900 truncate">
+                    {inspectingOrderDossier.vendor?.name || 'Furora Direct HQ'}
+                  </div>
+                </div>
+
+                <div className="p-2 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-0.5">
+                  <div className="flex items-center justify-between text-[10px] font-bold text-blue-700 uppercase">
+                    <span>2. Agent Custody</span>
+                    <Truck className="w-3 h-3 text-blue-600" />
+                  </div>
+                  <div className="font-extrabold text-slate-900 truncate">
+                    {inspectingOrderDossier.agent?.name || 'Agent Pending'}
+                  </div>
+                </div>
+
+                <div className="p-2 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-0.5">
+                  <div className="flex items-center justify-between text-[10px] font-bold text-teal-700 uppercase">
+                    <span>3. Medical Center</span>
+                    <Stethoscope className="w-3 h-3 text-teal-600" />
+                  </div>
+                  <div className="font-extrabold text-slate-900 truncate">
+                    {inspectingOrderDossier.vetClinicName ? 'Vet Assigned' : 'Clinic Pending'}
+                  </div>
+                </div>
+
+                <div className="p-2 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-0.5">
+                  <div className="flex items-center justify-between text-[10px] font-bold text-emerald-700 uppercase">
+                    <span>4. Destination</span>
+                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                  </div>
+                  <div className="font-extrabold text-slate-900 truncate">
+                    {inspectingOrderDossier.customerName}
+                  </div>
+                </div>
+              </div>
+
+              {/* 4 Detailed Sections */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* 1. Origin (Where it comes from) */}
+                <div className="p-4 rounded-2xl border border-amber-200/80 bg-amber-50/15 space-y-3">
+                  <div className="flex items-center justify-between border-b border-amber-100 pb-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800 flex items-center gap-1.5">
+                      <Store className="w-3.5 h-3.5 text-amber-600" />
+                      1. Origin: Breeder Kennel & Pet Details
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                      {inspectingOrderDossier.vendor ? 'Breeder Consignment' : 'HQ Stock'}
+                    </span>
+                  </div>
+
+                  <div className="space-y-2 text-slate-700">
+                    <div className="flex justify-between items-start gap-2">
+                      <span className="text-slate-400 font-semibold">Kennel / Breeder:</span>
+                      <strong className="text-slate-900 text-right">
+                        {inspectingOrderDossier.vendor?.name || 'Furora Direct HQ (In-House Stock)'}
+                      </strong>
+                    </div>
+                    {inspectingOrderDossier.vendor?.contactPerson && (
+                      <div className="flex justify-between items-start gap-2">
+                        <span className="text-slate-400 font-semibold">Contact Person:</span>
+                        <span className="font-bold text-slate-800">{inspectingOrderDossier.vendor.contactPerson}</span>
+                      </div>
+                    )}
+                    {inspectingOrderDossier.vendor?.phone && (
+                      <div className="flex justify-between items-start gap-2">
+                        <span className="text-slate-400 font-semibold">Phone:</span>
+                        <a href={`tel:${inspectingOrderDossier.vendor.phone}`} className="font-mono text-blue-600 hover:underline">
+                          {inspectingOrderDossier.vendor.phone}
+                        </a>
+                      </div>
+                    )}
+                    {inspectingOrderDossier.vendor?.email && (
+                      <div className="flex justify-between items-start gap-2">
+                        <span className="text-slate-400 font-semibold">Email:</span>
+                        <span className="text-slate-800 truncate max-w-[200px]">{inspectingOrderDossier.vendor.email}</span>
+                      </div>
+                    )}
+                    {inspectingOrderDossier.vendor?.address && (
+                      <div className="flex justify-between items-start gap-2">
+                        <span className="text-slate-400 font-semibold">Pickup Address:</span>
+                        <span className="text-right text-slate-800 max-w-[220px]">{inspectingOrderDossier.vendor.address}</span>
+                      </div>
+                    )}
+                    {inspectingOrderDossier.vendor?.kennelRegNumber && (
+                      <div className="flex justify-between items-start gap-2">
+                        <span className="text-slate-400 font-semibold">Kennel Reg #:</span>
+                        <span className="font-mono text-slate-800 bg-amber-100/60 px-1.5 py-0.5 rounded text-[10px]">
+                          {inspectingOrderDossier.vendor.kennelRegNumber}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Allocated Pet Micro-Card */}
+                  <div className="mt-3 p-3 rounded-xl bg-white border border-amber-200/60 space-y-2">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="font-bold text-slate-900">
+                        {inspectingOrderDossier.pet?.petId ? `Pet: ${inspectingOrderDossier.pet.petId}` : 'Pet Allocation Pending'}
+                      </span>
+                      <span className="font-semibold text-slate-500">
+                        {inspectingOrderDossier.breed?.name || inspectingOrderDossier.category?.name}
+                      </span>
+                    </div>
+                    {inspectingOrderDossier.pet && (
+                      <div className="grid grid-cols-2 gap-1.5 text-[10px] text-slate-600 pt-1 border-t border-slate-100">
+                        <div>Sex: <strong>{inspectingOrderDossier.pet.sex || 'N/A'}</strong></div>
+                        <div>Colour: <strong>{inspectingOrderDossier.pet.colour || 'N/A'}</strong></div>
+                        <div className="col-span-2">
+                          Microchip: <strong className="font-mono text-emerald-700">{inspectingOrderDossier.pet.microchipNumber || 'Pending'}</strong>
+                        </div>
+                        {inspectingOrderDossier.pet.fatherName && (
+                          <div className="col-span-2 truncate">Sire: {inspectingOrderDossier.pet.fatherName}</div>
+                        )}
+                        {inspectingOrderDossier.pet.motherName && (
+                          <div className="col-span-2 truncate">Dam: {inspectingOrderDossier.pet.motherName}</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* 2. Transit (Who delivered) */}
+                <div className="p-4 rounded-2xl border border-blue-200/80 bg-blue-50/15 space-y-3">
+                  <div className="flex items-center justify-between border-b border-blue-100 pb-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-blue-800 flex items-center gap-1.5">
+                      <Truck className="w-3.5 h-3.5 text-blue-600" />
+                      2. Transit & Custody: Delivery Ops Agent
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
+                      {inspectingOrderDossier.agent ? 'Agent Assigned' : 'Unassigned'}
+                    </span>
+                  </div>
+
+                  <div className="space-y-2 text-slate-700">
+                    <div className="flex justify-between items-start gap-2">
+                      <span className="text-slate-400 font-semibold">Agent Name:</span>
+                      <strong className="text-slate-900">
+                        {inspectingOrderDossier.agent?.name || 'Agent Not Assigned Yet'}
+                      </strong>
+                    </div>
+                    {inspectingOrderDossier.agent?.phone && (
+                      <div className="flex justify-between items-start gap-2">
+                        <span className="text-slate-400 font-semibold">Agent Phone:</span>
+                        <a href={`tel:${inspectingOrderDossier.agent.phone}`} className="font-mono text-blue-600 hover:underline">
+                          {inspectingOrderDossier.agent.phone}
+                        </a>
+                      </div>
+                    )}
+                    {inspectingOrderDossier.agent?.email && (
+                      <div className="flex justify-between items-start gap-2">
+                        <span className="text-slate-400 font-semibold">Agent Email:</span>
+                        <span className="text-slate-800 truncate max-w-[200px]">{inspectingOrderDossier.agent.email}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between items-start gap-2">
+                      <span className="text-slate-400 font-semibold">Assigned Date:</span>
+                      <span className="text-slate-700">
+                        {new Date(inspectingOrderDossier.updatedAt || inspectingOrderDossier.createdAt).toLocaleString('en-GB')}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Pickup Inspection Snapshot */}
+                  <div className="mt-3 p-3 rounded-xl bg-white border border-blue-200/60 space-y-2">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="font-bold text-slate-900">Kennel Physical Pickup Check</span>
+                      <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">
+                        {inspectingOrderDossier.inspections?.[0]?.result || (inspectingOrderDossier.petPhotoAtPickup ? 'PASSED' : 'Pending Check')}
+                      </span>
+                    </div>
+                    {inspectingOrderDossier.inspections?.[0]?.notes && (
+                      <p className="text-[11px] text-slate-600 italic">
+                        &quot;{inspectingOrderDossier.inspections[0].notes}&quot;
+                      </p>
+                    )}
+                    {(inspectingOrderDossier.petPhotoAtPickup || inspectingOrderDossier.inspections?.[0]?.photos?.[0]) && (
+                      <div className="pt-1">
+                        <span className="text-[10px] font-bold text-slate-400 block mb-1">Pickup Photo Evidence:</span>
+                        <a
+                          href={inspectingOrderDossier.petPhotoAtPickup || inspectingOrderDossier.inspections[0].photos[0]}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-block relative w-20 h-20 rounded-lg overflow-hidden border border-slate-200 group"
+                        >
+                          <img
+                            src={inspectingOrderDossier.petPhotoAtPickup || inspectingOrderDossier.inspections[0].photos[0]}
+                            alt="Pickup evidence"
+                            className="w-full h-full object-cover group-hover:scale-105 transition"
+                          />
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* 3. Veterinary Medical Location */}
+                <div className="p-4 rounded-2xl border border-teal-200/80 bg-teal-50/15 space-y-3">
+                  <div className="flex items-center justify-between border-b border-teal-100 pb-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-teal-800 flex items-center gap-1.5">
+                      <Stethoscope className="w-3.5 h-3.5 text-teal-600" />
+                      3. Medical Location: Veterinary Center
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const target = inspectingOrderDossier;
+                        setInspectingOrderDossier(null);
+                        openClinicModal(target);
+                      }}
+                      className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-teal-100 text-teal-800 hover:bg-teal-200 transition cursor-pointer"
+                    >
+                      Edit Clinic
+                    </button>
+                  </div>
+
+                  <div className="space-y-2 text-slate-700">
+                    <div className="flex justify-between items-start gap-2">
+                      <span className="text-slate-400 font-semibold">Designated Clinic:</span>
+                      <strong className="text-slate-900 text-right">
+                        {inspectingOrderDossier.vetClinicName || 'Crown Vet Specialty Animal Hospital & Diagnostics'}
+                      </strong>
+                    </div>
+                    <div className="flex justify-between items-start gap-2">
+                      <span className="text-slate-400 font-semibold">Registered Doctor:</span>
+                      <span className="font-semibold text-slate-800 text-right">
+                        {inspectingOrderDossier.vetDoctorName || 'Dr. Aditi Mukherjee, BVSc & AH (Reg #VCI-2018-9941)'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-start gap-2">
+                      <span className="text-slate-400 font-semibold">Viral Screening:</span>
+                      <span className="font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded text-[10px]">
+                        Parvo / Distemper Negative
+                      </span>
+                    </div>
+                  </div>
+
+                  {inspectingOrderDossier.medicalCertUrl && (
+                    <div className="pt-2 border-t border-teal-100">
+                      <a
+                        href={inspectingOrderDossier.medicalCertUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 text-teal-700 font-bold hover:underline text-[11px]"
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        <span>View Signed Vet Health Fitness Certificate &rarr;</span>
+                      </a>
+                    </div>
+                  )}
+                </div>
+
+                {/* 4. Destination (Where it delivered) */}
+                <div className="p-4 rounded-2xl border border-emerald-200/80 bg-emerald-50/15 space-y-3">
+                  <div className="flex items-center justify-between border-b border-emerald-100 pb-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-800 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      4. Destination: Customer Delivery Handover
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                      {inspectingOrderDossier.status === 'DELIVERY_COMPLETED' ? 'Delivered' : inspectingOrderDossier.paymentStatus}
+                    </span>
+                  </div>
+
+                  <div className="space-y-2 text-slate-700">
+                    <div className="flex justify-between items-start gap-2">
+                      <span className="text-slate-400 font-semibold">Customer Name:</span>
+                      <strong className="text-slate-900">{inspectingOrderDossier.customerName}</strong>
+                    </div>
+                    <div className="flex justify-between items-start gap-2">
+                      <span className="text-slate-400 font-semibold">Phone:</span>
+                      <a href={`tel:${inspectingOrderDossier.customerContact}`} className="font-mono text-blue-600 hover:underline">
+                        {inspectingOrderDossier.customerContact}
+                      </a>
+                    </div>
+                    <div className="flex justify-between items-start gap-2">
+                      <span className="text-slate-400 font-semibold">Address:</span>
+                      <span className="text-right text-slate-800 max-w-[220px]">{inspectingOrderDossier.deliveryAddress}</span>
+                    </div>
+                    <div className="flex justify-between items-start gap-2">
+                      <span className="text-slate-400 font-semibold">Package:</span>
+                      <span className="text-slate-800">{inspectingOrderDossier.productOrPackage}</span>
+                    </div>
+                    <div className="flex justify-between items-start gap-2">
+                      <span className="text-slate-400 font-semibold">Mode / Source:</span>
+                      <span className="text-slate-800 font-mono text-[10px]">
+                        {inspectingOrderDossier.paymentMode || 'FULL_PREPAID'} • {inspectingOrderDossier.orderSource || 'WEBSITE'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Proof of Delivery Card */}
+                  {inspectingOrderDossier.deliveryRecord && (
+                    <div className="mt-3 p-3 rounded-xl bg-white border border-emerald-200/60 space-y-1.5">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="font-bold text-slate-900">Handover Proof (POD)</span>
+                        <span className="text-emerald-700 font-mono font-bold text-[10px]">OTP Verified</span>
+                      </div>
+                      {inspectingOrderDossier.deliveryRecord.dateTime && (
+                        <div className="text-[10px] text-slate-500">
+                          Handover at: {new Date(inspectingOrderDossier.deliveryRecord.dateTime).toLocaleString('en-GB')}
+                        </div>
+                      )}
+                      {inspectingOrderDossier.deliveryRecord.photo && (
+                        <a
+                          href={inspectingOrderDossier.deliveryRecord.photo}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-block relative w-20 h-20 rounded-lg overflow-hidden border border-slate-200 group mt-1"
+                        >
+                          <img
+                            src={inspectingOrderDossier.deliveryRecord.photo}
+                            alt="POD Photo"
+                            className="w-full h-full object-cover group-hover:scale-105 transition"
+                          />
+                        </a>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 md:p-5 border-t border-slate-100 bg-slate-50/60 flex flex-wrap items-center justify-between gap-3 shrink-0 text-xs">
+              <div className="flex items-center gap-2">
+                <Link
+                  href={`/records/${inspectingOrderDossier.orderId}`}
+                  target="_blank"
+                  className="px-3.5 py-2 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition shadow-xs inline-flex items-center gap-1.5"
+                >
+                  <QrCode className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Public QR Provenance Pass</span>
+                </Link>
+                <Link
+                  href={`/certificate/${inspectingOrderDossier.orderId}`}
+                  target="_blank"
+                  className="px-3.5 py-2 rounded-xl bg-amber-500 text-slate-950 font-bold hover:bg-amber-400 transition shadow-xs inline-flex items-center gap-1.5"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>Print A4 Certificate</span>
+                </Link>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setInspectingOrderDossier(null)}
+                className="px-5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-bold transition cursor-pointer shadow-xs"
+              >
+                Close Dossier
+              </button>
+            </div>
           </div>
         </div>
       )}

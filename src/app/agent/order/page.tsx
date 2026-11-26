@@ -220,6 +220,7 @@ function AgentOrderWorkflowContent() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to accept order assignment');
 
+      setSelectedOrder((prev: any) => prev ? { ...prev, status: 'PICKUP_INSPECTION' } : prev);
       alert('Assignment accepted! You are now en route to the breeder facility for document & pet collection.');
       await loadData();
     } catch (err: any) {
@@ -426,13 +427,13 @@ function AgentOrderWorkflowContent() {
   // Determine current active operational stage (1 through 4)
   const currentStage = !selectedOrder
     ? 0
-    : selectedOrder.status === 'PICKUP_ASSIGNED'
+    : ['PICKUP_ASSIGNED', 'AGENT_ASSIGNED', 'PET_ASSIGNED'].includes(selectedOrder.status)
     ? 1
     : selectedOrder.status === 'PICKUP_INSPECTION'
     ? 2
-    : selectedOrder.status === 'PICKUP_ACCEPTED' || selectedOrder.status === 'MEDICAL_CHECK'
+    : ['PICKUP_ACCEPTED', 'MEDICAL_CHECK'].includes(selectedOrder.status)
     ? 3
-    : selectedOrder.status === 'READY_FOR_DELIVERY' || selectedOrder.status === 'MEDICAL_APPROVED'
+    : ['READY_FOR_DELIVERY', 'MEDICAL_APPROVED'].includes(selectedOrder.status)
     ? 4
     : selectedOrder.status === 'DELIVERY_COMPLETED'
     ? 5
@@ -781,7 +782,7 @@ function AgentOrderWorkflowContent() {
             {/* ========================================================
                 STAGE 1: ACCEPT DELIVERY ASSIGNMENT (PICKUP_ASSIGNED)
             ======================================================== */}
-            {selectedOrder.status === 'PICKUP_ASSIGNED' && (
+            {['PICKUP_ASSIGNED', 'AGENT_ASSIGNED', 'PET_ASSIGNED'].includes(selectedOrder.status) && (
               <div className="card-clean p-6 rounded-2xl shadow-xs space-y-5 animate-scaleUp border border-amber-200 bg-amber-50/20">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-amber-100">
                   <div>
@@ -1456,6 +1457,36 @@ function AgentOrderWorkflowContent() {
                     Animal was rejected during physical screening and retained by vendor. Order has been routed to Admin for pet replacement.
                   </p>
                 </div>
+              </div>
+            )}
+
+            {/* Fallback if status is outside standard 4-stage map */}
+            {![
+              'PICKUP_ASSIGNED', 'AGENT_ASSIGNED', 'PET_ASSIGNED',
+              'PICKUP_INSPECTION',
+              'PICKUP_ACCEPTED', 'MEDICAL_CHECK',
+              'READY_FOR_DELIVERY', 'MEDICAL_APPROVED',
+              'DELIVERY_COMPLETED',
+              'INSPECTION_FAILED', 'MEDICAL_FAILED'
+            ].includes(selectedOrder.status) && (
+              <div className="card-clean p-8 rounded-2xl border border-slate-200 text-center space-y-4 bg-white">
+                <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 mx-auto flex items-center justify-center">
+                  <Truck className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-slate-900 text-base">Trip Status: {selectedOrder.status}</h3>
+                  <p className="text-xs text-slate-500 max-w-md mx-auto mt-1">
+                    This order is assigned to your delivery queue. Click below to confirm dispatch and proceed to Stage 2 Kennel Pickup.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleAcceptAssignment}
+                  disabled={submitting}
+                  className="px-6 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition cursor-pointer shadow-sm"
+                >
+                  {submitting ? 'Updating...' : 'Accept Assignment & Open Kennel Inspection'}
+                </button>
               </div>
             )}
           </div>

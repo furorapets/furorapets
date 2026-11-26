@@ -222,10 +222,10 @@ export async function GET(req: NextRequest, { params }: { params: { orderId: str
       },
       checkpoints: {
         kennel: {
-          title: 'Location 1: Kennel / In-House Pickup',
-          facilityName: order.vendor?.name || 'Furora In-House Breeding & Care Facility',
-          address: order.vendor?.address || 'Sector 5, Alkapuri, Vadodara',
-          regNumber: order.vendor?.kennelRegNumber || 'KCI-REG-2024-8891',
+          title: 'Location 1: Furora Certified Partner Network',
+          facilityName: 'Furora Certified Companion Care Facility',
+          address: 'Furora Network Hub • Certified Care Facility',
+          regNumber: 'FURORA-VERIFIED-PARTNER',
           completed: currentMilestone >= 2,
           petPhotoUrl: pickupPhoto,
           inspectionPassed: currentMilestone >= 2,
@@ -264,7 +264,12 @@ export async function GET(req: NextRequest, { params }: { params: { orderId: str
       productOrPackage: order.productOrPackage,
       paymentStatus: order.paymentStatus,
       createdAt: order.createdAt,
-      vendor: order.vendor,
+      // Redact vendor details for customer-facing white-label privacy (Furora direct branding)
+      vendor: {
+        name: 'Furora Certified Partner Network',
+        address: 'Furora Verified Breeding & Care Facility',
+        kennelRegNumber: 'FURORA-ACCREDITED',
+      },
       agent: order.agent,
       pet: hasPet && order.pet ? {
         id: order.pet.id,
