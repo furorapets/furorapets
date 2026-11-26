@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useSession } from '@/context/session-context';
 import DashboardSidebar from './dashboard-sidebar';
 import PersonaSwitchModal from './persona-switch-modal';
+import ChangePasswordModal from './ChangePasswordModal';
 import { Menu, X } from 'lucide-react';
 
 interface DashboardLayoutShellProps {
@@ -15,6 +16,7 @@ export default function DashboardLayoutShell({ children }: DashboardLayoutShellP
   const pathname = usePathname();
   const { currentUser, availableUsers, switchRole } = useSession();
   const [isSwitchModalOpen, setIsSwitchModalOpen] = useState(false);
+  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Global automatic body and background scroll lock whenever any modal/popup is open
@@ -107,6 +109,7 @@ export default function DashboardLayoutShell({ children }: DashboardLayoutShellP
           <DashboardSidebar
             currentUser={currentUser}
             onOpenSwitchModal={() => setIsSwitchModalOpen(true)}
+            onOpenChangePasswordModal={() => setIsChangePasswordModalOpen(true)}
           />
         </div>
 
@@ -123,6 +126,10 @@ export default function DashboardLayoutShell({ children }: DashboardLayoutShellP
                 onOpenSwitchModal={() => {
                   setIsMobileMenuOpen(false);
                   setIsSwitchModalOpen(true);
+                }}
+                onOpenChangePasswordModal={() => {
+                  setIsMobileMenuOpen(false);
+                  setIsChangePasswordModalOpen(true);
                 }}
               />
             </div>
@@ -142,6 +149,13 @@ export default function DashboardLayoutShell({ children }: DashboardLayoutShellP
         currentUser={currentUser}
         availableUsers={availableUsers}
         onSwitch={switchRole}
+      />
+
+      {/* Self-Service Change Password Modal with Email OTP */}
+      <ChangePasswordModal
+        isOpen={isChangePasswordModalOpen}
+        onClose={() => setIsChangePasswordModalOpen(false)}
+        currentUser={currentUser}
       />
     </div>
   );

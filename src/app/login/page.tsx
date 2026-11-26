@@ -16,6 +16,7 @@ import {
   Check,
 } from 'lucide-react';
 import Link from 'next/link';
+import ChangePasswordModal from '@/components/ChangePasswordModal';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -24,6 +25,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [showPasswordResetModal, setShowPasswordResetModal] = useState(false);
 
   const handleLogin = async (e?: React.FormEvent, customUser?: string, customPass?: string) => {
     if (e) e.preventDefault();
@@ -113,7 +115,13 @@ export default function LoginPage() {
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
                   Password
                 </label>
-                <span className="text-[10px] text-slate-400">Admin Managed</span>
+                <button
+                  type="button"
+                  onClick={() => setShowPasswordResetModal(true)}
+                  className="text-[11px] font-bold text-amber-600 hover:text-amber-700 hover:underline transition cursor-pointer"
+                >
+                  Forgot or Change Password?
+                </button>
               </div>
               <div className="relative">
                 <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -183,6 +191,12 @@ export default function LoginPage() {
           </p>
         </div>
       </div>
+
+      <ChangePasswordModal
+        isOpen={showPasswordResetModal}
+        onClose={() => setShowPasswordResetModal(false)}
+        initialEmail={identifier.includes('@') ? identifier.trim() : ''}
+      />
     </div>
   );
 }

@@ -18,11 +18,13 @@ import {
   UserCheck,
   Activity,
   LogOut,
+  Key,
 } from 'lucide-react';
 
 interface DashboardSidebarProps {
   currentUser: SessionUser | null;
   onOpenSwitchModal: () => void;
+  onOpenChangePasswordModal?: () => void;
 }
 
 interface NavItem {
@@ -32,7 +34,11 @@ interface NavItem {
   badge?: string;
 }
 
-export default function DashboardSidebar({ currentUser, onOpenSwitchModal }: DashboardSidebarProps) {
+export default function DashboardSidebar({
+  currentUser,
+  onOpenSwitchModal,
+  onOpenChangePasswordModal,
+}: DashboardSidebarProps) {
   const pathname = usePathname();
 
   const getRoleHomeHref = (): string => {
@@ -202,6 +208,18 @@ export default function DashboardSidebar({ currentUser, onOpenSwitchModal }: Das
             <LogOut className="w-4 h-4" />
           </button>
         </div>
+
+        {/* Change Password with Email OTP */}
+        {onOpenChangePasswordModal && (
+          <button
+            onClick={onOpenChangePasswordModal}
+            className="w-full flex items-center justify-center gap-1.5 py-2 px-3 text-[11px] font-bold text-amber-800 bg-amber-50 hover:bg-amber-100/80 border border-amber-200/70 rounded-xl transition cursor-pointer shadow-2xs"
+            title="Change Account Password with Email OTP Verification"
+          >
+            <Key className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+            <span>Change Password (Email OTP)</span>
+          </button>
+        )}
 
         <button
           onClick={async () => {

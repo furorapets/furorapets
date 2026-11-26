@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { sendVendorApprovalEmail, sendVendorDocumentUpdateEmail } from '@/lib/email';
+import { generatePasswordProtectedVendorPdf } from '@/lib/vendor-credential-pdf';
 
 export const dynamic = 'force-dynamic';
 
@@ -82,6 +83,18 @@ export async function PUT(
     let newStatus = vendor.onboardingStatus;
     let updatedNotes = vendor.onboardingNotes;
 
+    // Prepare credentials if approving
+    const baseUsername = (vendor.name || name || 'breeder')
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '_')
+      .replace(/_+/g, '_')
+      .replace(/^_|_$/g, '');
+    const phoneDigits = (vendor.phone || phone || '').replace(/[^0-9]/g, '');
+    const phoneSuffix = phoneDigits.slice(-4) || '2026';
+    const candidateUsername = vendor.username || `${baseUsername.slice(0, 14)}_${phoneSuffix}`;
+    const randDigits = Math.floor(1000 + Math.random() * 9000);
+    const candidateTempPassword = vendor.tempPassword || vendor.password || `Furora@${randDigits}`;
+
     if (action === 'APPROVE') {
       newStatus = 'APPROVED';
       updatedNotes = onboardingNotes || null;
@@ -110,6 +123,13 @@ export async function PUT(
       where: { id },
       data: {
         ...(action && ['APPROVE', 'REQUEST_CHANGES', 'REJECT'].includes(action) ? { onboardingStatus: newStatus } : {}),
+        ...(action === 'APPROVE'
+          ? {
+              username: candidateUsername,
+              password: candidateTempPassword,
+              tempPassword: candidateTempPassword,
+            }
+          : {}),
         ...(updatedNotes !== undefined ? { onboardingNotes: updatedNotes } : {}),
         ...(name ? { name: name.trim() } : {}),
         ...(phone ? { phone: phone.trim() } : {}),
@@ -135,9 +155,40 @@ export async function PUT(
 
     // Send email notification via Hostinger SMTP
     if (action === 'APPROVE') {
-      sendVendorApprovalEmail(vendor.email, vendor.name).catch((err) =>
-        console.error('Failed to dispatch vendor approval email:', err.message)
-      );
+      const finalUsername = updated.username || candidateUsername;
+      const finalPassword = updated.tempPassword || candidateTempPassword;
+      const cleanPhone = (updated.phone || '').replace(/[^0-9]/g, '').slice(-10) || '1234567890';
+      const pdfPassword = cleanPhone;
+
+      (async () => {
+        try {
+          const pdfBuffer = await generatePasswordProtectedVendorPdf({
+            vendorName: updated.name,
+            email: updated.email,
+            phone: updated.phone || cleanPhone,
+            kennelRegNumber: updated.kennelRegNumber,
+            address: updated.address,
+            username: finalUsername,
+            tempPassword: finalPassword,
+            loginUrl: 'https://breeder.furora.in/vendor',
+            pdfPassword,
+          });
+
+          await sendVendorApprovalEmail({
+            vendorEmail: updated.email,
+            vendorName: updated.name,
+            phone: updated.phone,
+            username: finalUsername,
+            tempPassword: finalPassword,
+            loginUrl: 'https://breeder.furora.in/vendor',
+            attachmentBuffer: pdfBuffer,
+            pdfPassword,
+          });
+          console.log(`[APPROVAL] Dispatched password-protected credentials PDF to ${updated.email}`);
+        } catch (err: any) {
+          console.error('Failed to dispatch vendor approval email with credential PDF:', err.message);
+        }
+      })();
     } else if (action === 'REQUEST_CHANGES') {
       sendVendorDocumentUpdateEmail(vendor.email, vendor.name, updatedNotes || '').catch((err) =>
         console.error('Failed to dispatch vendor document update email:', err.message)

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
+import { sendVendorApprovalEmail } from '@/lib/email';
+import { generatePasswordProtectedVendorPdf } from '@/lib/vendor-credential-pdf';
 
 export const dynamic = 'force-dynamic';
 
@@ -108,11 +110,21 @@ export async function POST(req: NextRequest) {
     }
 
     const customId = `usr_vendor_${Date.now().toString(36)}`;
+    const baseUsername = name.trim().toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+    const phoneDigits = (phone ? phone.trim() : '').replace(/[^0-9]/g, '');
+    const phoneSuffix = phoneDigits.slice(-4) || '2026';
+    const vendorUsername = `${baseUsername.slice(0, 14)}_${phoneSuffix}`;
+    const randDigits = Math.floor(1000 + Math.random() * 9000);
+    const vendorTempPassword = `Furora@${randDigits}`;
+
     const newVendor = await prisma.user.create({
       data: {
         id: customId,
         name: name.trim(),
         email: email.trim().toLowerCase(),
+        username: vendorUsername,
+        password: vendorTempPassword,
+        tempPassword: vendorTempPassword,
         role: 'VENDOR',
         phone: phone ? phone.trim() : null,
         address: address ? address.trim() : null,
@@ -161,6 +173,41 @@ export async function POST(req: NextRequest) {
         }),
       },
     });
+
+    if (onboardingStatus === 'APPROVED') {
+      const cleanPhone = (newVendor.phone || '').replace(/[^0-9]/g, '').slice(-10) || '1234567890';
+      const pdfPassword = cleanPhone;
+
+      (async () => {
+        try {
+          const pdfBuffer = await generatePasswordProtectedVendorPdf({
+            vendorName: newVendor.name,
+            email: newVendor.email,
+            phone: newVendor.phone || cleanPhone,
+            kennelRegNumber: newVendor.kennelRegNumber,
+            address: newVendor.address,
+            username: vendorUsername,
+            tempPassword: vendorTempPassword,
+            loginUrl: 'https://breeder.furora.in/vendor',
+            pdfPassword,
+          });
+
+          await sendVendorApprovalEmail({
+            vendorEmail: newVendor.email,
+            vendorName: newVendor.name,
+            phone: newVendor.phone,
+            username: vendorUsername,
+            tempPassword: vendorTempPassword,
+            loginUrl: 'https://breeder.furora.in/vendor',
+            attachmentBuffer: pdfBuffer,
+            pdfPassword,
+          });
+          console.log(`[ONBOARDING] Dispatched password-protected credentials PDF to ${newVendor.email}`);
+        } catch (err: any) {
+          console.error('Failed to dispatch vendor onboarding approval email with PDF:', err.message);
+        }
+      })();
+    }
 
     return NextResponse.json(
       {

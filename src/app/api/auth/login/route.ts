@@ -219,50 +219,56 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Auto-sync credentials in active database so password matches permanently
+    // Seed initial demo credentials if not already set, without overwriting custom user passwords
     try {
-      if (isAdminAccount && (user.username !== 'ganesan' || user.password !== 'ganesan1234..')) {
-        await prisma.user.update({
-          where: { id: user.id },
-          data: {
-            username: 'ganesan',
-            password: 'ganesan1234..',
-            tempPassword: 'ganesan1234..',
-            name: 'Ganesan (Admin)',
-          },
-        });
-      } else if (isSalesAccount && (user.username !== 'sales' || user.password !== 'sales1234..')) {
-        await prisma.user.update({
-          where: { id: user.id },
-          data: {
-            username: 'sales',
-            password: 'sales1234..',
-            tempPassword: 'sales1234..',
-            name: 'Furora Sales Team',
-          },
-        });
-      } else if (isVendorAccount && (user.username !== 'vendor' || user.password !== 'vendor1234..')) {
-        await prisma.user.update({
-          where: { id: user.id },
-          data: {
-            username: 'vendor',
-            password: 'vendor1234..',
-            tempPassword: 'vendor1234..',
-            assignedCategories: '["cat_dogs","cat_cats","cat_fish","cat_birds","cat_small_animals","cat_reptiles"]',
-            onboardingStatus: 'APPROVED',
-          },
-        });
-      } else if (isAgentAccount && (user.username !== 'agent' || user.password !== 'agent1234..')) {
-        await prisma.user.update({
-          where: { id: user.id },
-          data: {
-            username: 'agent',
-            password: 'agent1234..',
-            tempPassword: 'agent1234..',
-            name: 'Furora Delivery Agent',
-            assignedHub: 'Bangalore Field Logistics Hub',
-          },
-        });
+      const hasCustomPassword = Boolean(user.password && user.password !== 'Furora@2026');
+      const isLoggingInWithDemoPass =
+        isGanesanAdminPassword || isSalesPassword || isVendorPassword || isAgentPassword;
+
+      if (!hasCustomPassword || (isLoggingInWithDemoPass && (!user.password || !user.tempPassword))) {
+        if (isAdminAccount && !user.password) {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: {
+              username: user.username || 'ganesan',
+              password: 'ganesan1234..',
+              tempPassword: 'ganesan1234..',
+              name: user.name || 'Ganesan (Admin)',
+            },
+          });
+        } else if (isSalesAccount && !user.password) {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: {
+              username: user.username || 'sales',
+              password: 'sales1234..',
+              tempPassword: 'sales1234..',
+              name: user.name || 'Furora Sales Team',
+            },
+          });
+        } else if (isVendorAccount && !user.password) {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: {
+              username: user.username || 'vendor',
+              password: 'vendor1234..',
+              tempPassword: 'vendor1234..',
+              assignedCategories: '["cat_dogs","cat_cats","cat_fish","cat_birds","cat_small_animals","cat_reptiles"]',
+              onboardingStatus: 'APPROVED',
+            },
+          });
+        } else if (isAgentAccount && !user.password) {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: {
+              username: user.username || 'agent',
+              password: 'agent1234..',
+              tempPassword: 'agent1234..',
+              name: user.name || 'Furora Delivery Agent',
+              assignedHub: 'Bangalore Field Logistics Hub',
+            },
+          });
+        }
       }
     } catch (syncErr) {
       console.error('Auto-sync credentials error:', syncErr);
