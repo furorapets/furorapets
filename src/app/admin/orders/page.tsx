@@ -34,6 +34,8 @@ import {
   Printer,
   Mail,
   Check,
+  DollarSign,
+  CreditCard,
 } from 'lucide-react';
 import { useSession } from '@/context/session-context';
 import PetPicker from '@/components/PetPicker';
@@ -82,6 +84,18 @@ function OrdersContent() {
   // Complete Order Dossier Inspection Modal
   const [inspectingOrderDossier, setInspectingOrderDossier] = useState<any | null>(null);
 
+  // Vendor Quoted Payout & Settlement Modal (Non-Automatic Razorpay / UTR)
+  const [quotedPriceInput, setQuotedPriceInput] = useState<string>('');
+  const [settlingPayoutOrder, setSettlingPayoutOrder] = useState<any | null>(null);
+  const [payoutAmountInput, setPayoutAmountInput] = useState<string>('');
+  const [payoutRefInput, setPayoutRefInput] = useState<string>('');
+  const [payoutNotesInput, setPayoutNotesInput] = useState<string>('');
+  const [payoutMode, setPayoutMode] = useState<'RECORD_UTR' | 'RAZORPAY_CHECKOUT'>('RECORD_UTR');
+  const [payoutSubmitting, setPayoutSubmitting] = useState(false);
+  const [payoutError, setPayoutError] = useState('');
+  const [createVendorId, setCreateVendorId] = useState('');
+  const [createProcurementCost, setCreateProcurementCost] = useState('');
+
   // Allocate Pet Modal (Direct End-to-End Link)
   const [allocatingOrder, setAllocatingOrder] = useState<any | null>(null);
   const [availablePetsForAllocation, setAvailablePetsForAllocation] = useState<any[]>([]);
@@ -108,7 +122,7 @@ function OrdersContent() {
   const [createError, setCreateError] = useState('');
 
   // Lock background scrolling whenever any modal popup is open
-  useBodyScrollLock(Boolean(allocatingOrder || isCreateModalOpen || assigningVendorOrder || assigningAgentOrder || assigningClinicOrder));
+  useBodyScrollLock(Boolean(allocatingOrder || isCreateModalOpen || assigningVendorOrder || assigningAgentOrder || assigningClinicOrder || inspectingOrderDossier || settlingPayoutOrder));
 
   const loadData = async () => {
     setLoading(true);
@@ -170,7 +184,8 @@ function OrdersContent() {
     assigningAgentOrder ||
     allocatingOrder ||
     assigningClinicOrder ||
-    inspectingOrderDossier
+    inspectingOrderDossier ||
+    settlingPayoutOrder
   );
 
   useEffect(() => {
@@ -417,6 +432,7 @@ function OrdersContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           vendorId: selectedVendorId,
+          procurementCost: quotedPriceInput ? Number(quotedPriceInput) : undefined,
         }),
       });
 
@@ -424,9 +440,42 @@ function OrdersContent() {
       if (!res.ok) throw new Error(data.error);
 
       setAssigningVendorOrder(null);
+      setQuotedPriceInput('');
       loadData();
     } catch (err: any) {
       alert(err.message);
+    }
+  };
+
+  const handleSettlePayout = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!settlingPayoutOrder) return;
+    setPayoutSubmitting(true);
+    setPayoutError('');
+
+    try {
+      const finalRef = payoutRefInput.trim() || `RZP_PO_${Date.now()}`;
+      const res = await fetch(`/api/orders/${settlingPayoutOrder.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          procurementCost: payoutAmountInput ? Number(payoutAmountInput) : undefined,
+          vendorPayoutStatus: 'SETTLED',
+          vendorPayoutRef: finalRef,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to settle vendor payout');
+
+      setSettlingPayoutOrder(null);
+      setPayoutRefInput('');
+      setPayoutNotesInput('');
+      await loadData();
+    } catch (err: any) {
+      setPayoutError(err.message);
+    } finally {
+      setPayoutSubmitting(false);
     }
   };
 
@@ -1048,6 +1097,42 @@ function OrdersContent() {
                             <QrCode className="w-3 h-3 ml-1 text-emerald-700 opacity-70 group-hover:opacity-100 transition-opacity" />
                           </Link>
                         )}
+
+                        {/* 7. Vendor Payout Settlement Milestone */}
+                        {o.vendorId && (
+                          o.vendorPayoutStatus === 'SETTLED' ? (
+                            <span
+                              className="inline-flex items-center text-[10px] font-bold px-2 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 shrink-0"
+                              title={`Vendor Payout Settled: ₹${o.procurementCost?.toLocaleString('en-IN') || '0'} | Ref: ${o.vendorPayoutRef || 'Verified'}`}
+                            >
+                              <Check className="w-3 h-3 mr-1 text-emerald-600" />
+                              <span>₹{o.procurementCost?.toLocaleString('en-IN') || '0'} Paid</span>
+                            </span>
+                          ) : (['PICKUP_ACCEPTED', 'MEDICAL_CHECK', 'MEDICAL_APPROVED', 'READY_FOR_DELIVERY', 'DELIVERY_COMPLETED'].includes(o.status) || o.vendorPayoutStatus === 'ELIGIBLE_FOR_PAYOUT') ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSettlingPayoutOrder(o);
+                                setPayoutAmountInput(o.procurementCost ? String(o.procurementCost) : '');
+                                setPayoutRefInput('');
+                                setPayoutNotesInput('');
+                                setPayoutError('');
+                              }}
+                              className="inline-flex items-center text-[10px] font-extrabold px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white shadow-xs transition cursor-pointer shrink-0 animate-pulse"
+                              title="Pet arrived at medical center! Click to pay vendor via Razorpay / UTR"
+                            >
+                              <DollarSign className="w-3 h-3 mr-0.5 text-white" />
+                              <span>Pay Vendor: ₹{o.procurementCost ? o.procurementCost.toLocaleString('en-IN') : 'Quote'}</span>
+                            </button>
+                          ) : o.procurementCost ? (
+                            <span
+                              className="inline-flex items-center text-[9px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 border border-slate-200 shrink-0"
+                              title="Held in escrow until delivery agent delivers pet to medical center"
+                            >
+                              <span>Escrow: ₹{o.procurementCost.toLocaleString('en-IN')}</span>
+                            </span>
+                          ) : null
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -1464,17 +1549,39 @@ function OrdersContent() {
                 />
               </div>
 
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                  Quoted Purchase Price for Pet (₹) *
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">₹</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="500"
+                    value={quotedPriceInput}
+                    onChange={(e) => setQuotedPriceInput(e.target.value)}
+                    placeholder="e.g. 25000"
+                    required
+                    className="w-full pl-8 pr-3 py-2.5 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 bg-white"
+                  />
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Agreed procurement cost held in escrow until delivery agent delivers the pet to the medical center.
+                </p>
+              </div>
+
               <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setAssigningVendorOrder(null)}
-                  className="px-4 py-2 border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                  className="px-4 py-2 border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition"
+                  className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition cursor-pointer"
                 >
                   Dispatch to Vendor
                 </button>
@@ -2091,6 +2198,194 @@ function OrdersContent() {
                 Close Dossier
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================
+          VENDOR PAYOUT SETTLEMENT MODAL (NON-AUTOMATIC RAZORPAY / UTR)
+      ======================================================== */}
+      {settlingPayoutOrder && (
+        <div
+          className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto overscroll-contain modal-backdrop animate-fadeIn"
+          onClick={() => setSettlingPayoutOrder(null)}
+        >
+          <div
+            className="card-clean max-w-lg w-full p-6 shadow-2xl space-y-4 rounded-3xl max-h-[90vh] overflow-y-auto overscroll-contain my-auto modal-content-scroll animate-scaleUp bg-white border border-slate-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+                  <DollarSign className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-extrabold text-slate-900">Settle Vendor Procurement Payout</h3>
+                  <p className="text-[11px] text-slate-400">
+                    Order <span className="font-mono font-bold text-slate-800">{settlingPayoutOrder.orderId}</span> • Delivered to Medical Hub
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSettlingPayoutOrder(null)}
+                className="w-7 h-7 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center hover:bg-slate-200 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {payoutError && (
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                <span>{payoutError}</span>
+              </div>
+            )}
+
+            {/* Vendor & Bank Details Card */}
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2 text-xs">
+              <div className="flex items-center justify-between font-bold text-slate-900">
+                <span className="flex items-center gap-1.5">
+                  <Store className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>{settlingPayoutOrder.vendor?.name || 'Assigned Vendor Kennel'}</span>
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-extrabold">
+                  Medical Milestone Reached
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-600 pt-1">
+                <div>
+                  <span className="text-slate-400 block text-[10px]">Contact Person:</span>
+                  <strong>{settlingPayoutOrder.vendor?.name?.split('(')[1]?.replace(')', '') || settlingPayoutOrder.vendor?.name}</strong>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[10px]">Contact Phone:</span>
+                  <strong className="font-mono">{settlingPayoutOrder.vendor?.phone || 'On file'}</strong>
+                </div>
+              </div>
+              <div className="p-2.5 rounded-xl bg-white border border-slate-200/70 text-[11px] space-y-1">
+                <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                  Verified Settlement Destination
+                </div>
+                <div className="text-slate-800 font-medium">
+                  {settlingPayoutOrder.vendor?.address ? `Facility Address: ${settlingPayoutOrder.vendor.address}` : 'Bank Passbook / Cheque on File'}
+                </div>
+              </div>
+            </div>
+
+            <form onSubmit={handleSettlePayout} className="space-y-4 text-xs">
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                  Agreed Payout Amount (₹) *
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">₹</span>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={payoutAmountInput}
+                    onChange={(e) => setPayoutAmountInput(e.target.value)}
+                    className="w-full pl-8 pr-3 py-2.5 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 bg-white"
+                  />
+                </div>
+              </div>
+
+              {/* Non-Automatic Settlement Mode Tabs */}
+              <div className="space-y-2">
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  Settlement Method (Manual Disbursal)
+                </label>
+                <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setPayoutMode('RECORD_UTR')}
+                    className={`py-2 rounded-lg text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                      payoutMode === 'RECORD_UTR'
+                        ? 'bg-white text-slate-900 shadow-xs'
+                        : 'text-slate-500 hover:text-slate-800'
+                    }`}
+                  >
+                    <span>Record Razorpay / UTR</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPayoutMode('RAZORPAY_CHECKOUT');
+                      if (!payoutRefInput) {
+                        setPayoutRefInput(`pay_RZP_${Date.now().toString().slice(-8)}`);
+                      }
+                    }}
+                    className={`py-2 rounded-lg text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                      payoutMode === 'RAZORPAY_CHECKOUT'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'text-slate-500 hover:text-slate-800'
+                    }`}
+                  >
+                    <CreditCard className="w-3.5 h-3.5" />
+                    <span>Razorpay Transfer</span>
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                  Razorpay Payment ID / Bank UTR Reference *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={payoutRefInput}
+                  onChange={(e) => setPayoutRefInput(e.target.value)}
+                  placeholder={payoutMode === 'RAZORPAY_CHECKOUT' ? 'e.g. pay_Nxxxxxxxxxxx or rzp_payout_xxxx' : 'e.g. UTR20261126900123 / IMPS'}
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 bg-white"
+                />
+                <p className="text-[10px] text-slate-400 mt-1">
+                  {payoutMode === 'RAZORPAY_CHECKOUT'
+                    ? 'Enter the transaction ID from your Razorpay Gateway or Payment Link.'
+                    : 'Enter the bank transfer reference or UTR to permanently clear vendor escrow.'}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                  Settlement Notes (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={payoutNotesInput}
+                  onChange={(e) => setPayoutNotesInput(e.target.value)}
+                  placeholder="e.g. Transferred after physical 10-point check at Vadodara Medical Center"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 bg-white"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setSettlingPayoutOrder(null)}
+                  className="px-4 py-2 border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={payoutSubmitting}
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-sm cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {payoutSubmitting ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Recording...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Confirm & Disburse Payout</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

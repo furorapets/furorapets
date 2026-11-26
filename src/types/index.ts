@@ -53,6 +53,13 @@ export type DocumentType =
   | 'PARENT_DOCUMENT'
   | 'OTHER';
 
+export type VendorPayoutStatus =
+  | 'UNASSIGNED'
+  | 'PENDING_PICKUP'
+  | 'ELIGIBLE_FOR_PAYOUT'
+  | 'SETTLED'
+  | 'REFUNDED';
+
 export interface SessionUser {
   id: string;
   email: string;

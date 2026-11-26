@@ -242,7 +242,18 @@ function VendorOrdersContent() {
   };
 
   const getOrderStatusBadge = (status: string) => {
+    // If order has reached medical hub or beyond, it is capped as HANDED_OVER for vendor
+    const effectiveStatus = ['HANDED_OVER', 'PICKUP_ACCEPTED', 'MEDICAL_CHECK', 'READY_FOR_DELIVERY', 'DELIVERY_COMPLETED'].includes(status)
+      ? 'HANDED_OVER'
+      : status;
+
     const config: Record<string, { dot: string; text: string; bg: string; label: string }> = {
+      HANDED_OVER: {
+        dot: 'bg-emerald-500',
+        text: 'text-emerald-700',
+        bg: 'bg-emerald-50/80 border-emerald-300',
+        label: 'HANDED OVER TO CARE',
+      },
       VENDOR_ASSIGNED: {
         dot: 'bg-purple-500',
         text: 'text-purple-700',
@@ -604,7 +615,7 @@ function VendorOrdersContent() {
               <tr>
                 <th className="px-6 py-3.5 text-left whitespace-nowrap">Order ID</th>
                 <th className="px-6 py-3.5 text-left whitespace-nowrap">Requested Breed</th>
-                <th className="px-6 py-3.5 text-left whitespace-nowrap">Customer & Package</th>
+                <th className="px-6 py-3.5 text-left whitespace-nowrap">Package & Quoted Payout</th>
                 <th className="px-6 py-3.5 text-left whitespace-nowrap">Allocated Pet</th>
                 <th className="px-6 py-3.5 text-center whitespace-nowrap">Status</th>
                 <th className="px-6 py-3.5 text-right whitespace-nowrap">Vendor Response</th>
@@ -633,10 +644,27 @@ function VendorOrdersContent() {
                       <div className="text-[11px] text-slate-400">{o.category?.name}</div>
                     </td>
 
-                    {/* Customer & Package */}
+                    {/* Package & Quoted Payout */}
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="font-semibold text-slate-800">{o.customerName}</div>
-                      <div className="text-[11px] text-slate-400 font-mono">{o.productOrPackage}</div>
+                      <div className="font-semibold text-slate-800">{o.productOrPackage}</div>
+                      <div className="text-[11px] font-mono mt-0.5 flex items-center gap-1.5">
+                        <span className="font-bold text-emerald-700">
+                          {o.procurementCost ? `₹${o.procurementCost.toLocaleString('en-IN')}` : 'Quoted on Assignment'}
+                        </span>
+                        {o.vendorPayoutStatus === 'SETTLED' ? (
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                            Paid ({o.vendorPayoutRef?.slice(0, 10) || 'Verified'})
+                          </span>
+                        ) : ['HANDED_OVER', 'PICKUP_ACCEPTED', 'MEDICAL_CHECK', 'READY_FOR_DELIVERY', 'DELIVERY_COMPLETED'].includes(o.status) ? (
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-sans">
+                            Released to Settlement
+                          </span>
+                        ) : (
+                          <span className="text-[9px] text-slate-400 font-sans">
+                            Escrow Hold
+                          </span>
+                        )}
+                      </div>
                     </td>
 
                     {/* Allocated Pet */}
@@ -690,6 +718,10 @@ function VendorOrdersContent() {
                             <XCircle className="w-3.5 h-3.5 mr-1" /> Decline
                           </button>
                         </div>
+                      ) : o.status === 'HANDED_OVER' || ['PICKUP_ACCEPTED', 'MEDICAL_CHECK', 'READY_FOR_DELIVERY', 'DELIVERY_COMPLETED'].includes(o.status) ? (
+                        <span className="inline-flex items-center text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                          <Check className="w-3 h-3 mr-1" /> Handed Over & Fulfilled
+                        </span>
                       ) : o.status === 'PET_ASSIGNED' || o.status === 'VENDOR_ACCEPTED' ? (
                         <span className="inline-flex items-center text-[11px] font-bold text-teal-700 bg-teal-50 px-2.5 py-1 rounded-full border border-teal-200/70">
                           <Check className="w-3 h-3 mr-1" /> Accepted & Staged
@@ -697,10 +729,6 @@ function VendorOrdersContent() {
                       ) : o.status === 'PICKUP_ASSIGNED' ? (
                         <span className="inline-flex items-center text-[11px] font-bold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200/70">
                           <Truck className="w-3 h-3 mr-1" /> Agent Dispatched
-                        </span>
-                      ) : o.status === 'READY_FOR_DELIVERY' ? (
-                        <span className="inline-flex items-center text-[11px] font-bold text-sky-700 bg-sky-50 px-2.5 py-1 rounded-full border border-sky-200/70">
-                          <ShieldCheck className="w-3 h-3 mr-1" /> Inspection Passed
                         </span>
                       ) : o.status === 'INSPECTION_FAILED' ? (
                         <span className="inline-flex items-center text-[11px] font-bold text-rose-700 bg-rose-50 px-2.5 py-1 rounded-full border border-rose-200/70">
@@ -756,8 +784,10 @@ function VendorOrdersContent() {
                 <span className="font-mono font-bold text-slate-900">{acceptingOrder.orderId}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400 font-semibold">Customer:</span>
-                <span className="font-bold text-slate-800">{acceptingOrder.customerName}</span>
+                <span className="text-slate-400 font-semibold">Quoted Purchase Payout:</span>
+                <span className="font-mono font-bold text-emerald-700">
+                  {acceptingOrder.procurementCost ? `₹${acceptingOrder.procurementCost.toLocaleString('en-IN')}` : 'Agreed Procurement Quote'}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400 font-semibold">Breed & Package:</span>

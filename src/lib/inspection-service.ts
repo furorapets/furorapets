@@ -101,11 +101,18 @@ export async function submitPickupInspection(input: SubmitInspectionInput) {
         data: { status: 'MEDICAL_PENDING' },
       });
 
+      // Automatically advance vendor procurement payout to ELIGIBLE_FOR_PAYOUT once delivered to medical center
+      const payoutUpdate: Record<string, any> = {};
+      if (order.vendorId && order.vendorPayoutStatus !== 'SETTLED') {
+        payoutUpdate.vendorPayoutStatus = 'ELIGIBLE_FOR_PAYOUT';
+      }
+
       await tx.order.update({
         where: { id: order.id },
         data: {
           status: 'MEDICAL_CHECK',
           petPhotoAtPickup: input.photos?.[0] || null,
+          ...payoutUpdate,
         },
       });
     } else {

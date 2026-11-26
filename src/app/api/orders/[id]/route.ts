@@ -50,6 +50,31 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       return NextResponse.json({ error: 'Sales team cannot view order processing' }, { status: 403 });
     }
 
+    if (user.role === 'VENDOR') {
+      const isPastKennelPickup = [
+        'PICKUP_ACCEPTED',
+        'MEDICAL_CHECK',
+        'MEDICAL_APPROVED',
+        'READY_FOR_DELIVERY',
+        'DELIVERY_COMPLETED',
+      ].includes(order.status);
+
+      const sanitizedOrder = {
+        ...order,
+        customerName: 'Furora Direct Client',
+        customerContact: 'Furora Escrow Protected',
+        deliveryAddress: 'Furora Partner Logistics Hub',
+        deliveryRecord: null,
+        deliveryDriverLat: null,
+        deliveryDriverLng: null,
+        estimatedDeliveryTime: null,
+        status: isPastKennelPickup ? 'HANDED_OVER' : order.status,
+        rawStatus: order.status,
+        vendorLifecycleStatus: isPastKennelPickup ? 'HANDED_OVER' : order.status,
+      };
+      return NextResponse.json({ success: true, data: sanitizedOrder });
+    }
+
     return NextResponse.json({ success: true, data: order });
   } catch (error) {
     return rbacErrorResponse(error);
@@ -99,6 +124,28 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       updateData.vendorId = vendorId;
       if (existingOrder.status === 'ORDER_RECEIVED' || existingOrder.status === 'VENDOR_REJECTED') {
         updateData.status = 'VENDOR_ASSIGNED';
+      }
+    }
+
+    // Quoted Vendor Procurement Price (Admin only)
+    if (body.procurementCost !== undefined) {
+      if (user.role !== 'ADMIN') {
+        return NextResponse.json({ error: 'Only Admin can set quoted vendor price' }, { status: 403 });
+      }
+      updateData.procurementCost = body.procurementCost ? Number(body.procurementCost) : null;
+      if (!existingOrder.vendorPayoutStatus || existingOrder.vendorPayoutStatus === 'UNASSIGNED') {
+        updateData.vendorPayoutStatus = 'PENDING_PICKUP';
+      }
+    }
+
+    // Vendor Payout Settlement (Admin only)
+    if (body.vendorPayoutStatus !== undefined) {
+      if (user.role !== 'ADMIN') {
+        return NextResponse.json({ error: 'Only Admin can settle vendor payouts' }, { status: 403 });
+      }
+      updateData.vendorPayoutStatus = body.vendorPayoutStatus;
+      if (body.vendorPayoutRef !== undefined) {
+        updateData.vendorPayoutRef = body.vendorPayoutRef;
       }
     }
 

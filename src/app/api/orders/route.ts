@@ -115,6 +115,36 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: true, data: sanitizedOrders });
     }
 
+    // Enforce privacy and lifecycle boundary for VENDOR role:
+    // 1. Redact customer identity, phone, address, and downstream delivery proofs (POD)
+    // 2. Cap status at HANDED_OVER once delivery agent transfers pet to medical center
+    if (user.role === 'VENDOR') {
+      const sanitizedOrders = orders.map((o: any) => {
+        const isPastKennelPickup = [
+          'PICKUP_ACCEPTED',
+          'MEDICAL_CHECK',
+          'MEDICAL_APPROVED',
+          'READY_FOR_DELIVERY',
+          'DELIVERY_COMPLETED',
+        ].includes(o.status);
+
+        return {
+          ...o,
+          customerName: 'Furora Direct Client',
+          customerContact: 'Furora Escrow Protected',
+          deliveryAddress: 'Furora Partner Logistics Hub',
+          deliveryRecord: null,
+          deliveryDriverLat: null,
+          deliveryDriverLng: null,
+          estimatedDeliveryTime: null,
+          status: isPastKennelPickup ? 'HANDED_OVER' : o.status,
+          rawStatus: o.status,
+          vendorLifecycleStatus: isPastKennelPickup ? 'HANDED_OVER' : o.status,
+        };
+      });
+      return NextResponse.json({ success: true, data: sanitizedOrders });
+    }
+
     return NextResponse.json({ success: true, data: orders });
   } catch (error) {
     return rbacErrorResponse(error);
@@ -194,6 +224,10 @@ export async function POST(req: NextRequest) {
       if (!order.petId) {
         updateData.status = 'VENDOR_ASSIGNED';
       }
+    }
+    if (body.procurementCost) {
+      updateData.procurementCost = Number(body.procurementCost);
+      updateData.vendorPayoutStatus = 'PENDING_PICKUP';
     }
     if (body.agentId) {
       updateData.agentId = body.agentId;

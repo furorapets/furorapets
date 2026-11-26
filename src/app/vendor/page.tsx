@@ -250,11 +250,11 @@ export default function VendorDashboardPage() {
           </p>
         </div>
 
-        {/* In-Transit & Delivered */}
+        {/* Transferred to Care */}
         <div className="card-clean p-5 bg-white border border-slate-200/80 rounded-2xl shadow-sm hover:shadow-md transition">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Fulfilled / Delivered
+              Transferred to Care
             </span>
             <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
               <Truck className="w-4 h-4" />
@@ -264,10 +264,10 @@ export default function VendorDashboardPage() {
             <span className="text-2xl font-black text-blue-600">
               {loading ? '...' : inTransitOrDelivered}
             </span>
-            <span className="text-xs text-slate-400 font-medium">pets safely rehomed</span>
+            <span className="text-xs text-slate-400 font-medium">handed over</span>
           </div>
           <p className="mt-1 text-[11px] text-slate-500">
-            Verified with vet medical sign-offs
+            Handed over to Furora medical care center
           </p>
         </div>
       </div>
@@ -391,12 +391,14 @@ export default function VendorDashboardPage() {
                           className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
                             isPending
                               ? 'bg-amber-100 text-amber-800 border border-amber-200'
-                              : order.status === 'DELIVERY_COMPLETED'
+                              : order.status === 'HANDED_OVER' || ['PICKUP_ACCEPTED', 'MEDICAL_CHECK', 'READY_FOR_DELIVERY', 'DELIVERY_COMPLETED'].includes(order.status)
                               ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                               : 'bg-blue-100 text-blue-800 border border-blue-200'
                           }`}
                         >
-                          {order.status.replace(/_/g, ' ')}
+                          {order.status === 'HANDED_OVER' || ['PICKUP_ACCEPTED', 'MEDICAL_CHECK', 'READY_FOR_DELIVERY', 'DELIVERY_COMPLETED'].includes(order.status)
+                            ? 'HANDED OVER TO CARE'
+                            : order.status.replace(/_/g, ' ')}
                         </span>
                       </td>
                       <td className="py-3 px-4 text-slate-600">
