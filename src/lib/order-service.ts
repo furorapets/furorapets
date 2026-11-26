@@ -24,6 +24,7 @@ export interface CreateOrderInput {
   adCampaign?: string;
   advancePaid?: number;
   paymentMode?: string;
+  petId?: string;
 }
 
 export async function createOrder(input: CreateOrderInput) {
@@ -37,6 +38,68 @@ export async function createOrder(input: CreateOrderInput) {
   }
 
   const orderId = await generateOrderId();
+
+  if (input.petId) {
+    const order = await prisma.$transaction(async (tx) => {
+      const pet = await tx.pet.findFirst({
+        where: { OR: [{ id: input.petId }, { petId: input.petId }] },
+      });
+
+      if (!pet) {
+        throw new Error('Pet not found');
+      }
+
+      if (pet.status !== 'AVAILABLE') {
+        throw new Error(`Pet ${pet.petId} is already booked or reserved. Double booking is strictly prohibited.`);
+      }
+
+      await tx.pet.update({
+        where: { id: pet.id },
+        data: { status: 'ASSIGNED_TO_ORDER' },
+      });
+
+      const o = await tx.order.create({
+        data: {
+          orderId,
+          customerId: input.customerId,
+          customerName: input.customerName,
+          customerContact: input.customerContact,
+          deliveryAddress: input.deliveryAddress,
+          categoryId: input.categoryId,
+          breedId: input.breedId,
+          productOrPackage: input.productOrPackage,
+          paymentStatus: input.paymentStatus || 'PAID', // Defaults to PAID via simulated checkout
+          orderSource: input.orderSource || 'WEBSITE',
+          adCampaign: input.adCampaign || null,
+          advancePaid: input.advancePaid !== undefined ? input.advancePaid : null,
+          paymentMode: input.paymentMode || 'FULL_PREPAID',
+          status: 'PET_ASSIGNED',
+          petId: pet.id,
+          vendorId: pet.vendorId || null,
+        },
+        include: {
+          category: true,
+          breed: true,
+          customer: { select: { id: true, name: true, email: true } },
+          pet: true,
+          vendor: { select: { id: true, name: true, email: true } },
+        },
+      });
+
+      return o;
+    });
+
+    await logAudit({
+      orderId: order.id,
+      userId: input.customerId,
+      action: 'ORDER_CREATED',
+      fromState: null,
+      toState: 'PET_ASSIGNED',
+      metadata: { orderId: order.orderId, package: input.productOrPackage, petId: input.petId },
+    });
+
+    return order;
+  }
 
   const order = await prisma.order.create({
     data: {
@@ -99,8 +162,23 @@ export async function linkPetToOrder(orderIdOrDbId: string, petIdOrDbId: string,
     }
   }
 
+  // Atomic availability check: verify pet.status === 'AVAILABLE' (or order.status === 'MEDICAL_FAILED' for reassignment)
+  const isReassignment = isMedicalReassignment || order.status === 'MEDICAL_FAILED';
+  if (!isReassignment && pet.status !== 'AVAILABLE') {
+    throw new Error(`Pet ${pet.petId} is already booked or reserved. Double booking is strictly prohibited.`);
+  }
+
   // Link pet and transition statuses
   const updatedOrder = await prisma.$transaction(async (tx) => {
+    // Atomic check inside transaction to prevent concurrent race conditions
+    const txPet = await tx.pet.findUnique({
+      where: { id: pet.id },
+    });
+    if (!txPet) throw new Error('Pet not found');
+    if (!isReassignment && txPet.status !== 'AVAILABLE') {
+      throw new Error(`Pet ${txPet.petId} is already booked or reserved. Double booking is strictly prohibited.`);
+    }
+
     // 1. Update pet to ASSIGNED_TO_ORDER
     await tx.pet.update({
       where: { id: pet.id },

@@ -146,6 +146,24 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Atomic double-booking guard check
+    if (body.petId) {
+      const pet = await prisma.pet.findFirst({
+        where: { OR: [{ id: body.petId }, { petId: body.petId }] },
+      });
+
+      if (!pet) {
+        return NextResponse.json({ error: 'Pet not found' }, { status: 404 });
+      }
+
+      if (pet.status !== 'AVAILABLE') {
+        return NextResponse.json(
+          { error: 'This pet has already been booked or reserved. Please choose another pet.' },
+          { status: 409 }
+        );
+      }
+    }
+
     // Determine customer ID (Supports manual order creation for existing or new customer)
     const customerId = body.customerId || user?.id || 'usr_admin';
 
@@ -162,6 +180,7 @@ export async function POST(req: NextRequest) {
       adCampaign,
       advancePaid: advancePaid ? Number(advancePaid) : undefined,
       paymentMode,
+      petId: body.petId,
     });
 
     let finalOrder: any = order;
@@ -170,7 +189,9 @@ export async function POST(req: NextRequest) {
     const updateData: any = {};
     if (body.vendorId) {
       updateData.vendorId = body.vendorId;
-      updateData.status = 'VENDOR_ASSIGNED';
+      if (!order.petId) {
+        updateData.status = 'VENDOR_ASSIGNED';
+      }
     }
     if (body.agentId) {
       updateData.agentId = body.agentId;
@@ -183,7 +204,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    if (body.petId) {
+    if (body.petId && !order.petId) {
       finalOrder = await linkPetToOrder(order.id, body.petId, user?.id || customerId);
     }
 
@@ -202,6 +223,12 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, data: completedOrder || finalOrder }, { status: 201 });
   } catch (error: any) {
+    if (error.message && error.message.includes('already booked or reserved')) {
+      return NextResponse.json(
+        { error: 'This pet has already been booked or reserved. Please choose another pet.' },
+        { status: 409 }
+      );
+    }
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 }

@@ -28,6 +28,11 @@ import {
   RefreshCw,
   Layers,
   ClipboardList,
+  Download,
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
+  FileWarning,
 } from 'lucide-react';
 import { useSession } from '@/context/session-context';
 import FileUploadField from '@/components/FileUploadField';
@@ -52,6 +57,50 @@ function VendorsContent() {
   // Modal states
   const [isOnboardModalOpen, setIsOnboardModalOpen] = useState(false);
   const [reviewingVendor, setReviewingVendor] = useState<any | null>(null);
+
+  // Compliance Documents Inspection Modal & In-App Document Viewer states
+  const [inspectingVendorDocs, setInspectingVendorDocs] = useState<any | null>(null);
+  const [viewingDocument, setViewingDocument] = useState<{ title: string; url: string } | null>(null);
+  const [docZoom, setDocZoom] = useState(1);
+  const [isPanning, setIsPanning] = useState(false);
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [docImageLoading, setDocImageLoading] = useState(true);
+  const [docImageError, setDocImageError] = useState(false);
+  const [viewModeOverride, setViewModeOverride] = useState<'auto' | 'pdf' | 'image'>('auto');
+
+  // Reset viewer state whenever viewingDocument changes
+  useEffect(() => {
+    if (viewingDocument) {
+      setDocZoom(1);
+      setPanOffset({ x: 0, y: 0 });
+      setIsPanning(false);
+      setDocImageLoading(true);
+      setDocImageError(false);
+      setViewModeOverride('auto');
+    }
+  }, [viewingDocument]);
+
+  // Handle Escape key to close document viewer or drawer
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (viewingDocument) {
+          setViewingDocument(null);
+        } else if (inspectingVendorDocs) {
+          setInspectingVendorDocs(null);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [viewingDocument, inspectingVendorDocs]);
+
+  const isPdfDocument = (url?: string) => {
+    if (!url) return false;
+    const clean = url.split('?')[0].toLowerCase();
+    return clean.endsWith('.pdf') || clean.includes('/pdf') || clean.includes('application/pdf');
+  };
 
   // Vendor Pets Inspect Modal state
   const [inspectingVendorPets, setInspectingVendorPets] = useState<any | null>(null);
@@ -764,29 +813,28 @@ function VendorsContent() {
 
                       {/* Compliance Docs */}
                       <td className="py-2.5 px-3.5 text-center whitespace-nowrap">
-                        {v.onboardingStatus === 'DRAFT' ? (
-                          <button
-                            onClick={() => openReviewModal(v)}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 bg-sky-50 hover:bg-sky-100 text-sky-700 rounded-md text-[10px] font-bold border border-sky-200 transition"
-                            title="Partner in onboarding wizard"
-                          >
-                            <Clock className="w-2.5 h-2.5 text-sky-600" />
-                            <span>In Wizard</span>
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => openReviewModal(v)}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-md text-[10px] font-semibold border border-slate-200 transition"
-                          >
-                            <FileText className="w-2.5 h-2.5 text-slate-500" />
-                            <span>5 Docs</span>
-                            {hasAllDocs ? (
-                              <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />
-                            ) : (
-                              <AlertTriangle className="w-2.5 h-2.5 text-amber-600" />
-                            )}
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => setInspectingVendorDocs(v)}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold border transition shadow-2xs hover:shadow-xs active:scale-95 cursor-pointer ${
+                            v.onboardingStatus === 'DRAFT'
+                              ? 'bg-sky-50 hover:bg-sky-100 text-sky-800 border-sky-200'
+                              : hasAllDocs
+                              ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200'
+                              : 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-200'
+                          }`}
+                          title={`Click to inspect all 5 compliance documents for ${v.name}`}
+                        >
+                          <FileText className="w-3 h-3 text-slate-500" />
+                          <span>5 Docs</span>
+                          {v.onboardingStatus === 'DRAFT' ? (
+                            <span className="w-1.5 h-1.5 rounded-full bg-sky-500 shrink-0" title="In Wizard" />
+                          ) : hasAllDocs ? (
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                          ) : (
+                            <AlertTriangle className="w-3 h-3 text-amber-600 shrink-0" />
+                          )}
+                        </button>
                       </td>
 
                       {/* Live Stock & Orders */}
@@ -1009,14 +1057,14 @@ function VendorsContent() {
 
                           <div className="flex items-center gap-1.5 flex-shrink-0">
                             {doc.url ? (
-                              <a
-                                href={doc.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-[11px] font-bold transition"
+                              <button
+                                type="button"
+                                onClick={() => setViewingDocument({ title: doc.title, url: doc.url })}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-[11px] font-bold transition cursor-pointer"
+                                title="Open in-app document viewer"
                               >
-                                <ExternalLink className="w-3 h-3" /> View Doc
-                              </a>
+                                <Eye className="w-3 h-3 text-slate-600" /> View Doc
+                              </button>
                             ) : reviewingVendor.onboardingStatus === 'DRAFT' ? (
                               <span className="text-[11px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
                                 Awaiting Wizard Upload
@@ -1758,6 +1806,481 @@ function VendorsContent() {
           </div>
         </div>
       )}
+
+      {/* COMPLIANCE DOCUMENTS INSTANT INSPECTION DRAWER / MODAL */}
+      {inspectingVendorDocs && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden border border-slate-100">
+            {/* Header */}
+            <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-slate-50/70">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center shadow-xs">
+                  <ShieldCheck className="w-5 h-5 text-amber-700" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-extrabold text-sm text-slate-900">
+                      Compliance & Accreditation Documents
+                    </h3>
+                    {getStatusBadge(inspectingVendorDocs.onboardingStatus)}
+                  </div>
+                  <p className="text-xs text-slate-500 font-mono mt-0.5">
+                    Kennel: <strong className="text-slate-800">{inspectingVendorDocs.name}</strong> • ID: {inspectingVendorDocs.id}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setInspectingVendorDocs(null)}
+                className="w-8 h-8 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 flex items-center justify-center transition"
+                title="Close drawer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 overflow-y-auto space-y-4 flex-1">
+              {/* Compliance Summary Banner */}
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                    Accreditation Status Overview
+                  </span>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-sm font-extrabold text-slate-900">
+                      {[
+                        inspectingVendorDocs.kennelRegDoc,
+                        inspectingVendorDocs.govIdDoc,
+                        inspectingVendorDocs.tradeLicenseDoc,
+                        inspectingVendorDocs.vetAffiliationDoc,
+                        inspectingVendorDocs.bankDetailsDoc,
+                      ].filter(Boolean).length}{' '}
+                      of 5 Documents Uploaded
+                    </span>
+                    {[
+                      inspectingVendorDocs.kennelRegDoc,
+                      inspectingVendorDocs.govIdDoc,
+                      inspectingVendorDocs.tradeLicenseDoc,
+                      inspectingVendorDocs.vetAffiliationDoc,
+                      inspectingVendorDocs.bankDetailsDoc,
+                    ].every(Boolean) ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Fully Compliant
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                        <AlertTriangle className="w-3 h-3 text-amber-600" /> Pending Uploads
+                      </span>
+                    )}
+                  </div>
+                  {inspectingVendorDocs.kennelRegNumber && (
+                    <p className="text-[11px] text-slate-500 font-mono mt-1">
+                      Kennel Registration #: <strong className="text-slate-800">{inspectingVendorDocs.kennelRegNumber}</strong>
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const target = inspectingVendorDocs;
+                      setInspectingVendorDocs(null);
+                      openReviewModal(target);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition shadow-xs active:scale-95"
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Verification & Review Flow</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* 5 Accreditation Documents List */}
+              <div className="space-y-2.5">
+                {[
+                  {
+                    title: '1. Kennel Club / AWBI Registration Certificate',
+                    shortTitle: 'Kennel Club / AWBI Certificate',
+                    badge: 'Accreditation',
+                    url: inspectingVendorDocs.kennelRegDoc,
+                    desc: 'Official certification from Kennel Club of India (KCI) or Animal Welfare Board of India (AWBI).',
+                    meta: inspectingVendorDocs.kennelRegNumber ? `Reg #${inspectingVendorDocs.kennelRegNumber}` : undefined,
+                  },
+                  {
+                    title: '2. Breeder Govt Identity Proof (Aadhaar / PAN)',
+                    shortTitle: 'Breeder Govt Identity Proof',
+                    badge: 'Identity Proof',
+                    url: inspectingVendorDocs.govIdDoc,
+                    desc: 'Official government photo identification of the breeder proprietor for KYC verification.',
+                  },
+                  {
+                    title: '3. Municipal / AWBI Trade License',
+                    shortTitle: 'Municipal / AWBI Trade License',
+                    badge: 'Trade Permit',
+                    url: inspectingVendorDocs.tradeLicenseDoc,
+                    desc: 'Municipal establishment license and local authority pet breeding/retail permit.',
+                  },
+                  {
+                    title: '4. Registered Vet Clinic Tie-up / Healthcare MoU',
+                    shortTitle: 'Veterinary Hospital Tie-up / MoU',
+                    badge: 'Veterinary MoU',
+                    url: inspectingVendorDocs.vetAffiliationDoc,
+                    desc: 'Formal contract guaranteeing regular veterinary medical checkups and vaccination protocol.',
+                  },
+                  {
+                    title: '5. Bank Account Proof / Canceled Cheque',
+                    shortTitle: 'Bank Account Payout Proof',
+                    badge: 'Bank Settlement',
+                    url: inspectingVendorDocs.bankDetailsDoc,
+                    desc: 'Bank account verification or canceled cheque for settlement of order payouts.',
+                  },
+                ].map((doc, idx) => {
+                  const hasDoc = Boolean(doc.url);
+                  const isDocPdf = hasDoc && isPdfDocument(doc.url);
+
+                  return (
+                    <div
+                      key={idx}
+                      className={`p-3.5 rounded-2xl border transition text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                        hasDoc
+                          ? 'border-slate-200 bg-white hover:border-slate-300 shadow-2xs'
+                          : 'border-dashed border-amber-200 bg-amber-50/20'
+                      }`}
+                    >
+                      <div className="min-w-0 space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-bold text-slate-900 text-xs">{doc.title}</span>
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                            {doc.badge}
+                          </span>
+                          {hasDoc && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-blue-50 text-blue-700 border border-blue-200 uppercase font-mono">
+                              {isDocPdf ? 'PDF' : 'IMAGE'}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-slate-500 leading-snug">{doc.desc}</p>
+                        {doc.meta && (
+                          <span className="inline-block text-[10px] font-mono font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
+                            {doc.meta}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0 pt-1 sm:pt-0">
+                        {hasDoc ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => setViewingDocument({ title: doc.title, url: doc.url })}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition shadow-xs active:scale-95 cursor-pointer"
+                              title="Inspect document preview in full viewer"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              <span>Inspect Document</span>
+                            </button>
+                            <a
+                              href={doc.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition border border-slate-200"
+                              title="Open file in new tab"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </a>
+                          </>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-3 py-1 bg-amber-50 text-amber-700 rounded-xl text-xs font-semibold border border-amber-200">
+                            <AlertTriangle className="w-3 h-3 text-amber-600" />
+                            <span>Not Uploaded Yet</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between text-xs">
+              <span className="text-slate-400 text-[11px]">
+                Admins can inspect breeder compliance documents anytime without modifying onboarding status.
+              </span>
+              <button
+                type="button"
+                onClick={() => setInspectingVendorDocs(null)}
+                className="px-4 py-1.5 rounded-xl font-bold bg-slate-200 hover:bg-slate-300 text-slate-800 transition"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* IN-APP DOCUMENT VIEWER MODAL */}
+      {viewingDocument && (() => {
+        const currentDocIsPdf =
+          viewModeOverride === 'pdf'
+            ? true
+            : viewModeOverride === 'image'
+            ? false
+            : isPdfDocument(viewingDocument.url);
+
+        return (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-6 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-150">
+            <div className="bg-slate-900 text-white rounded-3xl shadow-2xl max-w-5xl w-full h-[90vh] flex flex-col overflow-hidden border border-slate-700">
+              {/* Viewer Header */}
+              <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-800 bg-slate-900/90">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-xl bg-slate-800 border border-slate-700 text-amber-400 flex items-center justify-center shrink-0">
+                    <FileText className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-extrabold text-sm text-slate-100 truncate max-w-sm sm:max-w-md">
+                        {viewingDocument.title}
+                      </h3>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 uppercase font-mono">
+                        {currentDocIsPdf ? 'PDF Document' : 'Image Preview'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 font-mono truncate max-w-md">
+                      {viewingDocument.url || 'No URL provided'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Header Actions / Controls */}
+                <div className="flex items-center gap-2 shrink-0">
+                  {/* Zoom controls for Image */}
+                  {!currentDocIsPdf && viewingDocument.url && !docImageError && (
+                    <div className="flex items-center gap-1 bg-slate-800/80 rounded-xl p-1 border border-slate-700 mr-1">
+                      <button
+                        type="button"
+                        onClick={() => setDocZoom((prev) => Math.max(0.5, Number((prev - 0.25).toFixed(2))))}
+                        className="w-7 h-7 rounded-lg hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition"
+                        title="Zoom Out"
+                      >
+                        <ZoomOut className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDocZoom(1);
+                          setPanOffset({ x: 0, y: 0 });
+                        }}
+                        className="px-2 h-7 rounded-lg hover:bg-slate-700 text-[11px] font-mono text-slate-300 hover:text-white flex items-center justify-center transition"
+                        title="Reset Zoom (100%)"
+                      >
+                        {Math.round(docZoom * 100)}%
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDocZoom((prev) => Math.min(3.5, Number((prev + 0.25).toFixed(2))))}
+                        className="w-7 h-7 rounded-lg hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition"
+                        title="Zoom In"
+                      >
+                        <ZoomIn className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDocZoom(1);
+                          setPanOffset({ x: 0, y: 0 });
+                        }}
+                        className="w-7 h-7 rounded-lg hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition"
+                        title="Reset Position"
+                      >
+                        <RotateCcw className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Fallback / View Mode toggle */}
+                  {viewingDocument.url && (
+                    <button
+                      type="button"
+                      onClick={() => setViewModeOverride((prev) => (prev === 'pdf' ? 'image' : 'pdf'))}
+                      className="text-[11px] font-semibold text-slate-400 hover:text-slate-200 px-2 py-1.5 rounded-lg hover:bg-slate-800 transition hidden sm:inline-block"
+                      title="Toggle between PDF iframe and Image viewer"
+                    >
+                      {currentDocIsPdf ? 'Switch to Image' : 'Switch to PDF'}
+                    </button>
+                  )}
+
+                  {/* Download button */}
+                  {viewingDocument.url && (
+                    <a
+                      href={viewingDocument.url}
+                      download
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-xl text-xs font-bold border border-slate-700 transition"
+                      title="Download Document"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Download</span>
+                    </a>
+                  )}
+
+                  {/* Open external button */}
+                  {viewingDocument.url && (
+                    <a
+                      href={viewingDocument.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center border border-slate-700 transition"
+                      title="Open in new window"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  )}
+
+                  {/* Close button */}
+                  <button
+                    type="button"
+                    onClick={() => setViewingDocument(null)}
+                    className="w-8 h-8 rounded-xl bg-slate-800 hover:bg-rose-900/60 text-slate-300 hover:text-rose-200 flex items-center justify-center border border-slate-700 hover:border-rose-700 transition"
+                    title="Close viewer (Esc)"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Viewer Content Area */}
+              <div className="flex-1 relative overflow-hidden bg-slate-950 flex items-center justify-center">
+                {!viewingDocument.url || viewingDocument.url.trim() === '' || viewingDocument.url === '#' ? (
+                  /* Safe Fallback: Empty URL */
+                  <div className="p-8 text-center max-w-md space-y-4">
+                    <div className="w-16 h-16 rounded-3xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mx-auto">
+                      <FileWarning className="w-8 h-8" />
+                    </div>
+                    <div className="space-y-1">
+                      <h4 className="text-base font-bold text-white">No Document File Uploaded</h4>
+                      <p className="text-xs text-slate-400 leading-relaxed">
+                        This compliance document does not have an attached file URL or is waiting for partner submission.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setViewingDocument(null)}
+                      className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition"
+                    >
+                      Close Viewer
+                    </button>
+                  </div>
+                ) : currentDocIsPdf ? (
+                  /* PDF Viewer via clean full-height iframe */
+                  <div className="w-full h-full bg-slate-900 relative">
+                    <iframe
+                      src={viewingDocument.url}
+                      className="w-full h-full border-0 bg-white"
+                      title={viewingDocument.title}
+                    />
+                  </div>
+                ) : docImageError ? (
+                  /* Safe Fallback: Image failed to render */
+                  <div className="p-8 text-center max-w-md space-y-4">
+                    <div className="w-16 h-16 rounded-3xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center mx-auto">
+                      <FileWarning className="w-8 h-8" />
+                    </div>
+                    <div className="space-y-1">
+                      <h4 className="text-base font-bold text-white">Preview Cannot Be Rendered as Image</h4>
+                      <p className="text-xs text-slate-400 leading-relaxed">
+                        The file may be a formatted PDF, private S3 object, or unsupported format. You can try viewing it as a PDF or opening it directly in a new tab.
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-center gap-2 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setViewModeOverride('pdf')}
+                        className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-xs"
+                      >
+                        Switch to PDF View
+                      </button>
+                      <a
+                        href={viewingDocument.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition inline-flex items-center gap-1.5"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        <span>Open in New Tab</span>
+                      </a>
+                    </div>
+                  </div>
+                ) : (
+                  /* Interactive Image Viewer with Zoom & Pan */
+                  <div
+                    className={`w-full h-full overflow-hidden flex items-center justify-center select-none ${
+                      docZoom > 1 ? (isPanning ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-default'
+                    }`}
+                    onMouseDown={(e) => {
+                      if (docZoom > 1) {
+                        setIsPanning(true);
+                        setDragStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
+                      }
+                    }}
+                    onMouseMove={(e) => {
+                      if (isPanning && docZoom > 1) {
+                        setPanOffset({
+                          x: e.clientX - dragStart.x,
+                          y: e.clientY - dragStart.y,
+                        });
+                      }
+                    }}
+                    onMouseUp={() => setIsPanning(false)}
+                    onMouseLeave={() => setIsPanning(false)}
+                  >
+                    {docImageLoading && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center space-y-2 text-slate-400 text-xs z-10 bg-slate-950/60">
+                        <div className="w-8 h-8 rounded-full border-2 border-amber-400 border-t-transparent animate-spin" />
+                        <span>Loading document preview...</span>
+                      </div>
+                    )}
+                    <img
+                      src={viewingDocument.url}
+                      alt={viewingDocument.title}
+                      onLoad={() => setDocImageLoading(false)}
+                      onError={() => {
+                        setDocImageLoading(false);
+                        setDocImageError(true);
+                      }}
+                      style={{
+                        transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${docZoom})`,
+                        transformOrigin: 'center center',
+                        transition: isPanning ? 'none' : 'transform 0.15s ease-out',
+                      }}
+                      className="max-h-[80vh] max-w-full object-contain pointer-events-auto rounded shadow-2xl"
+                      draggable={false}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Viewer Footer */}
+              <div className="px-5 py-2.5 border-t border-slate-800 bg-slate-900/90 flex items-center justify-between text-xs text-slate-400">
+                <span className="text-[11px]">
+                  Press <kbd className="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-[10px] text-slate-300">Esc</kbd> to close viewer
+                  {!currentDocIsPdf && docZoom > 1 && ' • Drag to pan zoomed image'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setViewingDocument(null)}
+                  className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

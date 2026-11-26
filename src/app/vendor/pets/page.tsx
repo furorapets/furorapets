@@ -8,6 +8,44 @@ import PetMediaUpload from '@/components/media/PetMediaUpload';
 import LineageProvenanceUpload from '@/components/media/LineageProvenanceUpload';
 import KciDocumentsUpload from '@/components/media/KciDocumentsUpload';
 
+function getSpeciesRegistrationConfig(categoryName?: string) {
+  const norm = (categoryName || '').toLowerCase().trim();
+  if (norm.includes('dog')) {
+    return {
+      checkboxLabel: 'Kennel Club of India (KCI) Registered',
+      docTitle: 'KCI Registration Certificate & Pedigree',
+      docLabel: 'KCI Certificate',
+      badgeLabel: 'KCI Certified',
+      badgeClass: 'bg-blue-50 text-blue-700 border-blue-200',
+    };
+  }
+  if (norm.includes('cat')) {
+    return {
+      checkboxLabel: 'Feline Registry (TICA / CFA / WCF Certified)',
+      docTitle: 'Feline Pedigree & Lineage Document',
+      docLabel: 'Feline Pedigree Document',
+      badgeLabel: 'TICA/CFA Certified',
+      badgeClass: 'bg-purple-50 text-purple-700 border-purple-200',
+    };
+  }
+  if (norm.includes('bird')) {
+    return {
+      checkboxLabel: 'Avian Provenance & Closed-Ring Banded / CITES',
+      docTitle: 'Leg Band & Health Documentation',
+      docLabel: 'Leg Band & Health Documentation',
+      badgeLabel: 'Closed-Ring Banded',
+      badgeClass: 'bg-amber-50 text-amber-700 border-amber-200',
+    };
+  }
+  return {
+    checkboxLabel: 'Species Health & Lineage Certification',
+    docTitle: 'Species Health & Lineage Certification',
+    docLabel: 'Health & Lineage Document',
+    badgeLabel: 'Species Certified',
+    badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  };
+}
+
 export default function VendorPetsPage() {
   const { currentUser, switchToRoleName } = useSession();
   const [pets, setPets] = useState<any[]>([]);
@@ -378,11 +416,14 @@ export default function VendorPetsPage() {
                     <td className="px-6 py-4 text-xs text-slate-600">
                       <div className="text-[11px]">Sire: <span className="font-semibold text-slate-800">{p.fatherName || 'Not recorded'}</span></div>
                       <div className="text-[11px]">Dam: <span className="font-semibold text-slate-800">{p.motherName || 'Not recorded'}</span></div>
-                      {p.kciRegistered && (
-                        <span className="inline-block mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-150">
-                          KCI Certified
-                        </span>
-                      )}
+                      {p.kciRegistered && (() => {
+                        const regBadge = getSpeciesRegistrationConfig(p.category?.name);
+                        return (
+                          <span className={`inline-block mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${regBadge.badgeClass}`}>
+                            {regBadge.badgeLabel}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="px-6 py-4 text-center">
                       <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold border bg-emerald-50/70 border-emerald-150 text-emerald-700">
@@ -573,28 +614,36 @@ export default function VendorPetsPage() {
                 />
               </div>
 
-              {/* SECTION 4: KCI Registration */}
-              <div className="space-y-3 pt-2 border-t border-slate-100">
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="vendorKciCheckbox"
-                    checked={newKci}
-                    onChange={(e) => setNewKci(e.target.checked)}
-                    className="w-4 h-4 rounded text-slate-900 focus:ring-slate-900 border-slate-300 cursor-pointer"
-                  />
-                  <label htmlFor="vendorKciCheckbox" className="text-xs font-bold text-slate-800 cursor-pointer">
-                    Kennel Club of India (KCI) Registered
-                  </label>
-                </div>
+              {/* SECTION 4: Species-aware Registration */}
+              {(() => {
+                const currentCat = categories.find((c) => c.id === newCatId);
+                const regConfig = getSpeciesRegistrationConfig(currentCat?.name);
+                return (
+                  <div className="space-y-3 pt-2 border-t border-slate-100">
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id="vendorKciCheckbox"
+                        checked={newKci}
+                        onChange={(e) => setNewKci(e.target.checked)}
+                        className="w-4 h-4 rounded text-slate-900 focus:ring-slate-900 border-slate-300 cursor-pointer"
+                      />
+                      <label htmlFor="vendorKciCheckbox" className="text-xs font-bold text-slate-800 cursor-pointer">
+                        {regConfig.checkboxLabel}
+                      </label>
+                    </div>
 
-                {newKci && (
-                  <KciDocumentsUpload
-                    documents={newKciDocs}
-                    onChange={setNewKciDocs}
-                  />
-                )}
-              </div>
+                    {newKci && (
+                      <KciDocumentsUpload
+                        title={regConfig.docTitle}
+                        label={regConfig.docLabel}
+                        documents={newKciDocs}
+                        onChange={setNewKciDocs}
+                      />
+                    )}
+                  </div>
+                );
+              })()}
 
               <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
                 <button
@@ -719,9 +768,11 @@ export default function VendorPetsPage() {
                 <span className="font-bold text-slate-800">{selectedPet.motherName || 'Not recorded'}</span>
               </div>
               <div className="flex justify-between py-1">
-                <span className="text-slate-500">KCI / Breed Registry:</span>
+                <span className="text-slate-500">Registry / Lineage:</span>
                 <span className="font-bold text-slate-800">
-                  {selectedPet.kciRegistered ? '✓ KCI Certified' : 'Standard Purebred'}
+                  {selectedPet.kciRegistered
+                    ? `✓ ${getSpeciesRegistrationConfig(selectedPet.category?.name).badgeLabel}`
+                    : 'Standard Purebred'}
                 </span>
               </div>
             </div>

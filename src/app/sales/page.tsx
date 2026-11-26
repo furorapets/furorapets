@@ -24,6 +24,8 @@ import {
   MapPin,
   Phone,
   User,
+  Share2,
+  Copy,
 } from 'lucide-react';
 import { useSession } from '@/context/session-context';
 import { useSearchParams } from 'next/navigation';
@@ -50,6 +52,33 @@ function SalesCatalogContent() {
   const [activeMediaIndex, setActiveMediaIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<'MEDIA' | 'LINEAGE' | 'DETAILS' | 'PRIVACY'>('MEDIA');
   const [reservedToast, setReservedToast] = useState<string | null>(null);
+  const [copiedPetId, setCopiedPetId] = useState<string | null>(null);
+
+  // Copy Client Reservation Link
+  const handleCopyReservationLink = (pet: any) => {
+    if (!pet || !pet.petId) return;
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const cleanUrl = `${origin}/pets/${pet.petId}`;
+
+    if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(cleanUrl).catch(() => {
+        // Fallback for older browsers
+        const textarea = document.createElement('textarea');
+        textarea.value = cleanUrl;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      });
+    }
+
+    setCopiedPetId(pet.petId);
+    setReservedToast(`Copied reservation link for ${pet.petId}: ${cleanUrl}`);
+    setTimeout(() => {
+      setCopiedPetId(null);
+      setReservedToast(null);
+    }, 4000);
+  };
 
   // Instant Pet Booking State
   const [bookingPet, setBookingPet] = useState<any | null>(null);
@@ -106,9 +135,20 @@ function SalesCatalogContent() {
 
       setBookingSuccess(`Pet ${bookingPet.petId} booked successfully! Order ID: ${data.data.orderId}`);
       setTimeout(() => setBookingSuccess(null), 6000);
-      setBookingPet(null);
 
-      // Refresh stock
+      const targetBookedId = bookingPet.id;
+      const targetBookedCode = bookingPet.petId;
+      setBookingPet(null);
+      if (selectedPet && (selectedPet.id === targetBookedId || selectedPet.petId === targetBookedCode)) {
+        setSelectedPet(null);
+      }
+
+      // Immediately remove from available pets in state
+      setPets((prevPets) =>
+        prevPets.filter((p) => p.id !== targetBookedId && p.petId !== targetBookedCode)
+      );
+
+      // Re-fetch stock from server to guarantee sync
       await loadData();
     } catch (err: any) {
       setBookingError(err.message || 'An error occurred during booking.');
@@ -266,6 +306,16 @@ function SalesCatalogContent() {
             <Link href="/sales/orders" className="text-[11px] text-emerald-300 underline font-semibold hover:text-white">
               View in Customer Orders &rarr;
             </Link>
+          </div>
+        </div>
+      )}
+
+      {/* Copied Reservation Link Toast */}
+      {reservedToast && (
+        <div className="fixed top-5 right-5 z-50 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-xl flex items-center space-x-3 border border-slate-700 animate-in fade-in slide-in-from-top-4">
+          <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+          <div>
+            <p className="text-xs font-bold">{reservedToast}</p>
           </div>
         </div>
       )}
@@ -564,30 +614,52 @@ function SalesCatalogContent() {
                 </div>
 
                 {/* Footer Action Buttons */}
-                <div className="p-3 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between gap-2">
-                  <button
-                    onClick={() => {
-                      setSelectedPet(pet);
-                      setActiveMediaIndex(0);
-                      setActiveTab('MEDIA');
-                    }}
-                    className="flex-1 inline-flex items-center justify-center text-xs font-bold px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl transition cursor-pointer"
-                  >
-                    <Eye className="w-3.5 h-3.5 mr-1" /> View Media
-                  </button>
+                <div className="p-3 bg-slate-50/50 border-t border-slate-100 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <button
+                      onClick={() => {
+                        setSelectedPet(pet);
+                        setActiveMediaIndex(0);
+                        setActiveTab('MEDIA');
+                      }}
+                      className="flex-1 inline-flex items-center justify-center text-xs font-bold px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl transition cursor-pointer"
+                    >
+                      <Eye className="w-3.5 h-3.5 mr-1" /> View Media
+                    </button>
 
+                    <button
+                      onClick={() => {
+                        setBookingPet(pet);
+                        setCustomerName('');
+                        setCustomerContact('');
+                        setDeliveryAddress('');
+                        setBookingError('');
+                      }}
+                      className="flex-1 inline-flex items-center justify-center text-xs font-bold px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-soft transition cursor-pointer"
+                      title="Book this Pet for Customer"
+                    >
+                      <ShoppingBag className="w-3.5 h-3.5 mr-1.5" /> Book Pet
+                    </button>
+                  </div>
+
+                  {/* Share / Copy Client Reservation Link */}
                   <button
-                    onClick={() => {
-                      setBookingPet(pet);
-                      setCustomerName('');
-                      setCustomerContact('');
-                      setDeliveryAddress('');
-                      setBookingError('');
-                    }}
-                    className="flex-1 inline-flex items-center justify-center text-xs font-bold px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-soft transition cursor-pointer"
-                    title="Book this Pet for Customer"
+                    type="button"
+                    onClick={() => handleCopyReservationLink(pet)}
+                    className="w-full inline-flex items-center justify-center text-xs font-semibold px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl transition cursor-pointer"
+                    title="Copy Client Reservation Link"
                   >
-                    <ShoppingBag className="w-3.5 h-3.5 mr-1.5" /> Book Pet
+                    {copiedPetId === pet.petId ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 mr-1.5 text-emerald-600" />
+                        <span className="text-emerald-700 font-bold">Link Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Share2 className="w-3.5 h-3.5 mr-1.5 text-slate-500" />
+                        <span>Copy Client Reservation Link</span>
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
@@ -855,11 +927,11 @@ function SalesCatalogContent() {
                 </div>
 
                 <div className="card-clean p-4 rounded-2xl border border-slate-100 space-y-2">
-                  <h4 className="text-xs font-bold text-slate-900">Customer Public Verification QR</h4>
+                  <h4 className="text-xs font-bold text-slate-900">Customer Public Verification QR & Reservation Link</h4>
                   <p className="text-[11px] text-slate-400">
                     Customers can scan the verification QR code upon delivery to inspect digital authenticity and origin certificate.
                   </p>
-                  <div className="pt-1">
+                  <div className="pt-1 flex flex-wrap items-center gap-3">
                     <Link
                       href={`/pets/${selectedPet.petId}`}
                       target="_blank"
@@ -867,6 +939,23 @@ function SalesCatalogContent() {
                     >
                       Open Public Verification Certificate &rarr;
                     </Link>
+                    <button
+                      type="button"
+                      onClick={() => handleCopyReservationLink(selectedPet)}
+                      className="inline-flex items-center text-xs font-bold text-slate-700 hover:text-slate-900 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg transition cursor-pointer"
+                    >
+                      {copiedPetId === selectedPet.petId ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 mr-1 text-emerald-600" />
+                          <span className="text-emerald-700 font-bold">Link Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5 mr-1 text-slate-500" />
+                          <span>Copy Client Reservation Link</span>
+                        </>
+                      )}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -927,6 +1016,24 @@ function SalesCatalogContent() {
               </span>
 
               <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => handleCopyReservationLink(selectedPet)}
+                  className="px-3.5 py-2 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer flex items-center gap-1.5"
+                  title="Copy Client Reservation Link"
+                >
+                  {copiedPetId === selectedPet.petId ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-600" />
+                      <span className="text-emerald-700 font-bold">Link Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Share2 className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Share / Copy Link</span>
+                    </>
+                  )}
+                </button>
                 <button
                   onClick={() => setSelectedPet(null)}
                   className="px-4 py-2 border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-50 transition cursor-pointer"

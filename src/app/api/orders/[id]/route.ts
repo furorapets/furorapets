@@ -66,7 +66,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
     const { id } = params;
     const body = await req.json();
-    const { status, vendorId, agentId, petId, isMedicalReassignment } = body;
+    const { status, vendorId, agentId, petId, isMedicalReassignment, vetClinicName, vetDoctorName } = body;
 
     const existingOrder = await prisma.order.findFirst({
       where: { OR: [{ id }, { orderId: id }] },
@@ -120,6 +120,19 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       }
     }
 
+    // Vet Clinic & Doctor Assignment (Admin only)
+    if (vetClinicName !== undefined || vetDoctorName !== undefined) {
+      if (user.role !== 'ADMIN') {
+        return NextResponse.json({ error: 'Only Admin can assign vet clinic details' }, { status: 403 });
+      }
+      if (vetClinicName !== undefined) {
+        updateData.vetClinicName = typeof vetClinicName === 'string' ? vetClinicName.trim() || null : vetClinicName;
+      }
+      if (vetDoctorName !== undefined) {
+        updateData.vetDoctorName = typeof vetDoctorName === 'string' ? vetDoctorName.trim() || null : vetDoctorName;
+      }
+    }
+
     // Direct status change
     if (status && status !== existingOrder.status) {
       // Role permission check: Delivery Agent can transition status on their assigned order
@@ -156,6 +169,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       metadata: {
         vendorId: updateData.vendorId,
         agentId: updateData.agentId,
+        vetClinicName: updateData.vetClinicName,
+        vetDoctorName: updateData.vetDoctorName,
       },
     });
 
