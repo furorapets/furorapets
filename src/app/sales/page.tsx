@@ -212,8 +212,9 @@ function SalesCatalogContent() {
   const filteredPets = useMemo(() => {
     return pets
       .filter((p) => {
-        // Enforce AVAILABLE inventory only
+        // Enforce AVAILABLE inventory only and no linked order
         if (p.status !== 'AVAILABLE') return false;
+        if (p.order) return false;
 
         // Category filter
         if (categoryFilter && p.categoryId !== categoryFilter && p.category?.id !== categoryFilter) {

@@ -47,19 +47,24 @@ export async function GET(req: NextRequest) {
       // Vendor sees ONLY own inventory
       where.vendorId = user?.id;
     } else if (role === 'SALES') {
-      // Sales sees ONLY available pets
+      // Sales sees ONLY available pets with no linked order (prevent double booking)
       where.status = 'AVAILABLE';
+      where.order = null;
     } else if (role === 'DELIVERY_AGENT') {
       // Delivery agent cannot browse inventory
       return NextResponse.json({ error: 'Delivery agents cannot browse inventory' }, { status: 403 });
     } else if (role === 'CUSTOMER') {
-      // Customer sees available inventory
+      // Customer sees available inventory with no linked order
       where.status = 'AVAILABLE';
+      where.order = null;
     }
 
     if (status) {
       if (role === 'ADMIN' || role === 'VENDOR') {
         where.status = status;
+        if (status === 'AVAILABLE') {
+          where.order = null;
+        }
       }
     }
     if (inventoryOwner && role === 'ADMIN') {
