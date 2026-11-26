@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import {
   Plus,
@@ -25,9 +25,14 @@ import {
   Sparkles,
   Layers,
   QrCode,
+  Upload,
+  Image as ImageIcon,
+  FileText,
+  Loader2,
 } from 'lucide-react';
 import { useSession } from '@/context/session-context';
 import { calculateAge } from '@/lib/age-calculator';
+import { compressImageClientSide } from '@/lib/client-image-compressor';
 import PetMediaUpload from '@/components/media/PetMediaUpload';
 import LineageProvenanceUpload from '@/components/media/LineageProvenanceUpload';
 import KciDocumentsUpload from '@/components/media/KciDocumentsUpload';
@@ -105,6 +110,15 @@ export default function AdminInventoryPage() {
     breedId: '',
   });
   const [editSubmitting, setEditSubmitting] = useState(false);
+  // Edit Pet modal direct Cloudflare R2 upload state
+  const [isUploadingEditPhoto, setIsUploadingEditPhoto] = useState(false);
+  const [editPhotoProgress, setEditPhotoProgress] = useState('');
+  const [editPhotoError, setEditPhotoError] = useState('');
+  const editPhotoInputRef = useRef<HTMLInputElement | null>(null);
+  const [isUploadingEditKci, setIsUploadingEditKci] = useState(false);
+  const [editKciProgress, setEditKciProgress] = useState('');
+  const [editKciError, setEditKciError] = useState('');
+  const editKciInputRef = useRef<HTMLInputElement | null>(null);
 
   const [transferringPet, setTransferringPet] = useState<any | null>(null);
   const [targetOwner, setTargetOwner] = useState<'FURORA' | 'VENDOR'>('FURORA');
@@ -329,6 +343,10 @@ export default function AdminInventoryPage() {
   // Open Edit Modal
   const openEditModal = (pet: any) => {
     setEditingPet(pet);
+    setEditPhotoError('');
+    setEditPhotoProgress('');
+    setEditKciError('');
+    setEditKciProgress('');
     const dobString = pet.dob ? new Date(pet.dob).toISOString().split('T')[0] : '2026-01-01';
     let photoUrl = '';
     if (Array.isArray(pet.photos) && pet.photos.length > 0) {
@@ -357,6 +375,85 @@ export default function AdminInventoryPage() {
     });
   };
 
+  // Direct file uploads for Edit Pet modal streaming to Cloudflare R2 (/api/upload)
+  const handleEditPhotoUpload = async (file: File) => {
+    if (!file) return;
+    setIsUploadingEditPhoto(true);
+    setEditPhotoError('');
+    setEditPhotoProgress('Compressing image...');
+
+    try {
+      let uploadFile = file;
+      if (file.type.startsWith('image/')) {
+        try {
+          uploadFile = await compressImageClientSide(file, 1600, 1600, 0.82);
+        } catch (compErr) {
+          console.warn('Client-side compression fallback:', compErr);
+        }
+      }
+
+      setEditPhotoProgress('Uploading to Cloudflare R2...');
+      const formData = new FormData();
+      formData.append('file', uploadFile);
+      formData.append('folder', 'pets');
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to upload photo to Cloudflare R2');
+      }
+
+      setEditForm((prev) => ({ ...prev, photoUrl: data.url }));
+    } catch (err: any) {
+      console.error('Edit photo upload error:', err);
+      setEditPhotoError(err.message || 'Failed to upload photo');
+    } finally {
+      setIsUploadingEditPhoto(false);
+      setEditPhotoProgress('');
+      if (editPhotoInputRef.current) {
+        editPhotoInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleEditKciUpload = async (file: File) => {
+    if (!file) return;
+    setIsUploadingEditKci(true);
+    setEditKciError('');
+    setEditKciProgress('Uploading certificate to R2...');
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'pets/kci');
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to upload document to Cloudflare R2');
+      }
+
+      setEditForm((prev) => ({ ...prev, kciDocUrl: data.url }));
+    } catch (err: any) {
+      console.error('Edit KCI document upload error:', err);
+      setEditKciError(err.message || 'Failed to upload document');
+    } finally {
+      setIsUploadingEditKci(false);
+      setEditKciProgress('');
+      if (editKciInputRef.current) {
+        editKciInputRef.current.value = '';
+      }
+    }
+  };
+
   // Submit Edit Modal
   const handleUpdatePet = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -364,8 +461,22 @@ export default function AdminInventoryPage() {
 
     setEditSubmitting(true);
     try {
-      const photosArray = editForm.photoUrl ? [editForm.photoUrl] : [];
-      const kciDocsArray = editForm.kciDocUrl ? [editForm.kciDocUrl] : [];
+      const photosArray = editForm.photoUrl
+        ? [
+            editForm.photoUrl,
+            ...(Array.isArray(editingPet?.photos)
+              ? editingPet.photos.filter((p: string) => p && p !== editForm.photoUrl && p !== editingPet.photos[0])
+              : []),
+          ]
+        : [];
+      const kciDocsArray = editForm.kciDocUrl
+        ? [
+            editForm.kciDocUrl,
+            ...(Array.isArray(editingPet?.kciDocuments)
+              ? editingPet.kciDocuments.filter((d: string) => d && d !== editForm.kciDocUrl && d !== editingPet.kciDocuments[0])
+              : []),
+          ]
+        : [];
 
       const res = await fetch(`/api/pets/${editingPet.id}`, {
         method: 'PUT',
@@ -1314,15 +1425,140 @@ export default function AdminInventoryPage() {
                 </div>
               </div>
 
+              {/* Pet Photo Upload */}
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Photo URL</label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block font-bold text-slate-700 flex items-center gap-1.5">
+                    <ImageIcon className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Pet Photo</span>
+                  </label>
+                  {editForm.photoUrl && (
+                    <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
+                      <CheckCircle className="w-2.5 h-2.5" /> Direct R2 Hosted
+                    </span>
+                  )}
+                </div>
+
                 <input
-                  type="url"
-                  placeholder="https://..."
-                  value={editForm.photoUrl}
-                  onChange={(e) => setEditForm({ ...editForm, photoUrl: e.target.value })}
-                  className="w-full border rounded-xl p-2 bg-slate-50 font-medium"
+                  ref={editPhotoInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleEditPhotoUpload(file);
+                  }}
                 />
+
+                {editForm.photoUrl ? (
+                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-2.5 flex items-center gap-3">
+                    <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-slate-200 shrink-0 border border-slate-200 shadow-sm">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={editForm.photoUrl}
+                        alt="Pet Preview"
+                        className="w-full h-full object-cover"
+                      />
+                      {isUploadingEditPhoto && (
+                        <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center">
+                          <Loader2 className="w-5 h-5 text-white animate-spin" />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-bold text-slate-800 truncate">
+                        {editForm.photoUrl.split('/').pop() || 'photo.webp'}
+                      </p>
+                      <a
+                        href={editForm.photoUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-700 hover:underline mt-0.5"
+                      >
+                        <span>View full photo</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+
+                      {isUploadingEditPhoto && (
+                        <p className="text-[10px] text-blue-600 font-semibold animate-pulse mt-0.5">
+                          {editPhotoProgress || 'Uploading to Cloudflare R2...'}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        disabled={isUploadingEditPhoto}
+                        onClick={() => editPhotoInputRef.current?.click()}
+                        className="px-2.5 py-1.5 text-xs font-semibold bg-white border border-slate-200 rounded-xl hover:bg-slate-100 text-slate-700 transition shadow-xs flex items-center gap-1 disabled:opacity-50"
+                      >
+                        <Upload className="w-3 h-3" />
+                        <span>Change</span>
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isUploadingEditPhoto}
+                        onClick={() => setEditForm((prev) => ({ ...prev, photoUrl: '' }))}
+                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition disabled:opacity-50"
+                        title="Remove photo"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => !isUploadingEditPhoto && editPhotoInputRef.current?.click()}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      const file = e.dataTransfer.files?.[0];
+                      if (file) handleEditPhotoUpload(file);
+                    }}
+                    className={`border-2 border-dashed rounded-2xl p-4 text-center cursor-pointer transition ${
+                      isUploadingEditPhoto
+                        ? 'border-blue-300 bg-blue-50/50 cursor-wait'
+                        : 'border-slate-200 hover:border-blue-400 bg-slate-50/70 hover:bg-blue-50/30'
+                    }`}
+                  >
+                    {isUploadingEditPhoto ? (
+                      <div className="flex flex-col items-center justify-center py-2 space-y-2">
+                        <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+                        <p className="text-xs font-bold text-blue-600">
+                          {editPhotoProgress || 'Uploading to Cloudflare R2...'}
+                        </p>
+                        <div className="w-36 h-1.5 bg-blue-100 rounded-full overflow-hidden">
+                          <div className="h-full bg-blue-600 rounded-full animate-pulse w-3/4"></div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center space-y-1 py-1">
+                        <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 mb-1">
+                          <Upload className="w-4 h-4" />
+                        </div>
+                        <p className="text-xs font-bold text-slate-700">
+                          Click to upload photo or drag & drop
+                        </p>
+                        <p className="text-[10px] text-slate-400">
+                          Streams directly to Cloudflare R2 (/pets) • Auto-compressed
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {editPhotoError && (
+                  <p className="text-xs text-rose-500 font-semibold mt-1.5 flex items-center gap-1">
+                    <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
+                    <span>{editPhotoError}</span>
+                  </p>
+                )}
               </div>
 
               {/* Parents */}
@@ -1354,7 +1590,7 @@ export default function AdminInventoryPage() {
 
               {/* KCI Pedigree */}
               <div className="border-t border-slate-100 pt-3 space-y-2">
-                <label className="flex items-center space-x-2 text-xs font-semibold text-slate-700">
+                <label className="flex items-center space-x-2 text-xs font-semibold text-slate-700 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={editForm.kciRegistered}
@@ -1363,14 +1599,100 @@ export default function AdminInventoryPage() {
                   />
                   <span>KCI Registered Pedigree Certification</span>
                 </label>
+
+                <input
+                  ref={editKciInputRef}
+                  type="file"
+                  accept=".pdf,image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleEditKciUpload(file);
+                  }}
+                />
+
                 {editForm.kciRegistered && (
-                  <input
-                    type="text"
-                    placeholder="KCI Certificate Document URL / Number"
-                    value={editForm.kciDocUrl}
-                    onChange={(e) => setEditForm({ ...editForm, kciDocUrl: e.target.value })}
-                    className="w-full border rounded-xl p-2 bg-slate-50 font-medium text-xs mt-1"
-                  />
+                  <div className="pt-1">
+                    {editForm.kciDocUrl ? (
+                      <div className="flex items-center justify-between p-2.5 bg-blue-50/60 border border-blue-200 rounded-xl">
+                        <div className="flex items-center space-x-2.5 min-w-0">
+                          <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+                            <FileText className="w-4 h-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-bold text-slate-800 truncate">
+                                {editForm.kciDocUrl.split('/').pop() || 'kci-certificate'}
+                              </span>
+                              <span className="text-[9px] font-bold uppercase tracking-wider bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded border border-blue-200">
+                                Cloudflare R2
+                              </span>
+                            </div>
+                            <a
+                              href={editForm.kciDocUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-700 hover:underline mt-0.5"
+                            >
+                              <span>View Certificate Document</span>
+                              <ExternalLink className="w-2.5 h-2.5" />
+                            </a>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center space-x-1 shrink-0 ml-2">
+                          <button
+                            type="button"
+                            disabled={isUploadingEditKci}
+                            onClick={() => editKciInputRef.current?.click()}
+                            className="px-2.5 py-1 text-xs font-semibold bg-white border border-blue-200 rounded-lg hover:bg-blue-50 text-blue-700 transition disabled:opacity-50"
+                          >
+                            Replace
+                          </button>
+                          <button
+                            type="button"
+                            disabled={isUploadingEditKci}
+                            onClick={() => setEditForm((prev) => ({ ...prev, kciDocUrl: '' }))}
+                            className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition disabled:opacity-50"
+                            title="Remove document"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <button
+                          type="button"
+                          disabled={isUploadingEditKci}
+                          onClick={() => editKciInputRef.current?.click()}
+                          className="w-full border-2 border-dashed border-blue-200 hover:border-blue-400 bg-blue-50/40 hover:bg-blue-50/80 rounded-xl p-3 flex items-center justify-center gap-2 text-xs font-semibold text-blue-700 transition disabled:opacity-50 cursor-pointer"
+                        >
+                          {isUploadingEditKci ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                              <span>{editKciProgress || 'Uploading certificate to R2...'}</span>
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="w-4 h-4 text-blue-600" />
+                              <span>Upload KCI Certificate (PDF / Image)</span>
+                            </>
+                          )}
+                        </button>
+                        <p className="text-[10px] text-slate-400 mt-1 pl-1">
+                          Streams document directly to Cloudflare R2 (/pets/kci)
+                        </p>
+                      </div>
+                    )}
+
+                    {editKciError && (
+                      <p className="text-xs text-rose-500 font-semibold mt-1.5 flex items-center gap-1">
+                        <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
+                        <span>{editKciError}</span>
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
 

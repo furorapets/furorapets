@@ -34,6 +34,7 @@ import {
 import { useSession } from '@/context/session-context';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { compressImageClientSide } from '@/lib/client-image-compressor';
 
 // 10-Point Physical Pickup Inspection Checklist Items
 const INSPECTION_POINTS = [
@@ -48,6 +49,492 @@ const INSPECTION_POINTS = [
   'Normal body temperature and alert responsiveness',
   'Transport carrier sanitized, ventilated, and lined with clean pad',
 ];
+
+interface AgentCameraPhotoUploadProps {
+  label: string;
+  required?: boolean;
+  value: string;
+  onChange: (url: string) => void;
+  folder: string;
+  description?: string;
+  badge?: string;
+}
+
+function AgentCameraPhotoUpload({
+  label,
+  required,
+  value,
+  onChange,
+  folder,
+  description,
+  badge,
+}: AgentCameraPhotoUploadProps) {
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const cameraInputRef = React.useRef<HTMLInputElement | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleFile = async (file: File) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setErrorMsg('Please select an image file (JPG, PNG, WebP).');
+      return;
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      setErrorMsg('Image size exceeds 20MB limit. Please choose a smaller photo.');
+      return;
+    }
+
+    setIsUploading(true);
+    setErrorMsg('');
+
+    try {
+      // 1. Client-side compression
+      let uploadFile = file;
+      try {
+        uploadFile = await compressImageClientSide(file, 1600, 1600, 0.82);
+      } catch (cErr) {
+        console.warn('Client-side compression fallback:', cErr);
+      }
+
+      // 2. Direct multipart upload to /api/upload
+      const formData = new FormData();
+      formData.append('file', uploadFile);
+      formData.append('folder', folder);
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to upload photo to Cloudflare R2');
+      }
+
+      onChange(data.url);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Error uploading photo. Please try again.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  return (
+    <div className="space-y-1.5 text-xs">
+      <div className="flex items-center justify-between">
+        <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600">
+          {label} {required && <span className="text-rose-500">*</span>}
+        </label>
+        {badge && (
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+            {badge}
+          </span>
+        )}
+      </div>
+
+      {description && <p className="text-[10px] text-slate-400">{description}</p>}
+
+      {/* Hidden File Inputs: Camera & Gallery */}
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => {
+          if (e.target.files && e.target.files[0]) {
+            handleFile(e.target.files[0]);
+          }
+        }}
+      />
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          if (e.target.files && e.target.files[0]) {
+            handleFile(e.target.files[0]);
+          }
+        }}
+      />
+
+      {/* Uploading State */}
+      {isUploading ? (
+        <div className="p-4 rounded-xl border-2 border-dashed border-indigo-300 bg-indigo-50/50 text-center space-y-2 animate-pulse">
+          <div className="w-6 h-6 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin mx-auto"></div>
+          <p className="text-[11px] font-bold text-indigo-900">
+            Compressing & streaming photo to Cloudflare R2 ({folder})...
+          </p>
+        </div>
+      ) : value ? (
+        /* Image Preview State */
+        <div className="rounded-xl border border-slate-200 overflow-hidden bg-slate-50 relative group">
+          <div className="relative h-44 sm:h-48 w-full bg-slate-900 flex items-center justify-center overflow-hidden">
+            <img
+              src={value}
+              alt={label}
+              className="w-full h-full object-cover transition duration-200 group-hover:scale-105"
+            />
+            <div className="absolute top-2 left-2 bg-slate-900/80 backdrop-blur-sm text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
+              <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+              <span>R2 Active</span>
+            </div>
+            <a
+              href={value}
+              target="_blank"
+              rel="noreferrer"
+              className="absolute top-2 right-2 p-1.5 rounded-lg bg-slate-900/80 text-white hover:bg-slate-900 transition shadow-sm text-[10px] font-bold flex items-center gap-1"
+              title="Open full photo in new tab"
+            >
+              <ExternalLink className="w-3 h-3" />
+            </a>
+          </div>
+
+          <div className="p-2.5 bg-white border-t border-slate-100 flex items-center justify-between gap-2">
+            <span className="font-mono text-[10px] text-slate-500 truncate max-w-[180px]">
+              {value.split('/').pop() || 'photo.webp'}
+            </span>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => cameraInputRef.current?.click()}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[10px] transition cursor-pointer"
+                title="Open device camera"
+              >
+                <Camera className="w-3 h-3 text-indigo-600" />
+                <span className="hidden sm:inline">Camera</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[10px] transition cursor-pointer"
+                title="Select photo from files"
+              >
+                <Upload className="w-3 h-3 text-slate-600" />
+                <span>Replace</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onChange('')}
+                className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                title="Remove photo"
+              >
+                <XCircle className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* Empty / Pick State */
+        <div
+          onDragOver={(e) => {
+            e.preventDefault();
+            setIsDragging(true);
+          }}
+          onDragLeave={(e) => {
+            e.preventDefault();
+            setIsDragging(false);
+          }}
+          onDrop={handleDrop}
+          className={`p-4 rounded-xl border-2 border-dashed text-center transition ${
+            isDragging
+              ? 'border-indigo-500 bg-indigo-50/50'
+              : 'border-slate-300 hover:border-slate-400 bg-slate-50/50'
+          }`}
+        >
+          <div className="w-10 h-10 rounded-full bg-white shadow-2xs border border-slate-200 mx-auto flex items-center justify-center text-slate-600 mb-2">
+            <Camera className="w-5 h-5 text-indigo-600" />
+          </div>
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => cameraInputRef.current?.click()}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 text-white font-bold text-[11px] hover:bg-indigo-700 shadow-2xs transition cursor-pointer"
+              >
+                <Camera className="w-3.5 h-3.5" />
+                <span>Snap Camera Photo</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 font-bold text-[11px] hover:bg-slate-50 shadow-2xs transition cursor-pointer"
+              >
+                <Upload className="w-3.5 h-3.5 text-slate-500" />
+                <span>Browse Gallery</span>
+              </button>
+            </div>
+            <p className="text-[10px] text-slate-400 mt-1">
+              Tap to capture or drop photo here • Streams directly to Cloudflare R2 ({folder})
+            </p>
+          </div>
+        </div>
+      )}
+
+      {errorMsg && (
+        <div className="p-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-[11px] flex items-center justify-between">
+          <span>{errorMsg}</span>
+          <button
+            type="button"
+            onClick={() => setErrorMsg('')}
+            className="text-rose-500 hover:text-rose-700 cursor-pointer"
+          >
+            <XCircle className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface AgentDocumentUploadProps {
+  label: string;
+  required?: boolean;
+  value: string;
+  fileName?: string;
+  onChange: (url: string, fileName?: string) => void;
+  folder: string;
+  description?: string;
+  acceptedTypes?: string;
+}
+
+function AgentDocumentUpload({
+  label,
+  required,
+  value,
+  fileName,
+  onChange,
+  folder,
+  description,
+  acceptedTypes = '.pdf,.jpg,.jpeg,.png,.webp',
+}: AgentDocumentUploadProps) {
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
+  const [currentFileName, setCurrentFileName] = useState(
+    fileName || (value ? value.split('/').pop() || 'Document.pdf' : '')
+  );
+
+  React.useEffect(() => {
+    if (fileName) {
+      setCurrentFileName(fileName);
+    } else if (value) {
+      const extracted = value.split('/').pop();
+      if (extracted) setCurrentFileName(extracted);
+    }
+  }, [fileName, value]);
+
+  const handleFile = async (file: File) => {
+    if (!file) return;
+    if (file.size > 25 * 1024 * 1024) {
+      setErrorMsg('File size exceeds 25MB limit. Please upload a smaller file.');
+      return;
+    }
+
+    setIsUploading(true);
+    setErrorMsg('');
+
+    try {
+      let uploadFile = file;
+      if (file.type.startsWith('image/')) {
+        try {
+          uploadFile = await compressImageClientSide(file, 1600, 1600, 0.82);
+        } catch (cErr) {
+          console.warn('Client-side compression fallback:', cErr);
+        }
+      }
+
+      const formData = new FormData();
+      formData.append('file', uploadFile);
+      formData.append('folder', folder);
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to upload document to Cloudflare R2');
+      }
+
+      setCurrentFileName(data.fileName);
+      onChange(data.url, data.fileName);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Error uploading document. Please try again.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  const isImageFile =
+    value &&
+    (value.match(/\.(jpeg|jpg|png|webp|gif)($|\?)/i) ||
+      value.includes('unsplash.com') ||
+      value.includes('images'));
+
+  return (
+    <div className="space-y-1.5 text-xs">
+      <div className="flex items-center justify-between">
+        <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600">
+          {label} {required && <span className="text-rose-500">*</span>}
+        </label>
+        {value && (
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+            <span>R2 Stored</span>
+          </span>
+        )}
+      </div>
+
+      {description && <p className="text-[10px] text-slate-400">{description}</p>}
+
+      {/* Hidden File Input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept={acceptedTypes}
+        className="hidden"
+        onChange={(e) => {
+          if (e.target.files && e.target.files[0]) {
+            handleFile(e.target.files[0]);
+          }
+        }}
+      />
+
+      {/* Uploading State */}
+      {isUploading ? (
+        <div className="p-3.5 rounded-xl border-2 border-dashed border-indigo-300 bg-indigo-50/50 text-center space-y-1.5 animate-pulse">
+          <div className="w-5 h-5 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin mx-auto"></div>
+          <p className="text-[11px] font-bold text-indigo-900">
+            Streaming document to Cloudflare R2 ({folder})...
+          </p>
+        </div>
+      ) : value ? (
+        /* Uploaded Document Card with Filename & Status Preview */
+        <div className="p-3 rounded-xl border border-emerald-200 bg-emerald-50/40 flex items-center justify-between gap-3 transition">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            {isImageFile ? (
+              <div className="w-10 h-10 rounded-lg overflow-hidden border border-emerald-200 bg-slate-100 flex-shrink-0">
+                <img src={value} alt="Preview" className="w-full h-full object-cover" />
+              </div>
+            ) : (
+              <div className="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0">
+                <FileText className="w-5 h-5 stroke-[2]" />
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="font-bold text-xs text-slate-900 truncate">
+                {currentFileName || 'Uploaded Document'}
+              </p>
+              <div className="flex items-center gap-1.5 text-[10px] text-emerald-700 font-medium">
+                <Check className="w-3 h-3 text-emerald-600" />
+                <span>Encrypted on Cloudflare R2 ({folder})</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <a
+              href={value}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-[10px] transition shadow-2xs cursor-pointer"
+              title="Open document in new window"
+            >
+              <span>View</span>
+              <ExternalLink className="w-3 h-3 opacity-60" />
+            </a>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-[10px] transition shadow-2xs flex items-center gap-1 cursor-pointer"
+              title="Replace document"
+            >
+              <Upload className="w-3 h-3 text-slate-500" />
+              <span>Replace</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onChange('', '');
+                setCurrentFileName('');
+              }}
+              className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+              title="Remove document"
+            >
+              <XCircle className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      ) : (
+        /* Empty Dropzone State */
+        <div
+          onDragOver={(e) => {
+            e.preventDefault();
+            setIsDragging(true);
+          }}
+          onDragLeave={(e) => {
+            e.preventDefault();
+            setIsDragging(false);
+          }}
+          onDrop={handleDrop}
+          onClick={() => fileInputRef.current?.click()}
+          className={`p-3.5 rounded-xl border-2 border-dashed text-center transition cursor-pointer flex items-center justify-center gap-3 ${
+            isDragging
+              ? 'border-indigo-500 bg-indigo-50/50'
+              : 'border-slate-300 hover:border-slate-400 bg-slate-50/50'
+          }`}
+        >
+          <div className="w-8 h-8 rounded-lg bg-white shadow-2xs border border-slate-200 flex items-center justify-center text-slate-500 flex-shrink-0">
+            <Upload className="w-4 h-4 text-indigo-600" />
+          </div>
+          <div className="text-left">
+            <p className="text-[11px] font-bold text-slate-800">
+              Click to upload document or drop file
+            </p>
+            <p className="text-[10px] text-slate-400">
+              PDF, JPG, PNG up to 25MB • R2 folder: <code>{folder}</code>
+            </p>
+          </div>
+        </div>
+      )}
+
+      {errorMsg && (
+        <div className="p-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-[11px] flex items-center justify-between">
+          <span>{errorMsg}</span>
+          <button
+            type="button"
+            onClick={() => setErrorMsg('')}
+            className="text-rose-500 hover:text-rose-700 cursor-pointer"
+          >
+            <XCircle className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function AgentOrderWorkflowContent() {
   const { currentUser, switchToRoleName } = useSession();
@@ -92,12 +579,15 @@ function AgentOrderWorkflowContent() {
   const [vaccinationCardUrl, setVaccinationCardUrl] = useState(
     'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=800&q=80'
   );
+  const [vaccinationCardName, setVaccinationCardName] = useState('Kennel-Vaccination-Record.pdf');
   const [dewormingRecordUrl, setDewormingRecordUrl] = useState(
     'https://images.unsplash.com/photo-1576765608535-5f04d1e3f289?auto=format&fit=crop&w=800&q=80'
   );
+  const [dewormingRecordName, setDewormingRecordName] = useState('Deworming-Proof-Record.pdf');
   const [pedigreeDocUrl, setPedigreeDocUrl] = useState(
     'https://images.unsplash.com/photo-1586281380349-632531db7ed4?auto=format&fit=crop&w=800&q=80'
   );
+  const [pedigreeDocName, setPedigreeDocName] = useState('KCI-Pedigree-Certificate.pdf');
   const [pickupFailureReason, setPickupFailureReason] = useState('');
 
   // Stage 3: Medical Center Form State
@@ -109,6 +599,7 @@ function AgentOrderWorkflowContent() {
   const [medicalCertUrl, setMedicalCertUrl] = useState(
     'https://images.unsplash.com/photo-1576765608535-5f04d1e3f289?auto=format&fit=crop&w=800&q=80'
   );
+  const [medicalCertName, setMedicalCertName] = useState('Veterinary-Fitness-Certificate.pdf');
   const [antigenPhotoUrl, setAntigenPhotoUrl] = useState(
     'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=800&q=80'
   );
@@ -246,19 +737,19 @@ function AgentOrderWorkflowContent() {
           type: 'KENNEL_VACCINATION_CARD',
           visibility: 'CUSTOMER_VISIBLE',
           fileUrl: vaccinationCardUrl,
-          fileName: `Breeder Kennel Vaccination Card - ${selectedOrder.breed?.name || 'Pet'}.pdf`,
+          fileName: vaccinationCardName || `Breeder Kennel Vaccination Card - ${selectedOrder.breed?.name || 'Pet'}.pdf`,
         },
         {
           type: 'KENNEL_DEWORMING_RECORD',
           visibility: 'CUSTOMER_VISIBLE',
           fileUrl: dewormingRecordUrl,
-          fileName: `Deworming Certification Record - ${selectedOrder.breed?.name || 'Pet'}.pdf`,
+          fileName: dewormingRecordName || `Deworming Certification Record - ${selectedOrder.breed?.name || 'Pet'}.pdf`,
         },
         {
           type: 'KENNEL_PEDIGREE_CERTIFICATE',
           visibility: 'CUSTOMER_VISIBLE',
           fileUrl: pedigreeDocUrl,
-          fileName: `Official Pedigree & Lineage Document - ${selectedOrder.breed?.name || 'Pet'}.pdf`,
+          fileName: pedigreeDocName || `Official Pedigree & Lineage Document - ${selectedOrder.breed?.name || 'Pet'}.pdf`,
         },
       ];
 
@@ -317,7 +808,7 @@ function AgentOrderWorkflowContent() {
               type: 'VET_MEDICAL_CERTIFICATE',
               visibility: 'CUSTOMER_VISIBLE',
               fileUrl: medicalCertUrl,
-              fileName: `Veterinary Fitness Certificate - ${vetClinicName}.pdf`,
+              fileName: medicalCertName || `Veterinary Fitness Certificate - ${vetClinicName}.pdf`,
             },
             {
               type: 'VET_VIRAL_TEST_REPORT',
@@ -954,82 +1445,74 @@ function AgentOrderWorkflowContent() {
 
                 {/* Document Collection Uploads Section */}
                 <div className="p-4 bg-slate-50/70 rounded-2xl border border-slate-200/80 space-y-4">
-                  <span className="text-xs font-extrabold text-slate-900 block flex items-center gap-1.5">
-                    <FileCheck2 className="w-4 h-4 text-indigo-600" />
-                    Breeder Kennel Compliance Documents & Pickup Proof Upload
-                  </span>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                    <span className="text-xs font-extrabold text-slate-900 flex items-center gap-1.5">
+                      <FileCheck2 className="w-4 h-4 text-indigo-600" />
+                      Breeder Kennel Compliance Documents & Pickup Proof Upload
+                    </span>
+                    <span className="text-[10px] font-semibold text-slate-400">
+                      Direct streaming to Cloudflare R2
+                    </span>
+                  </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                     {/* 1. Pet Pickup Photo */}
-                    <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-1.5">
-                      <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                        1. Pet Pickup Proof Photo URL *
-                      </label>
-                      <input
-                        type="url"
-                        value={pickupPhotoUrl}
-                        onChange={(e) => setPickupPhotoUrl(e.target.value)}
-                        className="w-full border border-slate-200 rounded-lg p-2 text-xs font-mono text-slate-800 focus:outline-none"
+                    <div className="bg-white p-3.5 rounded-xl border border-slate-200">
+                      <AgentCameraPhotoUpload
+                        label="1. Pet Pickup Proof Photo"
                         required
+                        value={pickupPhotoUrl}
+                        onChange={setPickupPhotoUrl}
+                        folder="orders/inspections"
+                        description="Direct camera capture or photo upload of pet at breeder kennel"
+                        badge="Camera / Photo"
                       />
-                      {pickupPhotoUrl && (
-                        <div className="h-14 w-full rounded-lg overflow-hidden bg-slate-100 border border-slate-200 relative">
-                          <img
-                            src={pickupPhotoUrl}
-                            alt="Pickup Photo"
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      )}
                     </div>
 
                     {/* 2. Vaccination Card */}
-                    <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-1.5">
-                      <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                        2. Kennel Vaccination Card Document URL *
-                      </label>
-                      <input
-                        type="url"
-                        value={vaccinationCardUrl}
-                        onChange={(e) => setVaccinationCardUrl(e.target.value)}
-                        className="w-full border border-slate-200 rounded-lg p-2 text-xs font-mono text-slate-800 focus:outline-none"
+                    <div className="bg-white p-3.5 rounded-xl border border-slate-200">
+                      <AgentDocumentUpload
+                        label="2. Kennel Vaccination Card Document"
                         required
+                        value={vaccinationCardUrl}
+                        fileName={vaccinationCardName}
+                        onChange={(url, name) => {
+                          setVaccinationCardUrl(url);
+                          if (name) setVaccinationCardName(name);
+                        }}
+                        folder="orders/documents"
+                        description="Physical vaccination card with breeder/vet stamp"
                       />
-                      {vaccinationCardUrl && (
-                        <div className="h-14 w-full rounded-lg overflow-hidden bg-slate-100 border border-slate-200 relative">
-                          <img
-                            src={vaccinationCardUrl}
-                            alt="Vaccination Record"
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      )}
                     </div>
 
                     {/* 3. Deworming Record */}
-                    <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-1.5">
-                      <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                        3. Deworming Proof Document URL *
-                      </label>
-                      <input
-                        type="url"
-                        value={dewormingRecordUrl}
-                        onChange={(e) => setDewormingRecordUrl(e.target.value)}
-                        className="w-full border border-slate-200 rounded-lg p-2 text-xs font-mono text-slate-800 focus:outline-none"
+                    <div className="bg-white p-3.5 rounded-xl border border-slate-200">
+                      <AgentDocumentUpload
+                        label="3. Deworming Proof Document"
                         required
+                        value={dewormingRecordUrl}
+                        fileName={dewormingRecordName}
+                        onChange={(url, name) => {
+                          setDewormingRecordUrl(url);
+                          if (name) setDewormingRecordName(name);
+                        }}
+                        folder="orders/documents"
+                        description="Kennel deworming certification schedule record"
                       />
                     </div>
 
                     {/* 4. Pedigree Certificate */}
-                    <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-1.5">
-                      <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                        4. KCI / Pedigree Certificate Document URL
-                      </label>
-                      <input
-                        type="url"
+                    <div className="bg-white p-3.5 rounded-xl border border-slate-200">
+                      <AgentDocumentUpload
+                        label="4. KCI / Pedigree Certificate Document"
                         value={pedigreeDocUrl}
-                        onChange={(e) => setPedigreeDocUrl(e.target.value)}
-                        className="w-full border border-slate-200 rounded-lg p-2 text-xs font-mono text-slate-800 focus:outline-none"
+                        fileName={pedigreeDocName}
+                        onChange={(url, name) => {
+                          setPedigreeDocUrl(url);
+                          if (name) setPedigreeDocName(name);
+                        }}
+                        folder="orders/documents"
+                        description="Official Kennel Club of India / pedigree certificate"
                       />
                     </div>
                   </div>
@@ -1201,30 +1684,31 @@ function AgentOrderWorkflowContent() {
                   </div>
 
                   {/* Medical Documents Upload */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="bg-slate-50/70 p-3 rounded-xl border border-slate-200 space-y-1.5">
-                      <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                        Official Stamped Vet Fitness Certificate URL *
-                      </label>
-                      <input
-                        type="url"
-                        value={medicalCertUrl}
-                        onChange={(e) => setMedicalCertUrl(e.target.value)}
-                        className="w-full border border-slate-200 rounded-lg p-2 text-xs font-mono text-slate-800 focus:outline-none bg-white"
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="bg-white p-3.5 rounded-xl border border-slate-200">
+                      <AgentDocumentUpload
+                        label="Official Stamped Vet Fitness Certificate"
                         required
+                        value={medicalCertUrl}
+                        fileName={medicalCertName}
+                        onChange={(url, name) => {
+                          setMedicalCertUrl(url);
+                          if (name) setMedicalCertName(name);
+                        }}
+                        folder="orders/medical"
+                        description="Official physical stamped fitness-for-travel veterinary certificate"
                       />
                     </div>
 
-                    <div className="bg-slate-50/70 p-3 rounded-xl border border-slate-200 space-y-1.5">
-                      <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                        Rapid Antigen Test Cassette Photo URL *
-                      </label>
-                      <input
-                        type="url"
-                        value={antigenPhotoUrl}
-                        onChange={(e) => setAntigenPhotoUrl(e.target.value)}
-                        className="w-full border border-slate-200 rounded-lg p-2 text-xs font-mono text-slate-800 focus:outline-none bg-white"
+                    <div className="bg-white p-3.5 rounded-xl border border-slate-200">
+                      <AgentCameraPhotoUpload
+                        label="Rapid Antigen Test Cassette Photo"
                         required
+                        value={antigenPhotoUrl}
+                        onChange={setAntigenPhotoUrl}
+                        folder="orders/medical"
+                        description="Diagnostic test cassette showing negative result bands (CPV/CDV/CCV)"
+                        badge="Camera / Photo"
                       />
                     </div>
                   </div>
@@ -1353,31 +1837,35 @@ function AgentOrderWorkflowContent() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-                        Delivery Handover Proof Photo URL *
-                      </label>
-                      <input
-                        type="url"
-                        value={deliveryPhoto}
-                        onChange={(e) => setDeliveryPhoto(e.target.value)}
-                        className="w-full border border-slate-200 rounded-xl p-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 font-mono"
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
+                    <div className="bg-white p-3.5 rounded-xl border border-slate-200">
+                      <AgentCameraPhotoUpload
+                        label="Delivery Handover Proof Photo"
                         required
+                        value={deliveryPhoto}
+                        onChange={setDeliveryPhoto}
+                        folder="orders/deliveries"
+                        description="Direct camera capture or photo proof of pet handover to customer at doorstep"
+                        badge="Camera / Photo"
                       />
                     </div>
 
-                    <div>
-                      <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-                        Signed Delivery Report (Digital Signature / Hash) *
-                      </label>
-                      <input
-                        type="text"
-                        value={deliverySignature}
-                        onChange={(e) => setDeliverySignature(e.target.value)}
-                        className="w-full border border-slate-200 rounded-xl p-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 font-mono"
-                        required
-                      />
+                    <div className="space-y-3 bg-white p-3.5 rounded-xl border border-slate-200">
+                      <div>
+                        <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                          Signed Delivery Report (Digital Signature / Hash) *
+                        </label>
+                        <input
+                          type="text"
+                          value={deliverySignature}
+                          onChange={(e) => setDeliverySignature(e.target.value)}
+                          className="w-full border border-slate-200 rounded-xl p-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 font-mono"
+                          required
+                        />
+                        <p className="text-[10px] text-slate-400 mt-1.5">
+                          Cryptographic digital handover verification signature captured upon customer OTP verification.
+                        </p>
+                      </div>
                     </div>
                   </div>
 

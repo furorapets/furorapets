@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import {
   Users,
   User,
@@ -35,6 +35,7 @@ import {
   ChevronRight,
   Upload,
   CreditCard,
+  AlertCircle,
 } from 'lucide-react';
 import { useSession } from '@/context/session-context';
 import Link from 'next/link';
@@ -43,6 +44,217 @@ import { Suspense } from 'react';
 import PetPicker from '@/components/PetPicker';
 import VendorPicker from '@/components/VendorPicker';
 import AgentPicker from '@/components/AgentPicker';
+import FileUploadField from '@/components/FileUploadField';
+import { compressImageClientSide } from '@/lib/client-image-compressor';
+
+function DeliveryPhotoUpload({
+  value,
+  onChange,
+  required = true,
+}: {
+  value: string;
+  onChange: (url: string) => void;
+  required?: boolean;
+}) {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleFile = async (file: File) => {
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setUploadError('Please select a valid image file (JPG, PNG, WEBP).');
+      return;
+    }
+
+    if (file.size > 15 * 1024 * 1024) {
+      setUploadError('Image size exceeds 15MB limit. Please upload a smaller image.');
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadError('');
+
+    try {
+      let uploadFile = file;
+      try {
+        uploadFile = await compressImageClientSide(file, 1600, 1600, 0.82);
+      } catch (cErr) {
+        console.warn('Image compression fallback:', cErr);
+      }
+
+      const formData = new FormData();
+      formData.append('file', uploadFile);
+      formData.append('folder', 'deliveries');
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to upload photo');
+      }
+
+      onChange(data.url);
+    } catch (err: any) {
+      setUploadError(err.message || 'Error uploading photo. Please try again.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  return (
+    <div className="space-y-1.5 text-xs select-none">
+      <div className="flex items-center justify-between">
+        <label className="font-bold text-slate-800 text-[11px] flex items-center gap-1.5">
+          <span>Delivery Proof Photo (POD)</span>
+          {required && <span className="text-rose-500">*</span>}
+        </label>
+        <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-purple-100 text-purple-800">
+          Photo Evidence
+        </span>
+      </div>
+
+      <p className="text-[10px] text-slate-400">
+        Handover photo of the pet with customer at residence (direct Cloudflare R2 stream)
+      </p>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          if (e.target.files && e.target.files[0]) {
+            handleFile(e.target.files[0]);
+          }
+        }}
+      />
+
+      {value && !isUploading ? (
+        <div className="rounded-2xl border border-purple-200 bg-purple-50/40 p-2.5 space-y-2">
+          <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-slate-900 border border-purple-100 shadow-2xs group">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={value}
+              alt="Delivery Proof"
+              className="w-full h-full object-cover transition duration-300 group-hover:scale-105"
+            />
+            <div className="absolute top-2 left-2 bg-slate-900/80 backdrop-blur-xs text-white px-2 py-0.5 rounded-md text-[10px] font-bold flex items-center gap-1 shadow-xs">
+              <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+              <span>Cloudflare R2 Stored</span>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-1">
+            <a
+              href={value}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 text-[11px] font-bold text-purple-700 hover:text-purple-900 hover:underline"
+            >
+              <ExternalLink className="w-3 h-3" />
+              <span>View Full Image</span>
+            </a>
+
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-[10px] shadow-2xs transition active:scale-95"
+              >
+                <Camera className="w-3 h-3 text-purple-600" />
+                <span>Change Photo</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onChange('');
+                  if (fileInputRef.current) fileInputRef.current.value = '';
+                }}
+                className="w-6 h-6 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition"
+                title="Remove photo"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : isUploading ? (
+        <div className="p-5 rounded-2xl border border-dashed border-purple-300 bg-purple-50/50 text-center space-y-2">
+          <div className="w-6 h-6 rounded-full border-2 border-purple-600 border-t-transparent animate-spin mx-auto" />
+          <p className="text-[11px] font-semibold text-purple-900">
+            Compressing & streaming photo to Cloudflare R2...
+          </p>
+        </div>
+      ) : (
+        <div
+          onClick={() => fileInputRef.current?.click()}
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          className={`p-4 rounded-2xl border-2 border-dashed cursor-pointer transition text-center space-y-1.5 ${
+            isDragging
+              ? 'border-purple-600 bg-purple-50/80 scale-[1.01]'
+              : 'border-slate-200/90 bg-slate-50/50 hover:bg-purple-50/30 hover:border-purple-300'
+          }`}
+        >
+          <div className="w-9 h-9 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center mx-auto shadow-2xs">
+            <Camera className="w-4 h-4" />
+          </div>
+          <div>
+            <span className="font-extrabold text-slate-900 text-xs">Click to upload delivery photo</span>{' '}
+            <span className="text-slate-500 font-normal text-xs">or drag and drop</span>
+          </div>
+          <p className="text-[10px] text-slate-400">JPG, PNG, WEBP (Auto-compressed, Max 15MB)</p>
+
+          <div className="pt-1 flex items-center justify-center">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onChange('https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=800&q=80');
+              }}
+              className="inline-flex items-center gap-1 text-[10px] font-semibold text-purple-700 hover:text-purple-900 hover:underline px-2 py-0.5 rounded transition"
+            >
+              <Sparkles className="w-2.5 h-2.5 text-purple-600" />
+              <span>Click to use sample handover photo</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {uploadError && (
+        <div className="text-[11px] text-rose-600 flex items-center gap-1 pt-0.5">
+          <AlertCircle className="w-3 h-3 flex-shrink-0" />
+          <span>{uploadError}</span>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function CustomersContent() {
   const searchParams = useSearchParams();
@@ -334,6 +546,26 @@ function CustomersContent() {
   const openProgressiveModal = (order: any) => {
     setProgressiveOrderModal(order);
     setProgressiveSuccess('');
+
+    // Prepopulate existing order documents if present
+    const medDoc = order.documents?.find((d: any) => d.type === 'MEDICAL_REPORT');
+    const vaccDoc = order.documents?.find((d: any) => d.type === 'VACCINATION_RECORD');
+
+    setProgressiveForm({
+      inspectionCondition: '10/10 Physical criteria passed. Healthy coat, clear eyes, energetic posture.',
+      inspectionNotes: 'Breeder kennel verified. Pet verified against digital identity.',
+      inspectionPhoto: order.petPhotoAtPickup || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=800&q=80',
+      medicalHospital: order.vetClinicName || 'Furora Veterinary Specialty Hospital & Diagnostics',
+      medicalDocUrl: medDoc?.fileUrl || order.medicalCertUrl || '',
+      medicalDocName: medDoc?.fileName || (order.medicalCertUrl ? 'Certified Veterinary Health & Wellness Report.pdf' : ''),
+      vaccinationDocUrl: vaccDoc?.fileUrl || '',
+      vaccinationDocName: vaccDoc?.fileName || '',
+      deliveryPhoto: order.deliveryRecord?.photo || '',
+      deliveryCustId: order.deliveryRecord?.customerIdCaptured || 'GOV-ID-AADHAAR-88992211',
+      deliverySignedReport: order.deliveryRecord?.signedDeliveryReport || '',
+      deliveryAck: order.deliveryRecord?.customerAcknowledgement || 'Customer confirms handover receipt of companion animal in optimal condition.',
+    });
+
     // Auto-select stage based on current order status
     if (order.status === 'ORDER_RECEIVED' || order.status.includes('PICKUP')) {
       setProgressiveStage('INSPECTION');
@@ -347,6 +579,27 @@ function CustomersContent() {
   const handleProgressiveSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!progressiveOrderModal) return;
+
+    if (progressiveStage === 'MEDICAL') {
+      if (!progressiveForm.medicalDocUrl) {
+        alert('Please upload the certified Medical Report / Fitness Certificate.');
+        return;
+      }
+      if (!progressiveForm.vaccinationDocUrl) {
+        alert('Please upload the Vaccination Record & Immunization Schedule.');
+        return;
+      }
+    } else if (progressiveStage === 'DELIVERY') {
+      if (!progressiveForm.deliveryPhoto) {
+        alert('Please upload the Delivery Proof Photo.');
+        return;
+      }
+      if (!progressiveForm.deliverySignedReport) {
+        alert('Please upload the Signed Delivery Report document.');
+        return;
+      }
+    }
+
     setProgressiveSubmitting(true);
     setProgressiveSuccess('');
 
@@ -1400,36 +1653,50 @@ function CustomersContent() {
 
               {/* Stage 2: Vet Medical Center */}
               {progressiveStage === 'MEDICAL' && (
-                <div className="space-y-2.5">
+                <div className="space-y-3">
                   <div className="p-2.5 bg-teal-50 rounded-xl border border-teal-200 text-teal-900 text-[11px]">
                     <strong>Location 2: Veterinary Medical Center</strong> &bull; Upload certified clinical medical clearance & customer-visible health documents.
                   </div>
 
-                  <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-                      1. Medical Report / Fitness Certificate URL *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={progressiveForm.medicalDocUrl}
-                      onChange={(e) => setProgressiveForm({ ...progressiveForm, medicalDocUrl: e.target.value })}
-                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs bg-white text-slate-800 font-mono text-[11px]"
-                    />
-                  </div>
+                  <FileUploadField
+                    label="1. Medical Report / Fitness Certificate"
+                    badge="Clinical Clearance"
+                    badgeColor="bg-teal-100 text-teal-800"
+                    description="Certified veterinary health fitness certificate or clearance sheet"
+                    value={progressiveForm.medicalDocUrl}
+                    fileName={progressiveForm.medicalDocName}
+                    onChange={(url, fileName) =>
+                      setProgressiveForm((prev) => ({
+                        ...prev,
+                        medicalDocUrl: url,
+                        medicalDocName: fileName || prev.medicalDocName || 'Medical_Fitness_Certificate.pdf',
+                      }))
+                    }
+                    folder="medical"
+                    required={true}
+                    sampleUrl="https://r2.furora.com/medical/sample-vet-fitness-certificate.pdf"
+                    sampleName="Sample-Vet-Health-Clearance.pdf"
+                  />
 
-                  <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-                      2. Vaccination Record & Immunization Schedule URL *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={progressiveForm.vaccinationDocUrl}
-                      onChange={(e) => setProgressiveForm({ ...progressiveForm, vaccinationDocUrl: e.target.value })}
-                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs bg-white text-slate-800 font-mono text-[11px]"
-                    />
-                  </div>
+                  <FileUploadField
+                    label="2. Vaccination Record & Immunization Schedule"
+                    badge="Vaccine Record"
+                    badgeColor="bg-teal-100 text-teal-800"
+                    description="Official immunization card and upcoming booster schedule"
+                    value={progressiveForm.vaccinationDocUrl}
+                    fileName={progressiveForm.vaccinationDocName}
+                    onChange={(url, fileName) =>
+                      setProgressiveForm((prev) => ({
+                        ...prev,
+                        vaccinationDocUrl: url,
+                        vaccinationDocName: fileName || prev.vaccinationDocName || 'Vaccination_Record.pdf',
+                      }))
+                    }
+                    folder="medical"
+                    required={true}
+                    sampleUrl="https://r2.furora.com/medical/sample-immunization-card.pdf"
+                    sampleName="Sample-Immunization-Record.pdf"
+                  />
 
                   <div>
                     <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
@@ -1447,23 +1714,16 @@ function CustomersContent() {
 
               {/* Stage 3: Customer Residence Delivery */}
               {progressiveStage === 'DELIVERY' && (
-                <div className="space-y-2.5">
+                <div className="space-y-3">
                   <div className="p-2.5 bg-purple-50 rounded-xl border border-purple-200 text-purple-900 text-[11px]">
                     <strong>Location 3: Customer Residence</strong> &bull; Record final proof of delivery (POD), customer ID verification, and signed report.
                   </div>
 
-                  <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-                      Delivery Proof Photo (URL) *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={progressiveForm.deliveryPhoto}
-                      onChange={(e) => setProgressiveForm({ ...progressiveForm, deliveryPhoto: e.target.value })}
-                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs bg-white text-slate-800 font-mono text-[11px]"
-                    />
-                  </div>
+                  <DeliveryPhotoUpload
+                    value={progressiveForm.deliveryPhoto}
+                    onChange={(url) => setProgressiveForm((prev) => ({ ...prev, deliveryPhoto: url }))}
+                    required={true}
+                  />
 
                   <div>
                     <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
@@ -1478,18 +1738,23 @@ function CustomersContent() {
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-                      Signed Delivery Report Doc URL *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={progressiveForm.deliverySignedReport}
-                      onChange={(e) => setProgressiveForm({ ...progressiveForm, deliverySignedReport: e.target.value })}
-                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs bg-white text-slate-800 font-mono text-[11px]"
-                    />
-                  </div>
+                  <FileUploadField
+                    label="Signed Delivery Report Doc"
+                    badge="Signed POD"
+                    badgeColor="bg-purple-100 text-purple-800"
+                    description="Signed physical delivery confirmation or handover acknowledgment paper"
+                    value={progressiveForm.deliverySignedReport}
+                    onChange={(url) =>
+                      setProgressiveForm((prev) => ({
+                        ...prev,
+                        deliverySignedReport: url,
+                      }))
+                    }
+                    folder="deliveries"
+                    required={true}
+                    sampleUrl="https://r2.furora.com/deliveries/sample-signed-delivery-pod.pdf"
+                    sampleName="Sample-Signed-Delivery-POD.pdf"
+                  />
 
                   <div>
                     <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">

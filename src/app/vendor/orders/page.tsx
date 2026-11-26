@@ -18,10 +18,287 @@ import {
   Truck,
   Check,
   FileText,
+  Upload,
+  Loader2,
+  ExternalLink,
 } from 'lucide-react';
+import { compressImageClientSide } from '@/lib/client-image-compressor';
 import { useSession } from '@/context/session-context';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+
+interface OrderDocumentUploadProps {
+  label: string;
+  required?: boolean;
+  value: string;
+  onChange: (url: string) => void;
+  folder?: string;
+  sampleUrl?: string;
+  sampleName?: string;
+  disabled?: boolean;
+}
+
+function OrderDocumentUpload({
+  label,
+  required = false,
+  value,
+  onChange,
+  folder = 'vendor/orders',
+  sampleUrl,
+  sampleName,
+  disabled = false,
+}: OrderDocumentUploadProps) {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
+  const [fileName, setFileName] = useState('');
+
+  const isImage = useMemo(() => {
+    if (!value) return false;
+    return (
+      value.match(/\.(jpe?g|png|webp)($|\?)/i) !== null ||
+      value.includes('photo-') ||
+      value.includes('images.unsplash') ||
+      value.startsWith('data:image/')
+    );
+  }, [value]);
+
+  const displayFileName = useMemo(() => {
+    if (fileName) return fileName;
+    if (!value) return '';
+    try {
+      const urlParts = value.split('/');
+      const lastPart = urlParts[urlParts.length - 1];
+      return decodeURIComponent(lastPart.split('?')[0]) || 'Uploaded Document';
+    } catch {
+      return 'Uploaded Document';
+    }
+  }, [fileName, value]);
+
+  const handleFileChange = async (file: File) => {
+    if (!file || disabled) return;
+
+    // Allowed file types: JPEG, PNG, WebP, PDF
+    const isValidType =
+      file.type === 'application/pdf' ||
+      file.type.startsWith('image/') ||
+      /\.(pdf|jpe?g|png|webp)$/i.test(file.name);
+
+    if (!isValidType) {
+      setUploadError('Unsupported file format. Please upload JPEG, PNG, WebP, or PDF.');
+      return;
+    }
+
+    // Size limit: 15MB
+    if (file.size > 15 * 1024 * 1024) {
+      setUploadError('File size exceeds 15MB limit. Please upload a smaller file.');
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadError('');
+
+    try {
+      let uploadFile = file;
+      if (file.type.startsWith('image/')) {
+        try {
+          uploadFile = await compressImageClientSide(file, 1600, 1600, 0.82);
+        } catch (compErr) {
+          console.warn('[Image Compressor] Client compression fallback:', compErr);
+        }
+      }
+
+      const formData = new FormData();
+      formData.append('file', uploadFile);
+      formData.append('folder', folder);
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to upload document');
+      }
+
+      setFileName(data.fileName || file.name);
+      onChange(data.url);
+    } catch (err: any) {
+      setUploadError(err.message || 'Error uploading document. Please try again.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (disabled || isUploading) return;
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFileChange(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (!disabled && !isUploading) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between">
+        <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
+          {label} {required && <span className="text-rose-500">*</span>}
+        </label>
+        {sampleUrl && !value && !isUploading && (
+          <button
+            type="button"
+            onClick={() => {
+              onChange(sampleUrl);
+              setFileName(sampleName || 'sample-document.pdf');
+              setUploadError('');
+            }}
+            className="inline-flex items-center gap-1 text-[10px] text-amber-700 hover:text-amber-800 font-semibold hover:underline cursor-pointer"
+          >
+            <Sparkles className="w-2.5 h-2.5 text-amber-500" />
+            <span>Use sample document</span>
+          </button>
+        )}
+      </div>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"
+        className="hidden"
+        disabled={disabled || isUploading}
+        onChange={(e) => {
+          if (e.target.files && e.target.files[0]) {
+            handleFileChange(e.target.files[0]);
+          }
+        }}
+      />
+
+      {isUploading ? (
+        <div className="p-3.5 rounded-xl border border-dashed border-slate-300 bg-white flex items-center justify-center gap-2.5 shadow-2xs">
+          <Loader2 className="w-4 h-4 text-slate-800 animate-spin" />
+          <span className="text-xs font-semibold text-slate-700">Uploading & streaming to Cloudflare R2...</span>
+        </div>
+      ) : value ? (
+        <div className="p-2.5 rounded-xl border border-emerald-200 bg-emerald-50/40 flex items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            {isImage ? (
+              <img
+                src={value}
+                alt="Document Preview"
+                className="w-9 h-9 rounded-lg object-cover border border-emerald-200 shrink-0 bg-white"
+              />
+            ) : (
+              <div className="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-700 border border-emerald-200 flex items-center justify-center shrink-0">
+                <FileText className="w-4 h-4 stroke-[2.5]" />
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold text-slate-900 truncate">
+                {displayFileName}
+              </p>
+              <div className="flex items-center gap-1.5 text-[10px] text-emerald-700 font-semibold mt-0.5">
+                <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                <span>Uploaded to Cloudflare R2</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 shrink-0">
+            <a
+              href={value}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-[10px] transition shadow-2xs"
+              title="View document in new tab"
+            >
+              <ExternalLink className="w-3 h-3 text-slate-500" />
+              <span>View</span>
+            </a>
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={() => fileInputRef.current?.click()}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-[10px] transition shadow-2xs cursor-pointer"
+              title="Replace document"
+            >
+              <Upload className="w-3 h-3 text-slate-500" />
+              <span>Replace</span>
+            </button>
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={() => {
+                onChange('');
+                setFileName('');
+                setUploadError('');
+                if (fileInputRef.current) fileInputRef.current.value = '';
+              }}
+              className="w-7 h-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition cursor-pointer"
+              title="Remove document"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div
+          onClick={() => !disabled && fileInputRef.current?.click()}
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          className={`p-3.5 rounded-xl border-2 border-dashed transition text-center cursor-pointer ${
+            isDragging
+              ? 'border-slate-900 bg-slate-100/90 scale-[1.01]'
+              : 'border-slate-200 bg-white hover:border-slate-400 hover:bg-slate-50/60'
+          } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+        >
+          <div className="flex items-center justify-center gap-2 mb-1">
+            <div className="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600">
+              <Upload className="w-3.5 h-3.5" />
+            </div>
+            <span className="text-xs font-bold text-slate-800">
+              Click to browse file <span className="text-slate-400 font-normal">or drag & drop</span>
+            </span>
+          </div>
+          <p className="text-[10px] text-slate-400">
+            Accepts JPEG, PNG, WebP, or PDF (Max 15MB)
+          </p>
+        </div>
+      )}
+
+      {uploadError && (
+        <div className="p-2 rounded-lg bg-rose-50 border border-rose-200 text-[11px] text-rose-700 flex items-center justify-between gap-2 animate-fadeIn">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+            <span className="truncate">{uploadError}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setUploadError('')}
+            className="text-rose-400 hover:text-rose-600 shrink-0 cursor-pointer"
+          >
+            <X className="w-3 h-3" />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function VendorOrdersContent() {
   const { currentUser, switchToRoleName, availableUsers } = useSession();
@@ -40,12 +317,8 @@ function VendorOrdersContent() {
   // Accept Modal
   const [acceptingOrder, setAcceptingOrder] = useState<any | null>(null);
   const [selectedPetId, setSelectedPetId] = useState<string>('');
-  const [vaccinationCardUrl, setVaccinationCardUrl] = useState<string>(
-    'https://images.unsplash.com/photo-1576765608535-5f04d1e3f289?auto=format&fit=crop&w=800&q=80'
-  );
-  const [dewormingRecordUrl, setDewormingRecordUrl] = useState<string>(
-    'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=800&q=80'
-  );
+  const [vaccinationCardUrl, setVaccinationCardUrl] = useState<string>('');
+  const [dewormingRecordUrl, setDewormingRecordUrl] = useState<string>('');
   const [isSubmittingAccept, setIsSubmittingAccept] = useState(false);
 
   // Reject Modal
@@ -183,6 +456,10 @@ function VendorOrdersContent() {
       alert('Please select a matching pet from your kennel inventory');
       return;
     }
+    if (!vaccinationCardUrl) {
+      alert('Puppy vaccination card is required. Please upload the vaccination card scan.');
+      return;
+    }
 
     setIsSubmittingAccept(true);
     try {
@@ -202,6 +479,8 @@ function VendorOrdersContent() {
 
       setAcceptingOrder(null);
       setSelectedPetId('');
+      setVaccinationCardUrl('');
+      setDewormingRecordUrl('');
       await loadData();
     } catch (err: any) {
       alert(err.message);
@@ -703,6 +982,8 @@ function VendorOrdersContent() {
                             onClick={() => {
                               setAcceptingOrder(o);
                               setSelectedPetId('');
+                              setVaccinationCardUrl('');
+                              setDewormingRecordUrl('');
                             }}
                             className="inline-flex items-center text-xs font-bold px-3 py-1.5 rounded-xl bg-slate-900 text-white hover:bg-slate-800 shadow-soft transition cursor-pointer"
                           >
@@ -770,7 +1051,12 @@ function VendorOrdersContent() {
                 </p>
               </div>
               <button
-                onClick={() => setAcceptingOrder(null)}
+                onClick={() => {
+                  setAcceptingOrder(null);
+                  setSelectedPetId('');
+                  setVaccinationCardUrl('');
+                  setDewormingRecordUrl('');
+                }}
                 className="w-7 h-7 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center hover:bg-slate-200 transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
@@ -844,37 +1130,32 @@ function VendorOrdersContent() {
               </div>
 
               {/* Breeder Kennel Origin Documents */}
-              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-2.5">
+              <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
                 <span className="font-bold text-xs text-slate-900 flex items-center gap-1.5">
                   <FileText className="w-3.5 h-3.5 text-slate-700" /> Attach Kennel Origin Documents
                 </span>
 
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
-                    Puppy Vaccination Card URL / Scan *
-                  </label>
-                  <input
-                    type="url"
-                    required
-                    value={vaccinationCardUrl}
-                    onChange={(e) => setVaccinationCardUrl(e.target.value)}
-                    placeholder="https://..."
-                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900"
-                  />
-                </div>
+                <OrderDocumentUpload
+                  label="Puppy Vaccination Card URL / Scan"
+                  required
+                  value={vaccinationCardUrl}
+                  onChange={setVaccinationCardUrl}
+                  folder="vendor/orders"
+                  sampleUrl="https://images.unsplash.com/photo-1576765608535-5f04d1e3f289?auto=format&fit=crop&w=800&q=80"
+                  sampleName="Puppy-Vaccination-Card-Sample.jpg"
+                  disabled={isSubmittingAccept}
+                />
 
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
-                    Deworming Record & Pedigree Slip URL (Optional)
-                  </label>
-                  <input
-                    type="url"
-                    value={dewormingRecordUrl}
-                    onChange={(e) => setDewormingRecordUrl(e.target.value)}
-                    placeholder="https://..."
-                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900"
-                  />
-                </div>
+                <OrderDocumentUpload
+                  label="Deworming Record & Pedigree Slip URL (Optional)"
+                  required={false}
+                  value={dewormingRecordUrl}
+                  onChange={setDewormingRecordUrl}
+                  folder="vendor/orders"
+                  sampleUrl="https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=800&q=80"
+                  sampleName="Deworming-Pedigree-Sample.jpg"
+                  disabled={isSubmittingAccept}
+                />
               </div>
 
               <div className="p-3 bg-blue-50/50 rounded-2xl border border-blue-100 text-[11px] text-blue-900 leading-relaxed">
@@ -885,14 +1166,19 @@ function VendorOrdersContent() {
               <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setAcceptingOrder(null)}
+                  onClick={() => {
+                    setAcceptingOrder(null);
+                    setSelectedPetId('');
+                    setVaccinationCardUrl('');
+                    setDewormingRecordUrl('');
+                  }}
                   className="px-4 py-2 border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-50 transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={matchingPetsForAccept.length === 0 || !selectedPetId || isSubmittingAccept}
+                  disabled={matchingPetsForAccept.length === 0 || !selectedPetId || !vaccinationCardUrl || isSubmittingAccept}
                   className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 disabled:opacity-50 transition cursor-pointer flex items-center gap-1.5"
                 >
                   {isSubmittingAccept ? 'Locking Pet...' : 'Confirm Allocation & Accept'}
