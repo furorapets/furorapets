@@ -49,7 +49,7 @@ function OrdersContent() {
   const vendorParam = searchParams.get('vendor') || '';
   const agentParam = searchParams.get('agent') || '';
 
-  const { currentUser, switchToRoleName } = useSession();
+  const { currentUser } = useSession();
   const [orders, setOrders] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -610,16 +610,15 @@ function OrdersContent() {
         <div>
           <h2 className="text-base font-extrabold text-slate-900">Admin Only Access</h2>
           <p className="text-xs text-slate-500 mt-1">
-            Your current persona is <strong>{currentUser.name}</strong> ({currentUser.role}).
             Only Administrators can assign vendor kennels and dispatch ops agents.
           </p>
         </div>
-        <button
-          onClick={() => switchToRoleName('ADMIN')}
+        <Link
+          href="/login"
           className="inline-flex items-center px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-slate-800 transition shadow-soft"
         >
-          <Sparkles className="w-3.5 h-3.5 mr-1.5" /> Switch to Furora Admin
-        </button>
+          Return to Dashboard
+        </Link>
       </div>
     );
   }

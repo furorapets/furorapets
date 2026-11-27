@@ -47,7 +47,7 @@ function getSpeciesRegistrationConfig(categoryName?: string) {
 }
 
 export default function VendorPetsPage() {
-  const { currentUser, switchToRoleName } = useSession();
+  const { currentUser } = useSession();
   const [pets, setPets] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [breeds, setBreeds] = useState<any[]>([]);
@@ -186,16 +186,15 @@ export default function VendorPetsPage() {
         <div>
           <h2 className="text-base font-extrabold text-slate-900">Vendor Portal (Breeder Inventory)</h2>
           <p className="text-xs text-slate-500 mt-1">
-            Your current persona is <strong>{currentUser.name}</strong> ({currentUser.role}).
-            Breeder facility inventory requires Vendor or Admin authentication.
+            Access to live facility pet inventory is restricted to verified Vendors and Admins.
           </p>
         </div>
-        <button
-          onClick={() => switchToRoleName('VENDOR')}
-          className="inline-flex items-center px-4 py-2 bg-amber-600 text-white text-xs font-bold rounded-xl hover:bg-amber-700 transition shadow-soft"
+        <Link
+          href="/login"
+          className="inline-flex items-center px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-slate-800 transition shadow-soft cursor-pointer"
         >
-          <Sparkles className="w-3.5 h-3.5 mr-1.5" /> Switch to Pet World Breeders (Vendor)
-        </button>
+          Return to Dashboard
+        </Link>
       </div>
     );
   }
@@ -276,12 +275,6 @@ export default function VendorPetsPage() {
             <span>{isChangesRequested ? 'Update & Re-submit Documents' : 'Track Status on Partner Portal'}</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>
-          <button
-            onClick={() => switchToRoleName('ADMIN')}
-            className="w-full sm:w-auto px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5"
-          >
-            <Sparkles className="w-3.5 h-3.5" /> Switch to Admin
-          </button>
         </div>
       </div>
     );

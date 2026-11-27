@@ -23,7 +23,6 @@ import {
 
 interface DashboardSidebarProps {
   currentUser: SessionUser | null;
-  onOpenSwitchModal: () => void;
   onOpenChangePasswordModal?: () => void;
 }
 
@@ -36,7 +35,6 @@ interface NavItem {
 
 export default function DashboardSidebar({
   currentUser,
-  onOpenSwitchModal,
   onOpenChangePasswordModal,
 }: DashboardSidebarProps) {
   const pathname = usePathname();
@@ -167,31 +165,29 @@ export default function DashboardSidebar({
         </nav>
       </div>
 
-      {/* Bottom Persona / Active Role Card */}
+      {/* Bottom User Profile & Account Actions Card */}
       <div className="pt-4 border-t border-slate-100 space-y-2">
         <div className="w-full flex items-center justify-between p-2.5 rounded-2xl bg-slate-50 border border-slate-200/60">
-          <button
-            onClick={onOpenSwitchModal}
-            className="flex items-center space-x-2.5 min-w-0 flex-1 text-left cursor-pointer hover:opacity-80 transition"
-            title="Click to Switch Persona / Role"
-          >
+          <div className="flex items-center space-x-2.5 min-w-0 flex-1">
             <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs uppercase flex-shrink-0 shadow-sm">
-              {currentUser?.name?.[0] || (pathname.startsWith('/sales') ? 'S' : pathname.startsWith('/vendor') ? 'V' : pathname.startsWith('/agent') ? 'A' : 'U')}
+              {currentUser?.name?.[0] || 'U'}
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-xs font-bold text-slate-800 truncate leading-tight">
-                {currentUser?.name || (pathname.startsWith('/sales') ? 'Furora Sales Team' : pathname.startsWith('/vendor') ? 'Vendor Partner' : pathname.startsWith('/agent') ? 'Delivery Agent' : 'User')}
+                {currentUser?.name || 'User'}
               </p>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[10px] text-slate-400 font-semibold truncate">
-                  {currentUser?.role?.replace('_', ' ') || (pathname.startsWith('/sales') ? 'SALES' : pathname.startsWith('/vendor') ? 'VENDOR' : pathname.startsWith('/agent') ? 'DELIVERY AGENT' : '')}
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-slate-200/70 text-slate-700 tracking-wide">
+                  {currentUser?.role?.replace('_', ' ') || 'AUTHENTICATED'}
                 </span>
-                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
-                  Switch
-                </span>
+                {currentUser?.assignedHub && (
+                  <span className="text-[9px] text-slate-400 truncate max-w-[80px]" title={currentUser.assignedHub}>
+                    {currentUser.assignedHub}
+                  </span>
+                )}
               </div>
             </div>
-          </button>
+          </div>
 
           <button
             onClick={async () => {
@@ -202,7 +198,7 @@ export default function DashboardSidebar({
               }
               window.location.href = '/login';
             }}
-            title="Log Out"
+            title="Log Out of Furora"
             className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer flex-shrink-0 ml-1"
           >
             <LogOut className="w-4 h-4" />
@@ -220,21 +216,6 @@ export default function DashboardSidebar({
             <span>Change Password (Email OTP)</span>
           </button>
         )}
-
-        <button
-          onClick={async () => {
-            try {
-              await fetch('/api/auth/logout', { method: 'POST' });
-            } catch (e) {
-              console.error('Logout error', e);
-            }
-            window.location.href = '/login';
-          }}
-          className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[11px] font-semibold text-slate-400 hover:text-slate-700 transition rounded-xl hover:bg-slate-50 cursor-pointer"
-        >
-          <LogOut className="w-3 h-3" />
-          <span>Sign In as Another User</span>
-        </button>
       </div>
     </aside>
   );

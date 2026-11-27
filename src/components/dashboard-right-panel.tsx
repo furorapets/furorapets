@@ -13,10 +13,9 @@ import {
 
 interface DashboardRightPanelProps {
   currentUser: SessionUser | null;
-  onOpenSwitchModal: () => void;
 }
 
-export default function DashboardRightPanel({ currentUser, onOpenSwitchModal }: DashboardRightPanelProps) {
+export default function DashboardRightPanel({ currentUser }: DashboardRightPanelProps) {
   const [logs, setLogs] = useState<any[]>([]);
 
   useEffect(() => {

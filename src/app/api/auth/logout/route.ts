@@ -8,6 +8,16 @@ export async function POST(req: NextRequest) {
     message: 'Logged out successfully',
   });
 
+  // Clear cryptographic session cookie
+  res.cookies.set('furora_session', '', {
+    path: '/',
+    expires: new Date(0),
+    maxAge: 0,
+    httpOnly: true,
+    sameSite: 'lax',
+  });
+
+  // Clear client convenience cookies
   res.cookies.set('furora_user_id', '', {
     path: '/',
     expires: new Date(0),

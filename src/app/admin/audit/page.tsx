@@ -6,7 +6,7 @@ import { ShieldAlert, ArrowRight, Clock, User, Filter, CheckCircle2, Sparkles, A
 import { useSession } from '@/context/session-context';
 
 export default function AdminAuditPage() {
-  const { currentUser, switchToRoleName } = useSession();
+  const { currentUser } = useSession();
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionFilter, setActionFilter] = useState('');
@@ -50,16 +50,15 @@ export default function AdminAuditPage() {
         <div>
           <h2 className="text-base font-extrabold text-slate-900">Access Restricted (Admin Only)</h2>
           <p className="text-xs text-slate-500 mt-1">
-            Your current persona is <strong>{currentUser.name}</strong> ({currentUser.role}).
             Immutable audit trail logs and compliance records are restricted to Furora Administrators.
           </p>
         </div>
-        <button
-          onClick={() => switchToRoleName('ADMIN')}
+        <Link
+          href="/login"
           className="inline-flex items-center px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-slate-800 transition shadow-soft"
         >
-          <Sparkles className="w-3.5 h-3.5 mr-1.5" /> Switch to Furora Admin
-        </button>
+          Return to Dashboard
+        </Link>
       </div>
     );
   }

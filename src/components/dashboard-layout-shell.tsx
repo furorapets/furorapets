@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { useSession } from '@/context/session-context';
 import DashboardSidebar from './dashboard-sidebar';
-import PersonaSwitchModal from './persona-switch-modal';
 import ChangePasswordModal from './ChangePasswordModal';
 import { Menu, X } from 'lucide-react';
 
@@ -14,8 +13,7 @@ interface DashboardLayoutShellProps {
 
 export default function DashboardLayoutShell({ children }: DashboardLayoutShellProps) {
   const pathname = usePathname();
-  const { currentUser, availableUsers, switchRole } = useSession();
-  const [isSwitchModalOpen, setIsSwitchModalOpen] = useState(false);
+  const { currentUser } = useSession();
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -87,12 +85,11 @@ export default function DashboardLayoutShell({ children }: DashboardLayoutShellP
         </div>
 
         <div className="flex items-center space-x-2">
-          <button
-            onClick={() => setIsSwitchModalOpen(true)}
-            className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200"
+          <span
+            className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200"
           >
-            {currentUser?.role || 'Switch'}
-          </button>
+            {currentUser?.role || 'AUTHENTICATED'}
+          </span>
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600"
@@ -108,7 +105,6 @@ export default function DashboardLayoutShell({ children }: DashboardLayoutShellP
         <div className="hidden lg:block sticky top-0 h-screen z-30">
           <DashboardSidebar
             currentUser={currentUser}
-            onOpenSwitchModal={() => setIsSwitchModalOpen(true)}
             onOpenChangePasswordModal={() => setIsChangePasswordModalOpen(true)}
           />
         </div>
@@ -123,10 +119,6 @@ export default function DashboardLayoutShell({ children }: DashboardLayoutShellP
             <div className="relative z-10 bg-white w-64 h-full shadow-2xl flex flex-col">
               <DashboardSidebar
                 currentUser={currentUser}
-                onOpenSwitchModal={() => {
-                  setIsMobileMenuOpen(false);
-                  setIsSwitchModalOpen(true);
-                }}
                 onOpenChangePasswordModal={() => {
                   setIsMobileMenuOpen(false);
                   setIsChangePasswordModalOpen(true);
@@ -141,15 +133,6 @@ export default function DashboardLayoutShell({ children }: DashboardLayoutShellP
           {children}
         </main>
       </div>
-
-      {/* Persona Switcher Modal */}
-      <PersonaSwitchModal
-        isOpen={isSwitchModalOpen}
-        onClose={() => setIsSwitchModalOpen(false)}
-        currentUser={currentUser}
-        availableUsers={availableUsers}
-        onSwitch={switchRole}
-      />
 
       {/* Self-Service Change Password Modal with Email OTP */}
       <ChangePasswordModal

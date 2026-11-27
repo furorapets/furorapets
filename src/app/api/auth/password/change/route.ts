@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { verifyOtp } from '@/lib/otp';
+import { hashPassword } from '@/lib/password';
 
 export const dynamic = 'force-dynamic';
 
@@ -69,12 +70,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 4. Update Password in Database
+    // 4. Update Password in Database with cryptographic scrypt hash
+    const hashedPassword = await hashPassword(cleanPassword);
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: {
-        password: cleanPassword,
-        tempPassword: cleanPassword,
+        password: hashedPassword,
+        tempPassword: hashedPassword,
       },
     });
 

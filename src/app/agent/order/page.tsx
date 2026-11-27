@@ -538,7 +538,7 @@ function AgentDocumentUpload({
 }
 
 function AgentOrderWorkflowContent() {
-  const { currentUser, switchToRoleName } = useSession();
+  const { currentUser } = useSession();
   const searchParams = useSearchParams();
   const targetOrderId = searchParams.get('orderId') || '';
 
@@ -1016,17 +1016,17 @@ function AgentOrderWorkflowContent() {
           <ShieldAlert className="w-6 h-6" />
         </div>
         <div>
-          <h2 className="text-base font-extrabold text-slate-900">Delivery/Ops Agent Portal</h2>
+          <h2 className="text-base font-extrabold text-slate-900">Delivery & Ops Agent Portal</h2>
           <p className="text-xs text-slate-500 mt-1">
-            Your current persona is <strong>{currentUser?.name}</strong> ({currentUser?.role}). Delivery agent operations view is strictly scoped to assigned field agents.
+            Access to live companion pickup and field delivery operations is restricted to authorized Delivery Agents and Admins.
           </p>
         </div>
-        <button
-          onClick={() => switchToRoleName('DELIVERY_AGENT')}
+        <Link
+          href="/login"
           className="inline-flex items-center px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-slate-800 transition shadow-soft cursor-pointer"
         >
-          <Sparkles className="w-3.5 h-3.5 mr-1.5" /> Switch to Rahul Agent (Delivery & Ops)
-        </button>
+          Return to Dashboard
+        </Link>
       </div>
     );
   }

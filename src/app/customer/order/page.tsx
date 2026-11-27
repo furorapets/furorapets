@@ -21,7 +21,7 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 function CustomerOrderContent() {
-  const { currentUser, switchToRoleName } = useSession();
+  const { currentUser } = useSession();
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get('q') || '';
 

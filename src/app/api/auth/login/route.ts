@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { checkLoginRateLimit, resetRateLimit } from '@/lib/rate-limiter';
+import { verifyPassword, hashPassword } from '@/lib/password';
+import { createSessionToken } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,335 +27,178 @@ export async function POST(req: NextRequest) {
 
     const cleanInput = identifier.trim();
     const cleanPassword = password.trim();
+
+    // 1. Sliding window rate limit check (max 5 attempts per 5 minutes)
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const rateLimitKey = `${cleanInput}:${ip}`;
+    const rateLimit = checkLoginRateLimit(rateLimitKey);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Too many login attempts. Please wait ${rateLimit.retryAfterSeconds} seconds before trying again.`,
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateLimit.retryAfterSeconds),
+          },
+        }
+      );
+    }
+
     const usernameQuery = cleanInput.startsWith('@') ? cleanInput.slice(1).toLowerCase() : cleanInput.toLowerCase();
     const emailQuery = cleanInput.toLowerCase();
 
-    const isSalesTarget =
-      usernameQuery === 'sales' ||
-      usernameQuery === 'test_sales' ||
-      emailQuery === 'sales@furora.com' ||
-      emailQuery === 'test.sales@furora.com';
-
-    const isVendorTarget =
-      usernameQuery === 'vendor' ||
-      usernameQuery === 'breeder' ||
-      usernameQuery === 'bhuvanesh' ||
-      emailQuery === 'vendor@furora.com' ||
-      emailQuery === 'bhuvaneshkarnan@gmail.com';
-
-    const isAgentTarget =
-      usernameQuery === 'agent' ||
-      usernameQuery === 'delivery' ||
-      usernameQuery === 'ops' ||
-      emailQuery === 'agent@furora.com' ||
-      emailQuery === 'ops@furora.in';
-
-    const isAdminTarget =
-      usernameQuery === 'ganesan' ||
-      usernameQuery === 'admin' ||
-      emailQuery === 'admin@furora.com' ||
-      emailQuery === 'ganesan@furora.com';
-
-    // Find user by username or email with schema-resilient error handling
+    // 2. Resilient user lookup with explicit column projection
     let user: any = null;
+    const authSelect = {
+      id: true,
+      email: true,
+      username: true,
+      password: true,
+      tempPassword: true,
+      name: true,
+      role: true,
+      assignedHub: true,
+      onboardingStatus: true,
+    };
+
     try {
       user = await prisma.user.findFirst({
         where: {
           OR: [
             { username: usernameQuery },
             { email: emailQuery },
-            ...(isAdminTarget ? [{ id: 'usr_admin' }, { role: 'ADMIN' }] : []),
-            ...(isSalesTarget ? [{ id: 'usr_sales_mwsx7ow1' }, { role: 'SALES' }] : []),
-            ...(isVendorTarget ? [{ id: 'usr_partner_mwsunywy' }, { role: 'VENDOR' }] : []),
-            ...(isAgentTarget ? [{ id: 'usr_agent_delivery' }, { role: 'DELIVERY_AGENT' }] : []),
           ],
         },
+        select: authSelect,
       });
     } catch (findErr: any) {
-      console.warn('[Login] findFirst caught schema warning, falling back to core auth columns:', findErr?.message);
+      console.warn('[Login] findFirst query failed, trying raw query fallback:', findErr?.message);
       try {
         const rawUsers: any = await prisma.$queryRawUnsafe(
-          `SELECT id, email, username, password, tempPassword, name, role, phone, address, assignedHub, onboardingStatus FROM "User" WHERE LOWER(username) = ? OR LOWER(email) = ? OR (id = 'usr_admin' AND ? = 1) LIMIT 1`,
+          `SELECT id, email, username, password, tempPassword, name, role, assignedHub, onboardingStatus FROM "User" WHERE LOWER(username) = ? OR LOWER(email) = ? LIMIT 1`,
           usernameQuery,
-          emailQuery,
-          isAdminTarget ? 1 : 0
+          emailQuery
         );
         if (Array.isArray(rawUsers) && rawUsers.length > 0) {
           user = rawUsers[0];
         }
       } catch (rawErr) {
-        console.error('[Login] Fallback raw query also failed:', rawErr);
-        throw findErr;
+        console.error('[Login] Raw query fallback failed:', rawErr);
       }
     }
 
-    // Fallbacks and self-healing for required roles
-    if (!user && isAdminTarget) {
-      user = await prisma.user.findFirst({ where: { role: 'ADMIN' } });
-      if (!user) {
-        user = await prisma.user.upsert({
-          where: { id: 'usr_admin' },
-          create: {
+    // 3. Auto-seed core roles if initial empty database
+    if (!user) {
+      if (usernameQuery === 'ganesan' || emailQuery === 'admin@furora.com') {
+        const adminHash = await hashPassword('ganesan1234..');
+        user = await prisma.user.create({
+          data: {
             id: 'usr_admin',
             email: 'admin@furora.com',
             username: 'ganesan',
-            password: 'ganesan1234..',
-            tempPassword: 'ganesan1234..',
+            password: adminHash,
+            tempPassword: adminHash,
             name: 'Ganesan (Admin)',
             role: 'ADMIN',
           },
-          update: {
-            username: 'ganesan',
-            password: 'ganesan1234..',
-            tempPassword: 'ganesan1234..',
-            name: 'Ganesan (Admin)',
-          },
+          select: authSelect,
         });
-      }
-    }
-
-    if (!user && isSalesTarget) {
-      user = await prisma.user.findFirst({ where: { role: 'SALES' } });
-      if (!user) {
+      } else if (usernameQuery === 'sales' || emailQuery === 'sales@furora.com') {
+        const salesHash = await hashPassword('sales1234..');
         user = await prisma.user.create({
           data: {
             id: 'usr_sales_mwsx7ow1',
             email: 'sales@furora.com',
             username: 'sales',
-            password: 'sales1234..',
-            tempPassword: 'sales1234..',
+            password: salesHash,
+            tempPassword: salesHash,
             name: 'Furora Sales Team',
             role: 'SALES',
           },
+          select: authSelect,
         });
-      }
-    }
-
-    if (!user && isVendorTarget) {
-      user = await prisma.user.findFirst({ where: { role: 'VENDOR' } });
-      if (!user) {
+      } else if (usernameQuery === 'vendor' || emailQuery === 'vendor@furora.com') {
+        const vendorHash = await hashPassword('vendor1234..');
         user = await prisma.user.create({
           data: {
             id: 'usr_partner_mwsunywy',
             email: 'vendor@furora.com',
             username: 'vendor',
-            password: 'vendor1234..',
-            tempPassword: 'vendor1234..',
+            password: vendorHash,
+            tempPassword: vendorHash,
             name: 'Bhuvanesh (Vendor Partner)',
             role: 'VENDOR',
-            assignedCategories: '["cat_dogs","cat_cats","cat_fish","cat_birds","cat_small_animals","cat_reptiles"]',
             onboardingStatus: 'APPROVED',
           },
+          select: authSelect,
         });
-      }
-    }
-
-    if (!user && isAgentTarget) {
-      user = await prisma.user.findFirst({ where: { role: 'DELIVERY_AGENT' } });
-      if (!user) {
+      } else if (usernameQuery === 'agent' || emailQuery === 'agent@furora.com') {
+        const agentHash = await hashPassword('agent1234..');
         user = await prisma.user.create({
           data: {
             id: 'usr_agent_delivery',
             email: 'agent@furora.com',
             username: 'agent',
-            password: 'agent1234..',
-            tempPassword: 'agent1234..',
+            password: agentHash,
+            tempPassword: agentHash,
             name: 'Furora Delivery Agent',
             role: 'DELIVERY_AGENT',
             assignedHub: 'Bangalore Field Logistics Hub',
           },
+          select: authSelect,
         });
       }
     }
 
     if (!user) {
       return NextResponse.json(
-        { success: false, error: 'No account found with this username or email.' },
-        { status: 404 }
-      );
-    }
-
-    // Role-specific accounts & tolerant password verification
-    const isAdminAccount =
-      user.role === 'ADMIN' ||
-      user.id === 'usr_admin' ||
-      isAdminTarget;
-
-    const isSalesAccount =
-      user.role === 'SALES' ||
-      isSalesTarget;
-
-    const isVendorAccount =
-      user.role === 'VENDOR' ||
-      isVendorTarget;
-
-    const isAgentAccount =
-      user.role === 'DELIVERY_AGENT' ||
-      isAgentTarget;
-
-    const isGanesanAdminPassword =
-      isAdminAccount &&
-      (cleanPassword === 'ganesan1234..' ||
-        cleanPassword === 'ganesan1234.' ||
-        cleanPassword === 'ganesan1234' ||
-        password === 'ganesan1234..');
-
-    const isSalesPassword =
-      isSalesAccount &&
-      (cleanPassword === 'sales1234..' ||
-        cleanPassword === 'sales1234.' ||
-        cleanPassword === 'sales1234' ||
-        password === 'sales1234..');
-
-    const isVendorPassword =
-      isVendorAccount &&
-      (cleanPassword === 'vendor1234..' ||
-        cleanPassword === 'vendor1234.' ||
-        cleanPassword === 'vendor1234' ||
-        password === 'vendor1234..');
-
-    const isAgentPassword =
-      isAgentAccount &&
-      (cleanPassword === 'agent1234..' ||
-        cleanPassword === 'agent1234.' ||
-        cleanPassword === 'agent1234' ||
-        password === 'agent1234..');
-
-    // Password verification logic
-    const validPassword =
-      isGanesanAdminPassword ||
-      isSalesPassword ||
-      isVendorPassword ||
-      isAgentPassword ||
-      user.password === password ||
-      user.password === cleanPassword ||
-      user.tempPassword === password ||
-      user.tempPassword === cleanPassword ||
-      (!user.password && cleanPassword === 'Furora@2026') ||
-      (cleanPassword === 'Furora@2026');
-
-    if (!validPassword) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid password. Please contact your Furora Admin if you need a password reset.' },
+        { success: false, error: 'Invalid username, email, or password.' },
         { status: 401 }
       );
     }
 
-    // Seed initial demo credentials if not already set, without overwriting custom user passwords
-    try {
-      const hasCustomPassword = Boolean(user.password && user.password !== 'Furora@2026');
-      const isLoggingInWithDemoPass =
-        isGanesanAdminPassword || isSalesPassword || isVendorPassword || isAgentPassword;
+    // 4. Cryptographic Password Verification
+    const passwordToCheck = user.password || user.tempPassword;
+    const { valid, needsUpgrade } = await verifyPassword(cleanPassword, passwordToCheck);
 
-      if (!hasCustomPassword || (isLoggingInWithDemoPass && (!user.password || !user.tempPassword))) {
-        if (isAdminAccount && !user.password) {
-          await prisma.user.update({
-            where: { id: user.id },
-            data: {
-              username: user.username || 'ganesan',
-              password: 'ganesan1234..',
-              tempPassword: 'ganesan1234..',
-              name: user.name || 'Ganesan (Admin)',
-            },
-          });
-        } else if (isSalesAccount && !user.password) {
-          await prisma.user.update({
-            where: { id: user.id },
-            data: {
-              username: user.username || 'sales',
-              password: 'sales1234..',
-              tempPassword: 'sales1234..',
-              name: user.name || 'Furora Sales Team',
-            },
-          });
-        } else if (isVendorAccount && !user.password) {
-          await prisma.user.update({
-            where: { id: user.id },
-            data: {
-              username: user.username || 'vendor',
-              password: 'vendor1234..',
-              tempPassword: 'vendor1234..',
-              assignedCategories: '["cat_dogs","cat_cats","cat_fish","cat_birds","cat_small_animals","cat_reptiles"]',
-              onboardingStatus: 'APPROVED',
-            },
-          });
-        } else if (isAgentAccount && !user.password) {
-          await prisma.user.update({
-            where: { id: user.id },
-            data: {
-              username: user.username || 'agent',
-              password: 'agent1234..',
-              tempPassword: 'agent1234..',
-              name: user.name || 'Furora Delivery Agent',
-              assignedHub: 'Bangalore Field Logistics Hub',
-            },
-          });
-        }
-      }
-    } catch (syncErr) {
-      console.error('Auto-sync credentials error:', syncErr);
+    if (!valid) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid username, email, or password.' },
+        { status: 401 }
+      );
     }
 
-    // If delivery agent logs in, ensure an active test consignment order is available for end-to-end testing
-    if (isAgentAccount) {
+    // 5. Zero-downtime password upgrade: migrate plaintext password to scrypt hash
+    if (needsUpgrade) {
       try {
-        const activeOrder = await prisma.order.findFirst({
-          where: {
-            agentId: user.id,
-            status: { notIn: ['DELIVERY_COMPLETED', 'CANCELLED_REFUNDED'] },
+        const newHash = await hashPassword(cleanPassword);
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            password: newHash,
+            tempPassword: newHash,
           },
         });
-
-        if (!activeOrder) {
-          // Check if there is an unassigned order or create one
-          const unassignedOrder = await prisma.order.findFirst({
-            where: {
-              status: { in: ['ORDER_RECEIVED', 'VENDOR_ASSIGNED', 'AGENT_ASSIGNED', 'PICKUP_PENDING'] },
-            },
-          });
-
-          if (unassignedOrder) {
-            await prisma.order.update({
-              where: { id: unassignedOrder.id },
-              data: {
-                agentId: user.id,
-                status: 'AGENT_ASSIGNED',
-              },
-            });
-          } else {
-            // Find a pet to link
-            const firstPet = await prisma.pet.findFirst();
-            await prisma.order.create({
-              data: {
-                orderId: 'FUR-ORD-000001',
-                customerId: user.id,
-                customerName: 'Rahul Verma (Customer)',
-                customerContact: '+91 98765 43210',
-                deliveryAddress: 'Plot 42, Green Glen Layout, Bellandur, Bangalore 560103',
-                categoryId: firstPet?.categoryId || 'cat_cats',
-                breedId: firstPet?.breedId || 'brd_bengal',
-                productOrPackage: 'Complete Verified Companion Delivery Package',
-                paymentStatus: 'PAID',
-                orderSource: 'WEBSITE',
-                status: 'AGENT_ASSIGNED',
-                vendorId: firstPet?.vendorId || 'usr_partner_mwsunywy',
-                agentId: user.id,
-                petId: firstPet?.id,
-              },
-            });
-          }
-        }
-      } catch (orderInitErr) {
-        console.error('Active order setup error for agent:', orderInitErr);
+      } catch (upgradeErr) {
+        console.error('[Login] Failed to upgrade legacy password hash:', upgradeErr);
       }
     }
 
-    // Determine target redirect based on user role
+    // 6. Reset rate limit counter on successful authentication
+    resetRateLimit(rateLimitKey);
+
+    // 7. Role-based redirect target
     let redirectTo = '/admin';
     if (user.role === 'SALES') redirectTo = '/sales';
     else if (user.role === 'DELIVERY_AGENT') redirectTo = '/agent';
     else if (user.role === 'VENDOR') redirectTo = '/vendor';
     else if (user.role === 'CUSTOMER') redirectTo = '/customer/order';
+
+    // 8. Cryptographic Session Token (HMAC SHA-256)
+    const sessionToken = createSessionToken({ id: user.id, role: user.role });
 
     const res = NextResponse.json({
       success: true,
@@ -368,26 +214,39 @@ export async function POST(req: NextRequest) {
       redirectTo,
     });
 
-    // Set authenticated user cookies
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    // Signed httpOnly session cookie
+    res.cookies.set('furora_session', sessionToken, {
+      path: '/',
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: isProduction,
+      maxAge: 7 * 24 * 60 * 60, // 7 days
+    });
+
+    // Client-side session info cookies
     res.cookies.set('furora_user_id', user.id, {
       path: '/',
       httpOnly: false,
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 30, // 30 days
+      secure: isProduction,
+      maxAge: 7 * 24 * 60 * 60,
     });
 
     res.cookies.set('furora_user_role', user.role, {
       path: '/',
       httpOnly: false,
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 30, // 30 days
+      secure: isProduction,
+      maxAge: 7 * 24 * 60 * 60,
     });
 
     return res;
   } catch (error: any) {
     console.error('Login API error:', error);
     return NextResponse.json(
-      { success: false, error: error.message || 'Internal server error during authentication' },
+      { success: false, error: 'An unexpected error occurred during login. Please try again.' },
       { status: 500 }
     );
   }

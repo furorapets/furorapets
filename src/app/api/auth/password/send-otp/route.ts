@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { generateOtp, sendPasswordChangeOtpEmail } from '@/lib/otp';
+import { checkOtpRateLimit } from '@/lib/rate-limiter';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,6 +35,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { success: false, error: 'Could not resolve an active account with this email address.' },
         { status: 404 }
+      );
+    }
+
+    // Rate limiting: max 3 OTP requests per 10 minutes per target
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const rateLimitKey = `${targetEmail}:${ip}`;
+    const rateLimit = checkOtpRateLimit(rateLimitKey);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Too many OTP requests. Please wait ${rateLimit.retryAfterSeconds} seconds before requesting a new code.`,
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateLimit.retryAfterSeconds),
+          },
+        }
       );
     }
 

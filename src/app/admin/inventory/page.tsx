@@ -70,7 +70,7 @@ const VALID_PET_TRANSITIONS: Record<string, string[]> = {
 };
 
 export default function AdminInventoryPage() {
-  const { currentUser, switchToRoleName } = useSession();
+  const { currentUser } = useSession();
   const [pets, setPets] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -620,16 +620,15 @@ export default function AdminInventoryPage() {
         <div>
           <h2 className="text-base font-extrabold text-slate-900">Access Restricted (Admin Only)</h2>
           <p className="text-xs text-slate-500 mt-1">
-            Your current persona is <strong>{currentUser.name}</strong> ({currentUser.role}).
             Managing root pet inventory and state machines requires Admin privileges.
           </p>
         </div>
-        <button
-          onClick={() => switchToRoleName('ADMIN')}
+        <Link
+          href="/login"
           className="inline-flex items-center px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-slate-800 transition shadow-soft"
         >
-          <Sparkles className="w-3.5 h-3.5 mr-1.5" /> Switch to Furora Admin
-        </button>
+          Return to Dashboard
+        </Link>
       </div>
     );
   }

@@ -41,7 +41,7 @@ function VendorsContent() {
   const searchParams = useSearchParams();
   const queryParam = searchParams.get('q') || '';
 
-  const { currentUser, switchToRoleName } = useSession();
+  const { currentUser } = useSession();
   const [vendors, setVendors] = useState<any[]>([]);
   const [allCategories, setAllCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
