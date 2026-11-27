@@ -72,4 +72,7 @@ export interface SessionUser {
   onboardingNotes?: string | null;
   kennelRegNumber?: string | null;
   assignedCategories?: string | null;
+  mapUrl?: string | null;
+  secondaryAddress?: string | null;
+  secondaryMapUrl?: string | null;
 }

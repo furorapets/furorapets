@@ -22,6 +22,7 @@ import {
   Clock,
   Layers,
   ArrowRight,
+  ArrowLeft,
   QrCode,
   Upload,
   FileText,
@@ -547,76 +548,59 @@ function AgentOrderWorkflowContent() {
   const [submitting, setSubmitting] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
-  // 10-point checklist state
+  // 10-point checklist state - All UNCHECKED (false) by default per operational mandate
   const [checklist, setChecklist] = useState<Record<number, boolean>>({
-    0: true,
-    1: true,
-    2: true,
-    3: true,
-    4: true,
-    5: true,
-    6: true,
-    7: true,
-    8: true,
-    9: true,
+    0: false,
+    1: false,
+    2: false,
+    3: false,
+    4: false,
+    5: false,
+    6: false,
+    7: false,
+    8: false,
+    9: false,
   });
+
+  // Bidirectional stage tab selection (null = auto follows live trip max stage)
+  const [activeStageTab, setActiveStageTab] = useState<number | null>(null);
+  // Track locally accepted orders en route to breeder facility
+  const [localEnRouteOrders, setLocalEnRouteOrders] = useState<Record<string, boolean>>({});
 
   // Stage 1: Acceptance Notes
   const [acceptanceNotes, setAcceptanceNotes] = useState('Agent accepted delivery assignment. Transit vehicle sanitized and en route to partner breeder kennel.');
 
-  // Stage 2: Vendor Pickup & Document Collection Form State
+  // Stage 2: Vendor Pickup & Document Collection Form State - CLEAN BY DEFAULT (NO RANDOM MOCKS)
   const [microchipNumber, setMicrochipNumber] = useState('');
-  const [microchipVerified, setMicrochipVerified] = useState(true);
-  const [physicalCondition, setPhysicalCondition] = useState(
-    'Clear eyes, active posture, healthy coat, unlabored breathing. 10/10 physical points passed.'
-  );
-  const [pickupNotes, setPickupNotes] = useState(
-    'Vendor pickup completed smoothly at kennel facility. Pet and all compliance documents verified against digital identity.'
-  );
-  const [pickupPhotoUrl, setPickupPhotoUrl] = useState(
-    'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=800&q=80'
-  );
-  const [vaccinationCardUrl, setVaccinationCardUrl] = useState(
-    'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=800&q=80'
-  );
-  const [vaccinationCardName, setVaccinationCardName] = useState('Kennel-Vaccination-Record.pdf');
-  const [dewormingRecordUrl, setDewormingRecordUrl] = useState(
-    'https://images.unsplash.com/photo-1576765608535-5f04d1e3f289?auto=format&fit=crop&w=800&q=80'
-  );
-  const [dewormingRecordName, setDewormingRecordName] = useState('Deworming-Proof-Record.pdf');
-  const [pedigreeDocUrl, setPedigreeDocUrl] = useState(
-    'https://images.unsplash.com/photo-1586281380349-632531db7ed4?auto=format&fit=crop&w=800&q=80'
-  );
-  const [pedigreeDocName, setPedigreeDocName] = useState('KCI-Pedigree-Certificate.pdf');
+  const [microchipVerified, setMicrochipVerified] = useState(false);
+  const [physicalCondition, setPhysicalCondition] = useState('');
+  const [pickupNotes, setPickupNotes] = useState('');
+  const [pickupPhotoUrl, setPickupPhotoUrl] = useState('');
+  const [vaccinationCardUrl, setVaccinationCardUrl] = useState('');
+  const [vaccinationCardName, setVaccinationCardName] = useState('');
+  const [dewormingRecordUrl, setDewormingRecordUrl] = useState('');
+  const [dewormingRecordName, setDewormingRecordName] = useState('');
+  const [pedigreeDocUrl, setPedigreeDocUrl] = useState('');
+  const [pedigreeDocName, setPedigreeDocName] = useState('');
   const [pickupFailureReason, setPickupFailureReason] = useState('');
 
-  // Stage 3: Medical Center Form State
+  // Stage 3: Medical Center Form State - CLEAN BY DEFAULT
   const [vetClinicName, setVetClinicName] = useState('Crown Vet Specialty Animal Hospital & Diagnostics');
   const [vetDoctorName, setVetDoctorName] = useState('Dr. Aditi Mukherjee, BVSc & AH (Reg #VCI-2018-9941)');
   const [parvoTestResult, setParvoTestResult] = useState<'NEGATIVE' | 'POSITIVE'>('NEGATIVE');
   const [distemperTestResult, setDistemperTestResult] = useState<'NEGATIVE' | 'POSITIVE'>('NEGATIVE');
   const [coronaTestResult, setCoronaTestResult] = useState<'NEGATIVE' | 'POSITIVE'>('NEGATIVE');
-  const [medicalCertUrl, setMedicalCertUrl] = useState(
-    'https://images.unsplash.com/photo-1576765608535-5f04d1e3f289?auto=format&fit=crop&w=800&q=80'
-  );
-  const [medicalCertName, setMedicalCertName] = useState('Veterinary-Fitness-Certificate.pdf');
-  const [antigenPhotoUrl, setAntigenPhotoUrl] = useState(
-    'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=800&q=80'
-  );
-  const [medicalNotes, setMedicalNotes] = useState(
-    'Full clinical screening completed. Temperature normal (101.4°F), heart and lungs clear. Rapid antigen screening negative for CPV, CDV, and CCV. Certified Fit-for-Travel.'
-  );
+  const [medicalCertUrl, setMedicalCertUrl] = useState('');
+  const [medicalCertName, setMedicalCertName] = useState('');
+  const [antigenPhotoUrl, setAntigenPhotoUrl] = useState('');
+  const [medicalNotes, setMedicalNotes] = useState('');
 
-  // Stage 4: Customer Delivery Handover Form State
-  const [deliveryCustId, setDeliveryCustId] = useState('GOV-ID-AADHAAR-88992211');
-  const [deliveryOtp, setDeliveryOtp] = useState('849201');
-  const [deliveryPhoto, setDeliveryPhoto] = useState(
-    'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=800&q=80'
-  );
-  const [deliverySignature, setDeliverySignature] = useState('SIGN-HASH-VERIFIED-HANDOVER-OK');
-  const [deliveryAck, setDeliveryAck] = useState(
-    'Customer confirms receipt of companion animal in active, healthy condition with verified microchip, physical provenance dossier, and official veterinary fitness certificate.'
-  );
+  // Stage 4: Customer Delivery Handover Form State - CLEAN BY DEFAULT
+  const [deliveryCustId, setDeliveryCustId] = useState('');
+  const [deliveryOtp, setDeliveryOtp] = useState('');
+  const [deliveryPhoto, setDeliveryPhoto] = useState('');
+  const [deliverySignature, setDeliverySignature] = useState('');
+  const [deliveryAck, setDeliveryAck] = useState('');
 
   // Load agent orders
   const loadData = async () => {
@@ -661,20 +645,106 @@ function AgentOrderWorkflowContent() {
   };
 
   const syncOrderState = (order: any) => {
+    setActiveStageTab(null);
     if (order?.pet?.microchipNumber) {
       setMicrochipNumber(order.pet.microchipNumber);
+      setMicrochipVerified(true);
+    } else {
+      setMicrochipNumber('');
+      setMicrochipVerified(false);
     }
-    if (order?.petPhotoAtPickup) {
-      setPickupPhotoUrl(order.petPhotoAtPickup);
+
+    setPickupPhotoUrl(order?.petPhotoAtPickup || '');
+    setVetClinicName(order?.vetClinicName || 'Crown Vet Specialty Animal Hospital & Diagnostics');
+    setVetDoctorName(order?.vetDoctorName || 'Dr. Aditi Mukherjee, BVSc & AH (Reg #VCI-2018-9941)');
+    setMedicalCertUrl(order?.medicalCertUrl || '');
+
+    // Check documents if present on order
+    if (Array.isArray(order?.documents)) {
+      const vax = order.documents.find((d: any) => d.type === 'KENNEL_VACCINATION_CARD');
+      if (vax) {
+        setVaccinationCardUrl(vax.fileUrl);
+        setVaccinationCardName(vax.fileName);
+      } else {
+        setVaccinationCardUrl('');
+        setVaccinationCardName('');
+      }
+
+      const dew = order.documents.find((d: any) => d.type === 'KENNEL_DEWORMING_RECORD');
+      if (dew) {
+        setDewormingRecordUrl(dew.fileUrl);
+        setDewormingRecordName(dew.fileName);
+      } else {
+        setDewormingRecordUrl('');
+        setDewormingRecordName('');
+      }
+
+      const ped = order.documents.find((d: any) => d.type === 'KENNEL_PEDIGREE_CERTIFICATE');
+      if (ped) {
+        setPedigreeDocUrl(ped.fileUrl);
+        setPedigreeDocName(ped.fileName);
+      } else {
+        setPedigreeDocUrl('');
+        setPedigreeDocName('');
+      }
+
+      const med = order.documents.find((d: any) => d.type === 'VET_MEDICAL_CERTIFICATE');
+      if (med) {
+        setMedicalCertUrl(med.fileUrl);
+        setMedicalCertName(med.fileName);
+      }
+
+      const ant = order.documents.find((d: any) => d.type === 'VET_VIRAL_TEST_REPORT');
+      if (ant) {
+        setAntigenPhotoUrl(ant.fileUrl);
+      } else {
+        setAntigenPhotoUrl('');
+      }
+    } else {
+      setVaccinationCardUrl('');
+      setVaccinationCardName('');
+      setDewormingRecordUrl('');
+      setDewormingRecordName('');
+      setPedigreeDocUrl('');
+      setPedigreeDocName('');
+      setAntigenPhotoUrl('');
     }
-    if (order?.vetClinicName) {
-      setVetClinicName(order.vetClinicName);
+
+    if (Array.isArray(order?.inspections) && order.inspections.length > 0) {
+      const latestInsp = order.inspections[order.inspections.length - 1];
+      if (latestInsp.physicalCondition) setPhysicalCondition(latestInsp.physicalCondition);
+      if (latestInsp.notes) setPickupNotes(latestInsp.notes);
+      if (latestInsp.failureReason) setPickupFailureReason(latestInsp.failureReason);
+      if (Array.isArray(latestInsp.photos) && latestInsp.photos.length > 0 && !order?.petPhotoAtPickup) {
+        setPickupPhotoUrl(latestInsp.photos[0]);
+      }
+      // Populate checklist if saved
+      const allChecked: Record<number, boolean> = {};
+      INSPECTION_POINTS.forEach((_, idx) => {
+        allChecked[idx] = true;
+      });
+      setChecklist(allChecked);
+    } else {
+      setPhysicalCondition('');
+      setPickupNotes('');
+      setPickupFailureReason('');
+      const allUnchecked: Record<number, boolean> = {};
+      INSPECTION_POINTS.forEach((_, idx) => {
+        allUnchecked[idx] = false;
+      });
+      setChecklist(allUnchecked);
     }
-    if (order?.vetDoctorName) {
-      setVetDoctorName(order.vetDoctorName);
-    }
-    if (order?.medicalCertUrl) {
-      setMedicalCertUrl(order.medicalCertUrl);
+
+    if (order?.deliveryRecord) {
+      setDeliveryPhoto(order.deliveryRecord.photo || '');
+      setDeliveryCustId(order.deliveryRecord.customerIdCaptured || '');
+      setDeliverySignature(order.deliveryRecord.signedDeliveryReport || '');
+      setDeliveryAck(order.deliveryRecord.customerAcknowledgement || '');
+    } else {
+      setDeliveryPhoto('');
+      setDeliveryCustId('');
+      setDeliverySignature('');
+      setDeliveryAck('');
     }
   };
 
@@ -695,7 +765,7 @@ function AgentOrderWorkflowContent() {
     setChecklist((prev) => ({ ...prev, [idx]: !prev[idx] }));
   };
 
-  // Stage 1 Action: Accept Delivery Assignment
+  // Stage 1 Action A: Accept Delivery Assignment (Keeps order in Stage 1 en route)
   const handleAcceptAssignment = async () => {
     if (!selectedOrder) return;
     setSubmitting(true);
@@ -704,15 +774,61 @@ function AgentOrderWorkflowContent() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          status: 'PICKUP_INSPECTION',
+          status: 'PICKUP_ASSIGNED',
+          estimatedDeliveryTime: 'EN_ROUTE_TO_BREEDER',
         }),
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to accept order assignment');
 
-      setSelectedOrder((prev: any) => prev ? { ...prev, status: 'PICKUP_INSPECTION' } : prev);
-      alert('Assignment accepted! You are now en route to the breeder facility for document & pet collection.');
+      setLocalEnRouteOrders((prev) => ({ ...prev, [selectedOrder.id]: true }));
+      setSelectedOrder((prev: any) =>
+        prev
+          ? {
+              ...prev,
+              status: 'PICKUP_ASSIGNED',
+              estimatedDeliveryTime: 'EN_ROUTE_TO_BREEDER',
+            }
+          : prev
+      );
+      alert('Assignment accepted! You are now en route to the breeder kennel facility. Stage 1 remains active until you arrive physically at the kennel.');
+      await loadData();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Stage 1 Action B: Mark Arrived at Breeder Kennel (Advances trip to Stage 2)
+  const handleArriveAtKennel = async () => {
+    if (!selectedOrder) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/orders/${selectedOrder.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'PICKUP_INSPECTION',
+          estimatedDeliveryTime: 'ARRIVED_AT_KENNEL',
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to record arrival at breeder kennel');
+
+      setSelectedOrder((prev: any) =>
+        prev
+          ? {
+              ...prev,
+              status: 'PICKUP_INSPECTION',
+              estimatedDeliveryTime: 'ARRIVED_AT_KENNEL',
+            }
+          : prev
+      );
+      setActiveStageTab(2);
+      alert('Arrival confirmed! You have physically reached the breeder kennel. Stage 2 Inspection & Document Collection is now open.');
       await loadData();
     } catch (err: any) {
       alert(err.message);
@@ -915,8 +1031,8 @@ function AgentOrderWorkflowContent() {
     );
   }
 
-  // Determine current active operational stage (1 through 4)
-  const currentStage = !selectedOrder
+  // Determine highest reached operational stage in trip lifecycle (1 through 5)
+  const tripMaxStage = !selectedOrder
     ? 0
     : ['PICKUP_ASSIGNED', 'AGENT_ASSIGNED', 'PET_ASSIGNED'].includes(selectedOrder.status)
     ? 1
@@ -929,6 +1045,14 @@ function AgentOrderWorkflowContent() {
     : selectedOrder.status === 'DELIVERY_COMPLETED'
     ? 5
     : 1;
+
+  // Active viewing stage (defaults to live trip stage; allows navigation back to completed stages)
+  const currentStage = activeStageTab ?? Math.min(tripMaxStage, 4);
+
+  const isEnRouteToBreeder =
+    (selectedOrder?.status === 'PICKUP_ASSIGNED' &&
+      selectedOrder?.estimatedDeliveryTime === 'EN_ROUTE_TO_BREEDER') ||
+    Boolean(selectedOrder?.id && localEnRouteOrders[selectedOrder.id]);
 
   const publicRecordUrl = selectedOrder
     ? `${typeof window !== 'undefined' ? window.location.origin : ''}/records/${selectedOrder.orderId}`
@@ -971,48 +1095,60 @@ function AgentOrderWorkflowContent() {
         </div>
       </div>
 
-      {/* 4-Stage Operational Timeline Stepper */}
+      {/* 4-Stage Operational Timeline Stepper - CLICKABLE TABS FOR REACHED STAGES */}
       <div className="card-clean p-4 md:p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {/* Step 1: Assignment */}
-          <div
-            className={`p-3 rounded-xl border transition ${
+          <button
+            type="button"
+            disabled={tripMaxStage < 1}
+            onClick={() => setActiveStageTab(1)}
+            className={`p-3 rounded-xl border text-left transition cursor-pointer ${
               currentStage === 1
                 ? 'bg-amber-50/70 border-amber-300 ring-2 ring-amber-400/20'
-                : currentStage > 1
-                ? 'bg-emerald-50/60 border-emerald-200 text-emerald-950'
+                : tripMaxStage > 1
+                ? 'bg-emerald-50/60 border-emerald-200 text-emerald-950 hover:bg-emerald-100/60'
                 : 'bg-slate-50 border-slate-200 text-slate-400'
             }`}
           >
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold uppercase tracking-wider">Stage 1</span>
-              {currentStage > 1 ? (
+              {tripMaxStage > 1 ? (
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              ) : currentStage === 1 ? (
+              ) : tripMaxStage === 1 ? (
                 <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
               ) : (
                 <Clock className="w-3.5 h-3.5 text-slate-300" />
               )}
             </div>
             <div className="mt-1 font-extrabold text-xs text-slate-900">Accept Order</div>
-            <p className="text-[10px] text-slate-500 mt-0.5">Dispatched to route</p>
-          </div>
+            <p className="text-[10px] text-slate-500 mt-0.5">
+              {isEnRouteToBreeder ? 'En route to kennel' : 'Dispatched to route'}
+            </p>
+          </button>
 
           {/* Step 2: Vendor Area */}
-          <div
-            className={`p-3 rounded-xl border transition ${
+          <button
+            type="button"
+            disabled={tripMaxStage < 2}
+            onClick={() => setActiveStageTab(2)}
+            className={`p-3 rounded-xl border text-left transition ${
+              tripMaxStage >= 2
+                ? 'cursor-pointer hover:border-purple-300'
+                : 'cursor-not-allowed opacity-60'
+            } ${
               currentStage === 2
                 ? 'bg-purple-50/70 border-purple-300 ring-2 ring-purple-400/20'
-                : currentStage > 2
-                ? 'bg-emerald-50/60 border-emerald-200 text-emerald-950'
+                : tripMaxStage > 2
+                ? 'bg-emerald-50/60 border-emerald-200 text-emerald-950 hover:bg-emerald-100/60'
                 : 'bg-slate-50 border-slate-200 text-slate-400'
             }`}
           >
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold uppercase tracking-wider">Stage 2</span>
-              {currentStage > 2 ? (
+              {tripMaxStage > 2 ? (
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              ) : currentStage === 2 ? (
+              ) : tripMaxStage === 2 ? (
                 <span className="w-2 h-2 rounded-full bg-purple-500 animate-ping" />
               ) : (
                 <Store className="w-3.5 h-3.5 text-slate-300" />
@@ -1020,23 +1156,30 @@ function AgentOrderWorkflowContent() {
             </div>
             <div className="mt-1 font-extrabold text-xs text-slate-900">Kennel Pickup & Docs</div>
             <p className="text-[10px] text-slate-500 mt-0.5">Chip check & compliance</p>
-          </div>
+          </button>
 
           {/* Step 3: Medical Center */}
-          <div
-            className={`p-3 rounded-xl border transition ${
+          <button
+            type="button"
+            disabled={tripMaxStage < 3}
+            onClick={() => setActiveStageTab(3)}
+            className={`p-3 rounded-xl border text-left transition ${
+              tripMaxStage >= 3
+                ? 'cursor-pointer hover:border-indigo-300'
+                : 'cursor-not-allowed opacity-60'
+            } ${
               currentStage === 3
                 ? 'bg-indigo-50/70 border-indigo-300 ring-2 ring-indigo-400/20'
-                : currentStage > 3
-                ? 'bg-emerald-50/60 border-emerald-200 text-emerald-950'
+                : tripMaxStage > 3
+                ? 'bg-emerald-50/60 border-emerald-200 text-emerald-950 hover:bg-emerald-100/60'
                 : 'bg-slate-50 border-slate-200 text-slate-400'
             }`}
           >
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold uppercase tracking-wider">Stage 3</span>
-              {currentStage > 3 ? (
+              {tripMaxStage > 3 ? (
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              ) : currentStage === 3 ? (
+              ) : tripMaxStage === 3 ? (
                 <span className="w-2 h-2 rounded-full bg-indigo-500 animate-ping" />
               ) : (
                 <Stethoscope className="w-3.5 h-3.5 text-slate-300" />
@@ -1044,23 +1187,30 @@ function AgentOrderWorkflowContent() {
             </div>
             <div className="mt-1 font-extrabold text-xs text-slate-900">Vet Medical Center</div>
             <p className="text-[10px] text-slate-500 mt-0.5">Antigen viral screening</p>
-          </div>
+          </button>
 
           {/* Step 4: Customer Area */}
-          <div
-            className={`p-3 rounded-xl border transition ${
+          <button
+            type="button"
+            disabled={tripMaxStage < 4}
+            onClick={() => setActiveStageTab(4)}
+            className={`p-3 rounded-xl border text-left transition ${
+              tripMaxStage >= 4
+                ? 'cursor-pointer hover:border-blue-300'
+                : 'cursor-not-allowed opacity-60'
+            } ${
               currentStage === 4
                 ? 'bg-blue-50/70 border-blue-300 ring-2 ring-blue-400/20'
-                : currentStage === 5
-                ? 'bg-emerald-50/60 border-emerald-200 text-emerald-950'
+                : tripMaxStage === 5
+                ? 'bg-emerald-50/60 border-emerald-200 text-emerald-950 hover:bg-emerald-100/60'
                 : 'bg-slate-50 border-slate-200 text-slate-400'
             }`}
           >
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold uppercase tracking-wider">Stage 4</span>
-              {currentStage === 5 ? (
+              {tripMaxStage === 5 ? (
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              ) : currentStage === 4 ? (
+              ) : tripMaxStage === 4 ? (
                 <span className="w-2 h-2 rounded-full bg-blue-500 animate-ping" />
               ) : (
                 <QrCode className="w-3.5 h-3.5 text-slate-300" />
@@ -1068,7 +1218,7 @@ function AgentOrderWorkflowContent() {
             </div>
             <div className="mt-1 font-extrabold text-xs text-slate-900">Customer Doorstep</div>
             <p className="text-[10px] text-slate-500 mt-0.5">QR scan & OTP handover</p>
-          </div>
+          </button>
         </div>
       </div>
 
@@ -1195,14 +1345,46 @@ function AgentOrderWorkflowContent() {
                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center">
                   <Store className="w-3.5 h-3.5 text-amber-600 mr-1" /> 1. Breeder Kennel Pickup
                 </span>
-                <div className="bg-slate-50/50 p-3 rounded-xl border border-slate-100 text-xs space-y-1">
+                <div className="bg-slate-50/50 p-3 rounded-xl border border-slate-100 text-xs space-y-1.5">
                   <div className="font-bold text-slate-900">
                     {selectedOrder.vendor?.name || 'Authorized Breeder Kennel'}
                   </div>
                   <div className="text-slate-500 text-[11px]">
                     {selectedOrder.vendor?.address || 'Plot 45, Green Meadows, Pune'}
                   </div>
-                  <div className="text-slate-400 text-[11px]">
+                  {(selectedOrder.vendor?.mapUrl || selectedOrder.vendor?.address) && (
+                    <a
+                      href={selectedOrder.vendor?.mapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedOrder.vendor?.address || '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 text-[11px] font-bold border border-emerald-200 hover:bg-emerald-100 transition shadow-2xs"
+                    >
+                      <MapPin className="w-3 h-3 text-emerald-600" />
+                      <span>Open in Google Maps 📍</span>
+                      <ExternalLink className="w-2.5 h-2.5 text-emerald-500" />
+                    </a>
+                  )}
+                  {selectedOrder.vendor?.secondaryAddress && (
+                    <div className="mt-2 pt-2 border-t border-slate-200/60 text-[11px]">
+                      <span className="font-semibold text-slate-600 block text-[10px] uppercase">
+                        Alternative Facility Location:
+                      </span>
+                      <div className="text-slate-500">{selectedOrder.vendor.secondaryAddress}</div>
+                      {selectedOrder.vendor?.secondaryMapUrl && (
+                        <a
+                          href={selectedOrder.vendor.secondaryMapUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-sky-50 text-sky-800 border border-sky-200 hover:bg-sky-100"
+                        >
+                          <MapPin className="w-2.5 h-2.5 text-sky-600" />
+                          <span>Open Alt Location Maps 📍</span>
+                          <ExternalLink className="w-2 h-2" />
+                        </a>
+                      )}
+                    </div>
+                  )}
+                  <div className="text-slate-400 text-[11px] pt-1">
                     Contact: {selectedOrder.vendor?.phone || selectedOrder.vendor?.email || '+91 9876543212'}
                   </div>
                 </div>
@@ -1270,92 +1452,228 @@ function AgentOrderWorkflowContent() {
 
           {/* Right Column: Active Stage Action Panel */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Stage Navigation Review Banner (when agent browses an earlier stage) */}
+            {activeStageTab !== null && activeStageTab !== Math.min(tripMaxStage, 4) && (
+              <div className="p-3.5 bg-amber-50 rounded-2xl border border-amber-300 flex items-center justify-between text-xs text-amber-950 shadow-xs animate-fadeIn">
+                <div className="flex items-center gap-2">
+                  <Info className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                  <span>
+                    Viewing <strong>Stage {currentStage}</strong> records. Live trip workflow is currently at <strong>Stage {Math.min(tripMaxStage, 4)}</strong>.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveStageTab(Math.min(tripMaxStage, 4))}
+                  className="ml-3 px-3 py-1 bg-slate-900 text-white rounded-xl font-bold text-[11px] hover:bg-slate-800 transition whitespace-nowrap cursor-pointer shadow-xs"
+                >
+                  Return to Active Stage ({Math.min(tripMaxStage, 4)}) &rarr;
+                </button>
+              </div>
+            )}
+
             {/* ========================================================
                 STAGE 1: ACCEPT DELIVERY ASSIGNMENT (PICKUP_ASSIGNED)
             ======================================================== */}
-            {['PICKUP_ASSIGNED', 'AGENT_ASSIGNED', 'PET_ASSIGNED'].includes(selectedOrder.status) && (
+            {currentStage === 1 && (
               <div className="card-clean p-6 rounded-2xl shadow-xs space-y-5 animate-scaleUp border border-amber-200 bg-amber-50/20">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-amber-100">
                   <div>
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 uppercase tracking-wider">
-                      Stage 1 of 4 • Assigned Order
+                      {isEnRouteToBreeder
+                        ? 'Stage 1 of 4 • Assignment Accepted • En Route'
+                        : 'Stage 1 of 4 • Assigned Order'}
                     </span>
                     <h2 className="text-lg font-extrabold text-slate-900 mt-1 flex items-center">
                       <Truck className="w-5 h-5 text-amber-600 mr-2" />
-                      Accept Delivery Assignment
+                      {isEnRouteToBreeder
+                        ? 'Driving to Breeder Kennel Facility'
+                        : 'Accept Delivery Assignment'}
                     </h2>
                     <p className="text-xs text-slate-500 mt-0.5">
-                      Order has been dispatched by Furora Admin. Accept assignment to confirm you are on duty and moving to the breeder kennel.
+                      {isEnRouteToBreeder
+                        ? 'Your acceptance is registered. Head to the breeder kennel using GPS navigation. Once you arrive physically at the kennel, tap the arrival button below to start inspection.'
+                        : 'Order has been dispatched by Furora Admin. Accept assignment to confirm you are on duty and moving to the breeder kennel.'}
                     </p>
                   </div>
                 </div>
 
-                <div className="p-4 bg-white rounded-xl border border-amber-200/80 space-y-3 text-xs">
-                  <div className="font-bold text-slate-800 flex items-center gap-2">
-                    <Info className="w-4 h-4 text-amber-600" />
-                    <span>Trip Dispatch Confirmation Protocol</span>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-slate-600">
-                    <div>
-                      <span className="font-semibold text-slate-500 block text-[10px] uppercase">
-                        Breeder Kennel:
-                      </span>
-                      <strong className="text-slate-900 text-xs">
-                        {selectedOrder.vendor?.name || 'Pet World Breeders'}
-                      </strong>
-                      <div className="text-[11px] text-slate-500">{selectedOrder.vendor?.address}</div>
+                {isEnRouteToBreeder ? (
+                  /* State B: Agent has accepted and is en route to kennel */
+                  <div className="space-y-4">
+                    <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 space-y-2 text-xs text-emerald-950">
+                      <div className="font-extrabold flex items-center text-emerald-900 text-sm">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 mr-1.5" />
+                        Assignment Confirmed • Transit Active
+                      </div>
+                      <p className="text-[11px] text-emerald-800 leading-relaxed">
+                        Vehicle sanitized. Proceed directly to the authorized partner breeder kennel. The trip stays in Stage 1 until you arrive physically at the breeder location.
+                      </p>
                     </div>
-                    <div>
-                      <span className="font-semibold text-slate-500 block text-[10px] uppercase">
-                        Customer Destination:
+
+                    <div className="p-4 bg-white rounded-xl border border-amber-200 space-y-3 text-xs">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                        Destination Breeder Kennel Location
                       </span>
-                      <strong className="text-slate-900 text-xs">{selectedOrder.customerName}</strong>
-                      <div className="text-[11px] text-slate-500">{selectedOrder.deliveryAddress}</div>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                          <strong className="text-slate-900 text-sm block">
+                            {selectedOrder.vendor?.name || 'Authorized Breeder Kennel'}
+                          </strong>
+                          <div className="text-slate-600 text-xs mt-0.5">
+                            {selectedOrder.vendor?.address || 'Plot 45, Green Meadows, Pune'}
+                          </div>
+                          {selectedOrder.vendor?.secondaryAddress && (
+                            <div className="text-slate-500 text-[11px] mt-1">
+                              Alt Facility: {selectedOrder.vendor.secondaryAddress}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2">
+                          {(selectedOrder.vendor?.mapUrl || selectedOrder.vendor?.address) && (
+                            <a
+                              href={selectedOrder.vendor?.mapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedOrder.vendor?.address || '')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-700 transition shadow-sm"
+                            >
+                              <MapPin className="w-3.5 h-3.5" />
+                              <span>Navigate in Google Maps 📍</span>
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          )}
+                          {selectedOrder.vendor?.secondaryMapUrl && (
+                            <a
+                              href={selectedOrder.vendor.secondaryMapUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-sky-50 text-sky-800 font-bold text-xs border border-sky-200 hover:bg-sky-100 transition"
+                            >
+                              <MapPin className="w-3 h-3 text-sky-600" />
+                              <span>Alt Facility Maps 📍</span>
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-amber-200/80">
+                      <span className="text-[11px] text-slate-500 font-medium">
+                        Arrived at facility? Tap button to open Stage 2 physical screening:
+                      </span>
+                      <button
+                        onClick={handleArriveAtKennel}
+                        disabled={submitting}
+                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 transition shadow-soft disabled:opacity-50 cursor-pointer"
+                      >
+                        {submitting ? 'Updating...' : '📍 I Have Arrived at Breeder Kennel (Start Inspection) →'}
+                        <ArrowRight className="w-4 h-4 text-emerald-400" />
+                      </button>
                     </div>
                   </div>
+                ) : (
+                  /* State A: Agent has not yet accepted assignment */
+                  <>
+                    <div className="p-4 bg-white rounded-xl border border-amber-200/80 space-y-3 text-xs">
+                      <div className="font-bold text-slate-800 flex items-center gap-2">
+                        <Info className="w-4 h-4 text-amber-600" />
+                        <span>Trip Dispatch Confirmation Protocol</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-slate-600">
+                        <div>
+                          <span className="font-semibold text-slate-500 block text-[10px] uppercase">
+                            Breeder Kennel:
+                          </span>
+                          <strong className="text-slate-900 text-xs">
+                            {selectedOrder.vendor?.name || 'Pet World Breeders'}
+                          </strong>
+                          <div className="text-[11px] text-slate-500">{selectedOrder.vendor?.address}</div>
+                          {selectedOrder.vendor?.mapUrl && (
+                            <a
+                              href={selectedOrder.vendor.mapUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-[11px] text-emerald-700 font-bold underline mt-1"
+                            >
+                              <MapPin className="w-3 h-3 text-emerald-600" /> Open in Google Maps 📍
+                            </a>
+                          )}
+                        </div>
+                        <div>
+                          <span className="font-semibold text-slate-500 block text-[10px] uppercase">
+                            Customer Destination:
+                          </span>
+                          <strong className="text-slate-900 text-xs">{selectedOrder.customerName}</strong>
+                          <div className="text-[11px] text-slate-500">{selectedOrder.deliveryAddress}</div>
+                        </div>
+                      </div>
 
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-                      Agent Dispatch Note
-                    </label>
-                    <input
-                      type="text"
-                      value={acceptanceNotes}
-                      onChange={(e) => setAcceptanceNotes(e.target.value)}
-                      className="w-full border border-slate-200 rounded-xl p-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900"
-                    />
-                  </div>
-                </div>
+                      <div>
+                        <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                          Agent Dispatch Note
+                        </label>
+                        <input
+                          type="text"
+                          value={acceptanceNotes}
+                          onChange={(e) => setAcceptanceNotes(e.target.value)}
+                          className="w-full border border-slate-200 rounded-xl p-2.5 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900"
+                        />
+                      </div>
+                    </div>
 
-                <div className="pt-2 flex justify-end">
-                  <button
-                    onClick={handleAcceptAssignment}
-                    disabled={submitting}
-                    className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 transition shadow-soft disabled:opacity-50 cursor-pointer"
-                  >
-                    {submitting ? 'Confirming...' : 'Accept Assignment & Move to Vendor Area'}
-                    <ArrowRight className="w-4 h-4 text-emerald-400" />
-                  </button>
-                </div>
+                    <div className="pt-2 flex justify-end">
+                      <button
+                        onClick={handleAcceptAssignment}
+                        disabled={submitting}
+                        className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 transition shadow-soft disabled:opacity-50 cursor-pointer"
+                      >
+                        {submitting ? 'Confirming...' : 'Accept Assignment & Start Journey'}
+                        <ArrowRight className="w-4 h-4 text-emerald-400" />
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             )}
 
             {/* ========================================================
                 STAGE 2: VENDOR AREA (PICKUP & DOCUMENT COLLECTION)
             ======================================================== */}
-            {selectedOrder.status === 'PICKUP_INSPECTION' && (
+            {currentStage === 2 && (
               <div className="card-clean p-6 rounded-2xl shadow-xs space-y-5 animate-scaleUp border border-purple-200 bg-white">
+                {/* Stage Back & Fast-Forward Bar */}
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setActiveStageTab(1)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    <span>&larr; Back to Stage 1 (Order Info)</span>
+                  </button>
+                  {tripMaxStage >= 3 && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveStageTab(3)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition cursor-pointer"
+                    >
+                      <span>Return to Stage 3 (Medical) &rarr;</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
                   <div>
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 uppercase tracking-wider">
-                      Stage 2 of 4 • Vendor Area
+                      Stage 2 of 4 • Breeder Kennel Pickup
                     </span>
                     <h2 className="text-lg font-extrabold text-slate-900 mt-1 flex items-center">
                       <Store className="w-5 h-5 text-purple-600 mr-2" />
                       Breeder Kennel Pickup & Document Collection
                     </h2>
                     <p className="text-xs text-slate-400 mt-0.5">
-                      Verify 15-digit microchip, complete 10-point health checklist, and upload all physical compliance documents into the system.
+                      Verify 15-digit microchip, tick all physical screening points, and upload genuine compliance documents into Cloudflare R2 storage.
                     </p>
                   </div>
                   <button
@@ -1574,7 +1892,10 @@ function AgentOrderWorkflowContent() {
                       disabled={submitting}
                       className="w-full sm:w-auto inline-flex items-center justify-center px-5 py-2.5 rounded-xl text-xs font-bold bg-slate-900 text-white hover:bg-slate-800 shadow-soft transition disabled:opacity-50 cursor-pointer"
                     >
-                      <CheckCircle2 className="w-3.5 h-3.5 mr-1.5 text-emerald-400" /> Complete Pickup & Collect All Documents
+                      <CheckCircle2 className="w-3.5 h-3.5 mr-1.5 text-emerald-400" />
+                      {tripMaxStage >= 3
+                        ? 'Update Kennel Documents & Inspection Record'
+                        : 'Complete Pickup & Collect All Documents'}
                     </button>
                   </div>
                 </div>
@@ -1584,8 +1905,30 @@ function AgentOrderWorkflowContent() {
             {/* ========================================================
                 STAGE 3: MEDICAL CENTER (VET CLEARANCE & DOCUMENTS)
             ======================================================== */}
-            {(selectedOrder.status === 'MEDICAL_CHECK' || selectedOrder.status === 'PICKUP_ACCEPTED') && (
+            {currentStage === 3 && (
               <div className="card-clean p-6 rounded-2xl shadow-xs space-y-5 animate-scaleUp border border-indigo-200 bg-white">
+                {/* Stage Back & Fast-Forward Bar */}
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setActiveStageTab(2)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    <span>&larr; Back to Stage 2 (Kennel Pickup & Docs)</span>
+                  </button>
+                  {tripMaxStage >= 4 && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveStageTab(4)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition cursor-pointer"
+                    >
+                      <span>Return to Stage 4 (Doorstep) &rarr;</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
                 <div>
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-800 uppercase tracking-wider">
                     Stage 3 of 4 • Partner Medical Center
@@ -1740,7 +2083,10 @@ function AgentOrderWorkflowContent() {
                     disabled={submitting}
                     className="w-full sm:w-auto inline-flex items-center justify-center px-5 py-2.5 rounded-xl text-xs font-bold bg-slate-900 text-white hover:bg-slate-800 shadow-soft transition disabled:opacity-50 cursor-pointer"
                   >
-                    <CheckCircle2 className="w-3.5 h-3.5 mr-1.5 text-emerald-400" /> Issue Medical Clearance & Advance to Handover
+                    <CheckCircle2 className="w-3.5 h-3.5 mr-1.5 text-emerald-400" />
+                    {tripMaxStage >= 4
+                      ? 'Update Medical Clearance & Retain Ready Status'
+                      : 'Issue Medical Clearance & Advance to Handover'}
                   </button>
                 </div>
               </div>
@@ -1749,8 +2095,20 @@ function AgentOrderWorkflowContent() {
             {/* ========================================================
                 STAGE 4: CUSTOMER AREA (DOORSTEP HANDOVER & QR CODE)
             ======================================================== */}
-            {(selectedOrder.status === 'READY_FOR_DELIVERY' || selectedOrder.status === 'MEDICAL_APPROVED') && (
+            {currentStage === 4 && (
               <div className="card-clean p-6 rounded-2xl shadow-xs space-y-6 animate-scaleUp border border-blue-200 bg-white">
+                {/* Stage Back Bar */}
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setActiveStageTab(3)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    <span>&larr; Back to Stage 3 (Vet Medical Center)</span>
+                  </button>
+                </div>
+
                 <div>
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 uppercase tracking-wider">
                     Stage 4 of 4 • Customer Doorstep
@@ -1899,7 +2257,7 @@ function AgentOrderWorkflowContent() {
             {/* ========================================================
                 STAGE 5: DELIVERY COMPLETED
             ======================================================== */}
-            {selectedOrder.status === 'DELIVERY_COMPLETED' && (
+            {selectedOrder.status === 'DELIVERY_COMPLETED' && (currentStage === 5 || !activeStageTab) && (
               <div className="card-clean p-8 text-center space-y-5 rounded-2xl bg-white shadow-soft border border-emerald-200">
                 <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 mx-auto flex items-center justify-center">
                   <CheckCircle2 className="w-10 h-10" />

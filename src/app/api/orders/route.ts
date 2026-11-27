@@ -53,7 +53,18 @@ export async function GET(req: NextRequest) {
             motherName: true,
           },
         },
-        vendor: { select: { id: true, name: true, email: true, phone: true, address: true } },
+        vendor: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            address: true,
+            mapUrl: true,
+            secondaryAddress: true,
+            secondaryMapUrl: true,
+          },
+        },
         agent: { select: { id: true, name: true, email: true, phone: true } },
         documents: {
           select: {
@@ -251,7 +262,7 @@ export async function POST(req: NextRequest) {
         category: true,
         breed: true,
         pet: true,
-        vendor: { select: { id: true, name: true, email: true } },
+        vendor: { select: { id: true, name: true, email: true, phone: true, address: true, mapUrl: true, secondaryAddress: true, secondaryMapUrl: true } },
         agent: { select: { id: true, name: true, email: true } },
         customer: { select: { id: true, name: true, email: true } },
       },

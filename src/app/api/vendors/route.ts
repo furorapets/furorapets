@@ -74,6 +74,9 @@ export async function POST(req: NextRequest) {
       email,
       phone,
       address,
+      mapUrl,
+      secondaryAddress,
+      secondaryMapUrl,
       kennelRegNumber,
       kennelRegDoc,
       govIdDoc,
@@ -113,7 +116,8 @@ export async function POST(req: NextRequest) {
     const baseUsername = name.trim().toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
     const phoneDigits = (phone ? phone.trim() : '').replace(/[^0-9]/g, '');
     const phoneSuffix = phoneDigits.slice(-4) || '2026';
-    const vendorUsername = `${baseUsername.slice(0, 14)}_${phoneSuffix}`;
+    const randTag = Date.now().toString(36).slice(-3);
+    const vendorUsername = `${baseUsername.slice(0, 10)}_${phoneSuffix}_${randTag}`;
     const randDigits = Math.floor(1000 + Math.random() * 9000);
     const vendorTempPassword = `Furora@${randDigits}`;
 
@@ -128,6 +132,9 @@ export async function POST(req: NextRequest) {
         role: 'VENDOR',
         phone: phone ? phone.trim() : null,
         address: address ? address.trim() : null,
+        mapUrl: mapUrl ? mapUrl.trim() : null,
+        secondaryAddress: secondaryAddress ? secondaryAddress.trim() : null,
+        secondaryMapUrl: secondaryMapUrl ? secondaryMapUrl.trim() : null,
         kennelRegNumber: kennelRegNumber.trim(),
         kennelRegDoc: kennelRegDoc.trim(),
         govIdDoc: govIdDoc.trim(),

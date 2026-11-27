@@ -55,6 +55,9 @@ export async function getCurrentUser(req?: NextRequest): Promise<SessionUser | n
       onboardingNotes: true,
       kennelRegNumber: true,
       assignedCategories: true,
+      mapUrl: true,
+      secondaryAddress: true,
+      secondaryMapUrl: true,
     },
   });
 
@@ -72,6 +75,9 @@ export async function getCurrentUser(req?: NextRequest): Promise<SessionUser | n
     onboardingNotes: user.onboardingNotes,
     kennelRegNumber: user.kennelRegNumber,
     assignedCategories: user.assignedCategories,
+    mapUrl: user.mapUrl,
+    secondaryAddress: user.secondaryAddress,
+    secondaryMapUrl: user.secondaryMapUrl,
   };
 }
 
@@ -92,6 +98,9 @@ export async function getAvailableUsers(): Promise<SessionUser[]> {
       onboardingNotes: true,
       kennelRegNumber: true,
       assignedCategories: true,
+      mapUrl: true,
+      secondaryAddress: true,
+      secondaryMapUrl: true,
     },
     orderBy: { role: 'asc' },
   });
@@ -107,5 +116,8 @@ export async function getAvailableUsers(): Promise<SessionUser[]> {
     onboardingNotes: u.onboardingNotes,
     kennelRegNumber: u.kennelRegNumber,
     assignedCategories: u.assignedCategories,
+    mapUrl: u.mapUrl,
+    secondaryAddress: u.secondaryAddress,
+    secondaryMapUrl: u.secondaryMapUrl,
   }));
 }

@@ -32,6 +32,9 @@ model User {
   onboardingStatus   String?   @default("APPROVED") // PENDING, APPROVED, REJECTED, CHANGES_REQUESTED
   onboardingNotes    String?   // Feedback / Reason when requesting resubmission or rejecting
   assignedCategories String?   @default("[]") // JSON array of category IDs assigned to vendor by admin
+  mapUrl             String?   // Primary Google Maps Location URL / Pin
+  secondaryAddress   String?   // Alternative Facility / Kennel Location Address
+  secondaryMapUrl    String?   // Secondary Google Maps Location URL / Pin
 
   petsCreated        Pet[]              @relation("PetCreator")
   vendorPets         Pet[]              @relation("VendorInventory")

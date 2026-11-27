@@ -150,6 +150,9 @@ function VendorsContent() {
     email: '',
     phone: '',
     address: '',
+    mapUrl: '',
+    secondaryAddress: '',
+    secondaryMapUrl: '',
     kennelRegNumber: '',
     kennelRegDoc: '',
     govIdDoc: '',
@@ -238,6 +241,9 @@ function VendorsContent() {
         email: '',
         phone: '',
         address: '',
+        mapUrl: '',
+        secondaryAddress: '',
+        secondaryMapUrl: '',
         kennelRegNumber: '',
         kennelRegDoc: '',
         govIdDoc: '',
@@ -749,6 +755,28 @@ function VendorsContent() {
                                   <span className="truncate">{v.address}</span>
                                 </span>
                               )}
+                              {(v.mapUrl || v.address) && (
+                                <a
+                                  href={v.mapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v.address || '')}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center text-emerald-600 hover:text-emerald-700 hover:underline font-bold text-[10px]"
+                                  title="Open primary facility in Google Maps"
+                                >
+                                  Maps 📍
+                                </a>
+                              )}
+                              {v.secondaryMapUrl && (
+                                <a
+                                  href={v.secondaryMapUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center text-sky-600 hover:text-sky-700 hover:underline font-bold text-[10px]"
+                                  title={`Alternative Location: ${v.secondaryAddress || 'Branch'}`}
+                                >
+                                  Alt Maps 📍
+                                </a>
+                              )}
                             </div>
                           )}
                         </div>
@@ -980,6 +1008,49 @@ function VendorsContent() {
                     {reviewingVendor.kennelRegNumber || (reviewingVendor.onboardingStatus === 'DRAFT' ? 'Awaiting Wizard' : 'N/A')}
                   </span>
                 </div>
+              </div>
+
+              {/* Facility Address & Navigation Links */}
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 text-xs space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                    <Store className="w-3.5 h-3.5 text-amber-600" /> Primary Kennel Address
+                  </span>
+                  {(reviewingVendor.mapUrl || reviewingVendor.address) && (
+                    <a
+                      href={reviewingVendor.mapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(reviewingVendor.address || '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 hover:text-emerald-700 hover:underline"
+                    >
+                      <MapPin className="w-3 h-3 text-emerald-600" /> Open in Google Maps 📍
+                    </a>
+                  )}
+                </div>
+                <div className="font-semibold text-slate-800 text-xs">
+                  {reviewingVendor.address || 'Address not registered'}
+                </div>
+
+                {reviewingVendor.secondaryAddress && (
+                  <div className="pt-2 border-t border-slate-200/60 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        Alternative Facility Location
+                      </span>
+                      {reviewingVendor.secondaryMapUrl && (
+                        <a
+                          href={reviewingVendor.secondaryMapUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-[10px] font-bold text-sky-600 hover:text-sky-700 hover:underline"
+                        >
+                          <MapPin className="w-2.5 h-2.5 text-sky-600" /> Alt Maps 📍
+                        </a>
+                      )}
+                    </div>
+                    <div className="text-slate-600 text-[11px]">{reviewingVendor.secondaryAddress}</div>
+                  </div>
+                )}
               </div>
 
               {/* 5 Required Compliance Documents */}
@@ -1560,6 +1631,49 @@ function VendorsContent() {
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                     className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs bg-white text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                  Google Maps Pin Link (Primary Facility)
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://maps.google.com/?q=... or https://maps.app.goo.gl/..."
+                  value={formData.mapUrl}
+                  onChange={(e) => setFormData({ ...formData, mapUrl: e.target.value })}
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs bg-white text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900 font-mono"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200/80">
+                <div className="col-span-2 text-[10px] font-bold uppercase text-slate-500">
+                  Optional Secondary / Alternative Facility Location
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-600 mb-1">
+                    Alt Facility Address
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Branch 2, Pune"
+                    value={formData.secondaryAddress}
+                    onChange={(e) => setFormData({ ...formData, secondaryAddress: e.target.value })}
+                    className="w-full border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs bg-white text-slate-800"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-600 mb-1">
+                    Alt Maps Pin Link
+                  </label>
+                  <input
+                    type="url"
+                    placeholder="https://maps.app.goo.gl/..."
+                    value={formData.secondaryMapUrl}
+                    onChange={(e) => setFormData({ ...formData, secondaryMapUrl: e.target.value })}
+                    className="w-full border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs bg-white text-slate-800 font-mono"
                   />
                 </div>
               </div>

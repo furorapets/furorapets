@@ -40,7 +40,13 @@ export async function POST(req: NextRequest) {
       : kennelName.trim();
     const phone = registrationData?.phone ? registrationData.phone.trim() : null;
     const city = registrationData?.city ? registrationData.city.trim() : '';
-    const address = city || registrationData?.address || null;
+    const streetAddress = registrationData?.address ? registrationData.address.trim() : '';
+    const formattedAddress = streetAddress && city && !streetAddress.includes(city)
+      ? `${streetAddress}, ${city}`
+      : (streetAddress || city || null);
+    const mapUrl = registrationData?.mapUrl ? registrationData.mapUrl.trim() : null;
+    const secondaryAddress = registrationData?.secondaryAddress ? registrationData.secondaryAddress.trim() : null;
+    const secondaryMapUrl = registrationData?.secondaryMapUrl ? registrationData.secondaryMapUrl.trim() : null;
 
     let partner = existing;
 
@@ -52,7 +58,10 @@ export async function POST(req: NextRequest) {
           name: fullName,
           email: cleanEmail,
           phone,
-          address,
+          address: formattedAddress,
+          mapUrl,
+          secondaryAddress,
+          secondaryMapUrl,
           role: 'VENDOR',
           onboardingStatus: 'DRAFT',
           onboardingNotes: null,
@@ -64,13 +73,16 @@ export async function POST(req: NextRequest) {
         console.error('Failed to dispatch welcome email:', err.message)
       );
     } else {
-      // Update phone/name if not set
+      // Update phone/name/address/mapUrl if provided
       partner = await prisma.user.update({
         where: { id: partner.id },
         data: {
           name: fullName || partner.name,
           phone: phone || partner.phone,
-          address: address || partner.address,
+          address: formattedAddress || partner.address,
+          ...(mapUrl ? { mapUrl } : {}),
+          ...(secondaryAddress ? { secondaryAddress } : {}),
+          ...(secondaryMapUrl ? { secondaryMapUrl } : {}),
         },
       });
     }

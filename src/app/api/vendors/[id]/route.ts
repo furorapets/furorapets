@@ -70,7 +70,7 @@ export async function PUT(
 
     const { id } = await params;
     const body = await req.json();
-    const { action, onboardingNotes, name, phone, address, kennelRegNumber, assignedCategories } = body;
+    const { action, onboardingNotes, name, phone, address, mapUrl, secondaryAddress, secondaryMapUrl, kennelRegNumber, assignedCategories } = body;
 
     const vendor = await prisma.user.findUnique({
       where: { id },
@@ -91,7 +91,15 @@ export async function PUT(
       .replace(/^_|_$/g, '');
     const phoneDigits = (vendor.phone || phone || '').replace(/[^0-9]/g, '');
     const phoneSuffix = phoneDigits.slice(-4) || '2026';
-    const candidateUsername = vendor.username || `${baseUsername.slice(0, 14)}_${phoneSuffix}`;
+    let candidateUsername = vendor.username;
+    if (!candidateUsername) {
+      const randTag = Date.now().toString(36).slice(-3);
+      candidateUsername = `${baseUsername.slice(0, 10)}_${phoneSuffix}_${randTag}`;
+      const existingUser = await prisma.user.findUnique({ where: { username: candidateUsername } });
+      if (existingUser) {
+        candidateUsername = `${baseUsername.slice(0, 8)}_${phoneSuffix}_${Math.random().toString(36).slice(-4)}`;
+      }
+    }
     const randDigits = Math.floor(1000 + Math.random() * 9000);
     const candidateTempPassword = vendor.tempPassword || vendor.password || `Furora@${randDigits}`;
 
@@ -134,6 +142,9 @@ export async function PUT(
         ...(name ? { name: name.trim() } : {}),
         ...(phone ? { phone: phone.trim() } : {}),
         ...(address ? { address: address.trim() } : {}),
+        ...(mapUrl !== undefined ? { mapUrl: mapUrl ? mapUrl.trim() : null } : {}),
+        ...(secondaryAddress !== undefined ? { secondaryAddress: secondaryAddress ? secondaryAddress.trim() : null } : {}),
+        ...(secondaryMapUrl !== undefined ? { secondaryMapUrl: secondaryMapUrl ? secondaryMapUrl.trim() : null } : {}),
         ...(kennelRegNumber ? { kennelRegNumber: kennelRegNumber.trim() } : {}),
         ...(assignedCategoriesData !== undefined ? { assignedCategories: assignedCategoriesData } : {}),
       },

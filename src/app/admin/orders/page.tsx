@@ -1617,6 +1617,42 @@ function OrdersContent() {
             </div>
 
             <form onSubmit={handleAssignAgent} className="space-y-4 text-xs">
+              {assigningAgentOrder?.vendor && (
+                <div className="p-3 bg-amber-50/70 rounded-xl border border-amber-200/80 space-y-1.5 text-xs text-amber-950">
+                  <div className="flex items-center justify-between font-bold">
+                    <span>Breeder Facility: {assigningAgentOrder.vendor.name}</span>
+                    {(assigningAgentOrder.vendor.mapUrl || assigningAgentOrder.vendor.address) && (
+                      <a
+                        href={assigningAgentOrder.vendor.mapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(assigningAgentOrder.vendor.address || '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-[11px] text-emerald-700 hover:underline font-bold"
+                      >
+                        <MapPin className="w-3 h-3 text-emerald-600" /> Open in Google Maps 📍
+                      </a>
+                    )}
+                  </div>
+                  <div className="text-[11px] text-slate-600">
+                    Location: {assigningAgentOrder.vendor.address || 'Address on file'}
+                  </div>
+                  {assigningAgentOrder.vendor.secondaryAddress && (
+                    <div className="text-[10px] text-slate-500 pt-1 border-t border-amber-200/60 flex items-center justify-between">
+                      <span>Alt Facility: {assigningAgentOrder.vendor.secondaryAddress}</span>
+                      {assigningAgentOrder.vendor.secondaryMapUrl && (
+                        <a
+                          href={assigningAgentOrder.vendor.secondaryMapUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sky-700 underline font-semibold ml-1"
+                        >
+                          Alt Maps 📍
+                        </a>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div>
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
                   Select Delivery / Field Agent
@@ -1927,7 +1963,34 @@ function OrdersContent() {
                     {inspectingOrderDossier.vendor?.address && (
                       <div className="flex justify-between items-start gap-2">
                         <span className="text-slate-400 font-semibold">Pickup Address:</span>
-                        <span className="text-right text-slate-800 max-w-[220px]">{inspectingOrderDossier.vendor.address}</span>
+                        <div className="text-right max-w-[220px]">
+                          <span className="text-slate-800 block">{inspectingOrderDossier.vendor.address}</span>
+                          {inspectingOrderDossier.vendor?.mapUrl && (
+                            <a
+                              href={inspectingOrderDossier.vendor.mapUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 hover:underline mt-0.5"
+                            >
+                              <MapPin className="w-2.5 h-2.5 text-emerald-600" /> Google Maps 📍
+                            </a>
+                          )}
+                          {inspectingOrderDossier.vendor?.secondaryAddress && (
+                            <div className="mt-1 pt-1 border-t border-slate-200/60 text-[10px] text-slate-500">
+                              <span>Alt: {inspectingOrderDossier.vendor.secondaryAddress}</span>
+                              {inspectingOrderDossier.vendor?.secondaryMapUrl && (
+                                <a
+                                  href={inspectingOrderDossier.vendor.secondaryMapUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-sky-600 underline font-semibold ml-1"
+                                >
+                                  (Alt Maps 📍)
+                                </a>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
                     {inspectingOrderDossier.vendor?.kennelRegNumber && (

@@ -48,6 +48,11 @@ export default function PartnerOnboardPage() {
     email: '',
     phone: '',
     city: '',
+    address: '',
+    mapUrl: '',
+    hasSecondaryLocation: false,
+    secondaryAddress: '',
+    secondaryMapUrl: '',
   });
   const [regLoading, setRegLoading] = useState(false);
   const [regError, setRegError] = useState('');
@@ -83,6 +88,10 @@ export default function PartnerOnboardPage() {
     accountNumber: '',
     ifscCode: '',
     ethicalDeclaration: false,
+    address: '',
+    mapUrl: '',
+    secondaryAddress: '',
+    secondaryMapUrl: '',
   });
 
   const [wizardSubmitting, setWizardSubmitting] = useState(false);
@@ -206,12 +215,21 @@ export default function PartnerOnboardPage() {
     const fullName = regForm.contactName.trim()
       ? `${regForm.kennelName.trim()} (${regForm.contactName.trim()})`
       : regForm.kennelName.trim();
+    const formattedAddress = regForm.address.trim()
+      ? (regForm.city.trim() && !regForm.address.includes(regForm.city.trim())
+          ? `${regForm.address.trim()}, ${regForm.city.trim()}`
+          : regForm.address.trim())
+      : regForm.city.trim();
+
     setRegisteredVendor((prev: any) => ({
       ...prev,
       name: fullName,
       contactPerson: regForm.contactName.trim(),
       phone: regForm.phone.trim(),
-      address: regForm.city.trim(),
+      address: formattedAddress,
+      mapUrl: regForm.mapUrl.trim(),
+      secondaryAddress: regForm.hasSecondaryLocation ? regForm.secondaryAddress.trim() : '',
+      secondaryMapUrl: regForm.hasSecondaryLocation ? regForm.secondaryMapUrl.trim() : '',
     }));
     setPageMode('WIZARD');
   };
@@ -231,6 +249,11 @@ export default function PartnerOnboardPage() {
       const fullName = regForm.contactName.trim()
         ? `${regForm.kennelName.trim()} (${regForm.contactName.trim()})`
         : regForm.kennelName.trim();
+      const formattedAddress = regForm.address.trim()
+        ? (regForm.city.trim() && !regForm.address.includes(regForm.city.trim())
+            ? `${regForm.address.trim()}, ${regForm.city.trim()}`
+            : regForm.address.trim())
+        : regForm.city.trim();
 
       const res = await fetch('/api/auth/otp/verify', {
         method: 'POST',
@@ -245,7 +268,10 @@ export default function PartnerOnboardPage() {
             name: fullName,
             phone: regForm.phone.trim(),
             city: regForm.city.trim(),
-            address: regForm.city.trim(),
+            address: formattedAddress,
+            mapUrl: regForm.mapUrl.trim(),
+            secondaryAddress: regForm.hasSecondaryLocation ? regForm.secondaryAddress.trim() : '',
+            secondaryMapUrl: regForm.hasSecondaryLocation ? regForm.secondaryMapUrl.trim() : '',
           },
         }),
       });
@@ -299,7 +325,8 @@ export default function PartnerOnboardPage() {
       setRegisteredVendor(data.data);
 
       // Pre-fill form state
-      setFormData({
+      setFormData((prev) => ({
+        ...prev,
         kennelRegNumber: data.data.kennelRegNumber || '',
         kennelRegDoc: data.data.kennelRegDoc || '',
         govIdDoc: data.data.govIdDoc || '',
@@ -310,7 +337,11 @@ export default function PartnerOnboardPage() {
         accountNumber: '50200088991122',
         ifscCode: 'HDFC0001234',
         ethicalDeclaration: true,
-      });
+        address: data.data.address || '',
+        mapUrl: data.data.mapUrl || '',
+        secondaryAddress: data.data.secondaryAddress || '',
+        secondaryMapUrl: data.data.secondaryMapUrl || '',
+      }));
 
       // If changes are requested or draft, allow immediate transition into wizard!
       if (data.data.onboardingStatus === 'CHANGES_REQUESTED' || data.data.onboardingStatus === 'DRAFT') {
@@ -421,8 +452,11 @@ export default function PartnerOnboardPage() {
           name: registeredVendor?.name || regForm.kennelName,
           email: registeredVendor?.email || regForm.email,
           phone: registeredVendor?.phone || regForm.phone,
-          address: registeredVendor?.address || regForm.city,
+          address: registeredVendor?.address || regForm.address || regForm.city,
           city: regForm.city,
+          mapUrl: formData.mapUrl || registeredVendor?.mapUrl || regForm.mapUrl,
+          secondaryAddress: formData.secondaryAddress || registeredVendor?.secondaryAddress || (regForm.hasSecondaryLocation ? regForm.secondaryAddress : ''),
+          secondaryMapUrl: formData.secondaryMapUrl || registeredVendor?.secondaryMapUrl || (regForm.hasSecondaryLocation ? regForm.secondaryMapUrl : ''),
           kennelRegNumber: formData.kennelRegNumber,
           kennelRegDoc: formData.kennelRegDoc,
           govIdDoc: formData.govIdDoc,
@@ -686,6 +720,89 @@ export default function PartnerOnboardPage() {
                                 />
                               </div>
                             </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                              Detailed Kennel / Facility Address
+                            </label>
+                            <div className="relative">
+                              <Building className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                              <input
+                                type="text"
+                                placeholder="e.g. Survey No. 42, Baner Road, Baner"
+                                value={regForm.address}
+                                onChange={(e) => setRegForm({ ...regForm, address: e.target.value })}
+                                className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-slate-800 text-xs transition"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <div className="flex items-center justify-between mb-1">
+                              <label className="block text-[11px] font-bold text-slate-700">
+                                Google Maps Location Link (Primary Facility Pin)
+                              </label>
+                              <span className="text-[10px] text-emerald-600 font-semibold">Enables fast agent dispatch 📍</span>
+                            </div>
+                            <div className="relative">
+                              <MapPin className="w-4 h-4 text-emerald-600 absolute left-3 top-1/2 -translate-y-1/2" />
+                              <input
+                                type="url"
+                                placeholder="https://maps.app.goo.gl/... or https://maps.google.com/?q=..."
+                                value={regForm.mapUrl}
+                                onChange={(e) => setRegForm({ ...regForm, mapUrl: e.target.value })}
+                                className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-800 text-xs transition font-mono"
+                              />
+                            </div>
+                            <p className="text-[10px] text-slate-400 mt-1">
+                              Paste your kennel's Google Maps link so delivery agents can drive directly to your location.
+                            </p>
+                          </div>
+
+                          {/* Secondary / Alternative Facility Toggle */}
+                          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
+                            <label
+                              onClick={() => setRegForm({ ...regForm, hasSecondaryLocation: !regForm.hasSecondaryLocation })}
+                              className="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer select-none"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={regForm.hasSecondaryLocation}
+                                onChange={() => {}}
+                                className="rounded border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
+                              />
+                              <span>+ Add Secondary / Alternative Kennel Location (Optional)</span>
+                            </label>
+
+                            {regForm.hasSecondaryLocation && (
+                              <div className="space-y-2 pt-1 animate-fadeIn">
+                                <div>
+                                  <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
+                                    Alternative Facility Address (Branch / Kennel #2)
+                                  </label>
+                                  <input
+                                    type="text"
+                                    placeholder="e.g. Kennel Branch 2, Hinjewadi Phase 3, Pune"
+                                    value={regForm.secondaryAddress}
+                                    onChange={(e) => setRegForm({ ...regForm, secondaryAddress: e.target.value })}
+                                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 bg-white"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
+                                    Secondary Location Google Maps Link
+                                  </label>
+                                  <input
+                                    type="url"
+                                    placeholder="https://maps.app.goo.gl/..."
+                                    value={regForm.secondaryMapUrl}
+                                    onChange={(e) => setRegForm({ ...regForm, secondaryMapUrl: e.target.value })}
+                                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 bg-white font-mono"
+                                  />
+                                </div>
+                              </div>
+                            )}
                           </div>
 
                           <div>
@@ -1452,6 +1569,37 @@ export default function PartnerOnboardPage() {
                       <span className="text-slate-400 block">Mobile:</span>
                       <span className="text-slate-800">{registeredVendor?.phone || regForm.phone}</span>
                     </div>
+                    <div className="col-span-2 pt-1 border-t border-slate-200/60">
+                      <span className="text-slate-400 block">Facility Address:</span>
+                      <strong className="text-slate-800">{registeredVendor?.address || regForm.address || regForm.city}</strong>
+                      {(registeredVendor?.mapUrl || regForm.mapUrl) && (
+                        <a
+                          href={registeredVendor?.mapUrl || regForm.mapUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-[10px] text-emerald-600 hover:underline font-bold mt-0.5"
+                        >
+                          <MapPin className="w-2.5 h-2.5 text-emerald-600" />
+                          <span>Google Maps Pin 📍</span>
+                        </a>
+                      )}
+                    </div>
+                    {(registeredVendor?.secondaryAddress || regForm.secondaryAddress) && (
+                      <div className="col-span-2 pt-1 border-t border-slate-200/60">
+                        <span className="text-slate-400 block text-[10px]">Alternative Facility:</span>
+                        <span className="text-slate-800 text-[11px]">{registeredVendor?.secondaryAddress || regForm.secondaryAddress}</span>
+                        {(registeredVendor?.secondaryMapUrl || regForm.secondaryMapUrl) && (
+                          <a
+                            href={registeredVendor?.secondaryMapUrl || regForm.secondaryMapUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-[10px] text-sky-600 hover:underline font-bold ml-2"
+                          >
+                            <span>Alt Maps 📍</span>
+                          </a>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 

@@ -23,7 +23,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         category: true,
         breed: true,
         pet: true,
-        vendor: { select: { id: true, name: true, email: true, phone: true } },
+        vendor: { select: { id: true, name: true, email: true, phone: true, address: true, mapUrl: true, secondaryAddress: true, secondaryMapUrl: true } },
         agent: { select: { id: true, name: true, email: true, phone: true } },
         inspections: true,
         medicalRecords: true,

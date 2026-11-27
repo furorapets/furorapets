@@ -34,6 +34,9 @@ export async function GET(req: NextRequest) {
         email: true,
         phone: true,
         address: true,
+        mapUrl: true,
+        secondaryAddress: true,
+        secondaryMapUrl: true,
         role: true,
         kennelRegNumber: true,
         kennelRegDoc: true,
@@ -74,6 +77,9 @@ export async function POST(req: NextRequest) {
       phone,
       address,
       city,
+      mapUrl,
+      secondaryAddress,
+      secondaryMapUrl,
       kennelRegNumber,
       kennelRegDoc,
       govIdDoc,
@@ -138,6 +144,9 @@ export async function POST(req: NextRequest) {
           email: cleanEmail,
           phone: cleanPhone,
           address: formattedAddress || null,
+          mapUrl: mapUrl ? mapUrl.trim() : null,
+          secondaryAddress: secondaryAddress ? secondaryAddress.trim() : null,
+          secondaryMapUrl: secondaryMapUrl ? secondaryMapUrl.trim() : null,
           role: 'VENDOR',
           onboardingStatus: 'DRAFT',
           onboardingNotes: null,
@@ -213,6 +222,9 @@ export async function POST(req: NextRequest) {
           name: name.trim(),
           phone: cleanPhone,
           address: formattedAddress,
+          mapUrl: mapUrl ? mapUrl.trim() : (existing.mapUrl || null),
+          secondaryAddress: secondaryAddress ? secondaryAddress.trim() : (existing.secondaryAddress || null),
+          secondaryMapUrl: secondaryMapUrl ? secondaryMapUrl.trim() : (existing.secondaryMapUrl || null),
           kennelRegNumber: kennelRegNumber.trim(),
           kennelRegDoc: kennelRegDoc.trim(),
           govIdDoc: govIdDoc.trim(),
@@ -261,6 +273,7 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({
         success: true,
+        isResubmission: true,
         data: updated,
         message: 'Your compliance documents have been submitted successfully. Furora Admins will verify your application within 24–48 hours.',
       });
@@ -276,6 +289,9 @@ export async function POST(req: NextRequest) {
         role: 'VENDOR',
         phone: cleanPhone,
         address: formattedAddress,
+        mapUrl: mapUrl ? mapUrl.trim() : null,
+        secondaryAddress: secondaryAddress ? secondaryAddress.trim() : null,
+        secondaryMapUrl: secondaryMapUrl ? secondaryMapUrl.trim() : null,
         kennelRegNumber: kennelRegNumber.trim(),
         kennelRegDoc: kennelRegDoc.trim(),
         govIdDoc: govIdDoc.trim(),
@@ -324,11 +340,14 @@ export async function POST(req: NextRequest) {
       console.error('Failed to dispatch vendor welcome email:', err.message)
     );
 
-    return NextResponse.json({
-      success: true,
-      data: newPartner,
-      message: 'Partner registration submitted successfully! Our compliance team will review your application within 24–48 hours.',
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        data: newPartner,
+        message: 'Partner registration submitted successfully! Our compliance team will review your application within 24–48 hours.',
+      },
+      { status: 201 }
+    );
   } catch (error: any) {
     console.error('Vendor onboarding error:', error);
     return NextResponse.json(

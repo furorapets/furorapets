@@ -126,7 +126,18 @@ describe('Staff Credential Vault & Swiggy-Style Live Tracking', () => {
     // Create a fresh test order with linked pet and vendor
     const vendor = await prisma.user.findFirst({ where: { role: 'VENDOR' } });
     const breed = await prisma.breed.findFirst();
-    const customer = await prisma.user.findFirst({ where: { role: 'CUSTOMER' } });
+    let customer = await prisma.user.findFirst({ where: { role: 'CUSTOMER' } });
+    if (!customer) {
+      customer = await prisma.user.create({
+        data: {
+          id: `usr_test_cust_${Date.now()}`,
+          name: 'Test Customer',
+          email: `testcust_${Date.now()}@example.com`,
+          phone: '+91 9900112233',
+          role: 'CUSTOMER',
+        },
+      });
+    }
 
     const orderIdStr = `FUR-ORD-TEST-${Date.now().toString().slice(-4)}`;
     const testOrder = await prisma.order.create({

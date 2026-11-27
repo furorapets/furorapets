@@ -96,9 +96,17 @@ export async function submitPickupInspection(input: SubmitInspectionInput) {
 
     if (input.result === 'ACCEPT') {
       // Pass Branch: Order -> PICKUP_ACCEPTED -> MEDICAL_CHECK, Pet -> IN_TRANSIT -> MEDICAL_PENDING
+      // If already at or beyond READY_FOR_DELIVERY, keep advanced order/pet status while updating documents
+      const nextPetStatus = ['DELIVERED'].includes(order.pet?.status || '')
+        ? order.pet!.status
+        : 'MEDICAL_PENDING';
+      const nextOrderStatus = ['READY_FOR_DELIVERY', 'DELIVERY_COMPLETED'].includes(order.status)
+        ? order.status
+        : 'MEDICAL_CHECK';
+
       await tx.pet.update({
         where: { id: order.petId! },
-        data: { status: 'MEDICAL_PENDING' },
+        data: { status: nextPetStatus as any },
       });
 
       // Automatically advance vendor procurement payout to ELIGIBLE_FOR_PAYOUT once delivered to medical center
@@ -110,8 +118,8 @@ export async function submitPickupInspection(input: SubmitInspectionInput) {
       await tx.order.update({
         where: { id: order.id },
         data: {
-          status: 'MEDICAL_CHECK',
-          petPhotoAtPickup: input.photos?.[0] || null,
+          status: nextOrderStatus,
+          petPhotoAtPickup: input.photos?.[0] || order.petPhotoAtPickup || null,
           ...payoutUpdate,
         },
       });
