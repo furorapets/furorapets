@@ -66,6 +66,17 @@ function createPrismaClient(): PrismaClient {
         .execute(`ALTER TABLE "Pet" ADD COLUMN "microchipNumber" TEXT`)
         .catch(() => {});
 
+      // Self-healing migrations: ensure location & maps columns exist on User table
+      libsql
+        .execute(`ALTER TABLE "User" ADD COLUMN "mapUrl" TEXT`)
+        .catch(() => {});
+      libsql
+        .execute(`ALTER TABLE "User" ADD COLUMN "secondaryAddress" TEXT`)
+        .catch(() => {});
+      libsql
+        .execute(`ALTER TABLE "User" ADD COLUMN "secondaryMapUrl" TEXT`)
+        .catch(() => {});
+
       const adapter = new PrismaLibSQL(libsql);
       return new PrismaClient({
         adapter: adapter as any,

@@ -53,19 +53,38 @@ export async function POST(req: NextRequest) {
       emailQuery === 'admin@furora.com' ||
       emailQuery === 'ganesan@furora.com';
 
-    // Find user by username or email
-    let user = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { username: usernameQuery },
-          { email: emailQuery },
-          ...(isAdminTarget ? [{ id: 'usr_admin' }, { role: 'ADMIN' }] : []),
-          ...(isSalesTarget ? [{ id: 'usr_sales_mwsx7ow1' }, { role: 'SALES' }] : []),
-          ...(isVendorTarget ? [{ id: 'usr_partner_mwsunywy' }, { role: 'VENDOR' }] : []),
-          ...(isAgentTarget ? [{ id: 'usr_agent_delivery' }, { role: 'DELIVERY_AGENT' }] : []),
-        ],
-      },
-    });
+    // Find user by username or email with schema-resilient error handling
+    let user: any = null;
+    try {
+      user = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { username: usernameQuery },
+            { email: emailQuery },
+            ...(isAdminTarget ? [{ id: 'usr_admin' }, { role: 'ADMIN' }] : []),
+            ...(isSalesTarget ? [{ id: 'usr_sales_mwsx7ow1' }, { role: 'SALES' }] : []),
+            ...(isVendorTarget ? [{ id: 'usr_partner_mwsunywy' }, { role: 'VENDOR' }] : []),
+            ...(isAgentTarget ? [{ id: 'usr_agent_delivery' }, { role: 'DELIVERY_AGENT' }] : []),
+          ],
+        },
+      });
+    } catch (findErr: any) {
+      console.warn('[Login] findFirst caught schema warning, falling back to core auth columns:', findErr?.message);
+      try {
+        const rawUsers: any = await prisma.$queryRawUnsafe(
+          `SELECT id, email, username, password, tempPassword, name, role, phone, address, assignedHub, onboardingStatus FROM "User" WHERE LOWER(username) = ? OR LOWER(email) = ? OR (id = 'usr_admin' AND ? = 1) LIMIT 1`,
+          usernameQuery,
+          emailQuery,
+          isAdminTarget ? 1 : 0
+        );
+        if (Array.isArray(rawUsers) && rawUsers.length > 0) {
+          user = rawUsers[0];
+        }
+      } catch (rawErr) {
+        console.error('[Login] Fallback raw query also failed:', rawErr);
+        throw findErr;
+      }
+    }
 
     // Fallbacks and self-healing for required roles
     if (!user && isAdminTarget) {
