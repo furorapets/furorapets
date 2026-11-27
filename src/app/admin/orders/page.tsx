@@ -122,10 +122,16 @@ function OrdersContent() {
   const [createError, setCreateError] = useState('');
 
   // Lock background scrolling whenever any modal popup is open
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
   useBodyScrollLock(Boolean(allocatingOrder || isCreateModalOpen || assigningVendorOrder || assigningAgentOrder || assigningClinicOrder || inspectingOrderDossier || settlingPayoutOrder));
 
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = async (isInitial = false) => {
+    if (isInitial) {
+      setLoading(true);
+    } else {
+      setIsRefreshing(true);
+    }
     try {
       const [ordersRes, catRes, agentsRes, vendorsRes] = await Promise.all([
         fetch('/api/orders'),
@@ -174,34 +180,13 @@ function OrdersContent() {
       console.error(e);
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
   };
 
-  // Track if any modal is currently active to pause background polling
-  const isAnyModalOpen = Boolean(
-    isCreateModalOpen ||
-    assigningVendorOrder ||
-    assigningAgentOrder ||
-    allocatingOrder ||
-    assigningClinicOrder ||
-    inspectingOrderDossier ||
-    settlingPayoutOrder
-  );
-
   useEffect(() => {
-    loadData();
+    loadData(true);
   }, []);
-
-  useEffect(() => {
-    // Pause auto-refresh timer if any modal is open
-    if (isAnyModalOpen) return;
-
-    // Auto-refresh orders every 10 seconds so delivery agent updates show live in real-time
-    const timer = setInterval(() => {
-      loadData();
-    }, 10000);
-    return () => clearInterval(timer);
-  }, [isAnyModalOpen]);
 
   // Update filters if URL parameters change
   useEffect(() => {
@@ -643,6 +628,15 @@ function OrdersContent() {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => loadData(false)}
+            disabled={isRefreshing}
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-50 transition shadow-xs active:scale-95 cursor-pointer disabled:opacity-50"
+            title="Refresh orders list"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span>Refresh</span>
+          </button>
           <button
             onClick={openCreateModal}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition shadow-xs active:scale-95"

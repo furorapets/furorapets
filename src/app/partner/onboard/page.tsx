@@ -90,6 +90,7 @@ export default function PartnerOnboardPage() {
     ethicalDeclaration: false,
     address: '',
     mapUrl: '',
+    hasSecondaryLocation: false,
     secondaryAddress: '',
     secondaryMapUrl: '',
   });
@@ -293,6 +294,11 @@ export default function PartnerOnboardPage() {
           tradeLicenseDoc: data.data.tradeLicenseDoc || '',
           vetAffiliationDoc: data.data.vetAffiliationDoc || '',
           bankDetailsDoc: data.data.bankDetailsDoc || '',
+          address: data.data.address || prev.address || '',
+          mapUrl: data.data.mapUrl || prev.mapUrl || '',
+          hasSecondaryLocation: Boolean(data.data.secondaryAddress || data.data.secondaryMapUrl),
+          secondaryAddress: data.data.secondaryAddress || '',
+          secondaryMapUrl: data.data.secondaryMapUrl || '',
         }));
       }
 
@@ -452,11 +458,11 @@ export default function PartnerOnboardPage() {
           name: registeredVendor?.name || regForm.kennelName,
           email: registeredVendor?.email || regForm.email,
           phone: registeredVendor?.phone || regForm.phone,
-          address: registeredVendor?.address || regForm.address || regForm.city,
+          address: formData.address || registeredVendor?.address || regForm.city,
           city: regForm.city,
-          mapUrl: formData.mapUrl || registeredVendor?.mapUrl || regForm.mapUrl,
-          secondaryAddress: formData.secondaryAddress || registeredVendor?.secondaryAddress || (regForm.hasSecondaryLocation ? regForm.secondaryAddress : ''),
-          secondaryMapUrl: formData.secondaryMapUrl || registeredVendor?.secondaryMapUrl || (regForm.hasSecondaryLocation ? regForm.secondaryMapUrl : ''),
+          mapUrl: formData.mapUrl || registeredVendor?.mapUrl || '',
+          secondaryAddress: formData.hasSecondaryLocation ? (formData.secondaryAddress || registeredVendor?.secondaryAddress || '') : '',
+          secondaryMapUrl: formData.hasSecondaryLocation ? (formData.secondaryMapUrl || registeredVendor?.secondaryMapUrl || '') : '',
           kennelRegNumber: formData.kennelRegNumber,
           kennelRegDoc: formData.kennelRegDoc,
           govIdDoc: formData.govIdDoc,
@@ -720,89 +726,6 @@ export default function PartnerOnboardPage() {
                                 />
                               </div>
                             </div>
-                          </div>
-
-                          <div>
-                            <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                              Detailed Kennel / Facility Address
-                            </label>
-                            <div className="relative">
-                              <Building className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                              <input
-                                type="text"
-                                placeholder="e.g. Survey No. 42, Baner Road, Baner"
-                                value={regForm.address}
-                                onChange={(e) => setRegForm({ ...regForm, address: e.target.value })}
-                                className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-slate-800 text-xs transition"
-                              />
-                            </div>
-                          </div>
-
-                          <div>
-                            <div className="flex items-center justify-between mb-1">
-                              <label className="block text-[11px] font-bold text-slate-700">
-                                Google Maps Location Link (Primary Facility Pin)
-                              </label>
-                              <span className="text-[10px] text-emerald-600 font-semibold">Enables fast agent dispatch 📍</span>
-                            </div>
-                            <div className="relative">
-                              <MapPin className="w-4 h-4 text-emerald-600 absolute left-3 top-1/2 -translate-y-1/2" />
-                              <input
-                                type="url"
-                                placeholder="https://maps.app.goo.gl/... or https://maps.google.com/?q=..."
-                                value={regForm.mapUrl}
-                                onChange={(e) => setRegForm({ ...regForm, mapUrl: e.target.value })}
-                                className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-800 text-xs transition font-mono"
-                              />
-                            </div>
-                            <p className="text-[10px] text-slate-400 mt-1">
-                              Paste your kennel's Google Maps link so delivery agents can drive directly to your location.
-                            </p>
-                          </div>
-
-                          {/* Secondary / Alternative Facility Toggle */}
-                          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
-                            <label
-                              onClick={() => setRegForm({ ...regForm, hasSecondaryLocation: !regForm.hasSecondaryLocation })}
-                              className="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer select-none"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={regForm.hasSecondaryLocation}
-                                onChange={() => {}}
-                                className="rounded border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
-                              />
-                              <span>+ Add Secondary / Alternative Kennel Location (Optional)</span>
-                            </label>
-
-                            {regForm.hasSecondaryLocation && (
-                              <div className="space-y-2 pt-1 animate-fadeIn">
-                                <div>
-                                  <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
-                                    Alternative Facility Address (Branch / Kennel #2)
-                                  </label>
-                                  <input
-                                    type="text"
-                                    placeholder="e.g. Kennel Branch 2, Hinjewadi Phase 3, Pune"
-                                    value={regForm.secondaryAddress}
-                                    onChange={(e) => setRegForm({ ...regForm, secondaryAddress: e.target.value })}
-                                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 bg-white"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
-                                    Secondary Location Google Maps Link
-                                  </label>
-                                  <input
-                                    type="url"
-                                    placeholder="https://maps.app.goo.gl/..."
-                                    value={regForm.secondaryMapUrl}
-                                    onChange={(e) => setRegForm({ ...regForm, secondaryMapUrl: e.target.value })}
-                                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 bg-white font-mono"
-                                  />
-                                </div>
-                              </div>
-                            )}
                           </div>
 
                           <div>
@@ -1364,6 +1287,102 @@ export default function PartnerOnboardPage() {
                   />
                 </div>
 
+                {/* Kennel Facility Address & Google Maps Dispatch Pin */}
+                <div className="pt-3 border-t border-slate-100 space-y-3.5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-xs font-bold text-slate-900">Kennel Facility Address & Google Maps Pin</h3>
+                      <p className="text-[11px] text-slate-500">Provide your detailed physical kennel address and Google Maps pin so agents can drive directly to your location.</p>
+                    </div>
+                    <span className="text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 flex-shrink-0">
+                      Enables Fast Dispatch 📍
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-800 mb-1">
+                      Detailed Kennel / Facility Address
+                    </label>
+                    <div className="relative">
+                      <Building className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        placeholder="e.g. Survey No. 42, Baner Road, Baner"
+                        value={formData.address}
+                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                        className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-xs text-slate-800 transition"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs font-bold text-slate-800">
+                        Google Maps Location Link (Primary Facility Pin)
+                      </label>
+                      <span className="text-[10px] text-emerald-600 font-semibold">Enables fast agent dispatch 📍</span>
+                    </div>
+                    <div className="relative">
+                      <MapPin className="w-4 h-4 text-emerald-600 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="url"
+                        placeholder="https://maps.app.goo.gl/... or https://maps.google.com/?q=..."
+                        value={formData.mapUrl}
+                        onChange={(e) => setFormData({ ...formData, mapUrl: e.target.value })}
+                        className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-800 text-xs transition font-mono"
+                      />
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      Paste your kennel&apos;s Google Maps link so delivery agents can drive directly to your location.
+                    </p>
+                  </div>
+
+                  {/* Secondary / Alternative Facility Toggle */}
+                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
+                    <label
+                      onClick={() => setFormData({ ...formData, hasSecondaryLocation: !formData.hasSecondaryLocation })}
+                      className="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer select-none"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={formData.hasSecondaryLocation}
+                        onChange={() => {}}
+                        className="rounded border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
+                      />
+                      <span>+ Add Secondary / Alternative Kennel Location (Optional)</span>
+                    </label>
+
+                    {formData.hasSecondaryLocation && (
+                      <div className="space-y-2 pt-1 animate-fadeIn">
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
+                            Alternative Facility Address (Branch / Kennel #2)
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Kennel Branch 2, Hinjewadi Phase 3, Pune"
+                            value={formData.secondaryAddress}
+                            onChange={(e) => setFormData({ ...formData, secondaryAddress: e.target.value })}
+                            className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 bg-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
+                            Secondary Google Maps Location Link (Alternative Pin)
+                          </label>
+                          <input
+                            type="url"
+                            placeholder="https://maps.app.goo.gl/..."
+                            value={formData.secondaryMapUrl}
+                            onChange={(e) => setFormData({ ...formData, secondaryMapUrl: e.target.value })}
+                            className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 bg-white font-mono"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 <FileUploadField
                   label="1. Kennel Club / AWBI Registration Certificate (PDF/Image URL)"
                   badge="Accreditation Proof"
@@ -1570,27 +1589,38 @@ export default function PartnerOnboardPage() {
                       <span className="text-slate-800">{registeredVendor?.phone || regForm.phone}</span>
                     </div>
                     <div className="col-span-2 pt-1 border-t border-slate-200/60">
-                      <span className="text-slate-400 block">Facility Address:</span>
-                      <strong className="text-slate-800">{registeredVendor?.address || regForm.address || regForm.city}</strong>
-                      {(registeredVendor?.mapUrl || regForm.mapUrl) && (
-                        <a
-                          href={registeredVendor?.mapUrl || regForm.mapUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-[10px] text-emerald-600 hover:underline font-bold mt-0.5"
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-400 block">Facility Address:</span>
+                        <button
+                          type="button"
+                          onClick={() => setWizardStep(1)}
+                          className="text-[10px] text-blue-600 hover:underline font-bold"
                         >
-                          <MapPin className="w-2.5 h-2.5 text-emerald-600" />
-                          <span>Google Maps Pin 📍</span>
-                        </a>
+                          Edit Location
+                        </button>
+                      </div>
+                      <strong className="text-slate-800">{formData.address || registeredVendor?.address || regForm.city || 'Provided in Step 1'}</strong>
+                      {(formData.mapUrl || registeredVendor?.mapUrl) && (
+                        <div>
+                          <a
+                            href={formData.mapUrl || registeredVendor?.mapUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-[10px] text-emerald-600 hover:underline font-bold mt-0.5"
+                          >
+                            <MapPin className="w-2.5 h-2.5 text-emerald-600" />
+                            <span>Google Maps Pin 📍</span>
+                          </a>
+                        </div>
                       )}
                     </div>
-                    {(registeredVendor?.secondaryAddress || regForm.secondaryAddress) && (
+                    {(formData.secondaryAddress || registeredVendor?.secondaryAddress) && (
                       <div className="col-span-2 pt-1 border-t border-slate-200/60">
                         <span className="text-slate-400 block text-[10px]">Alternative Facility:</span>
-                        <span className="text-slate-800 text-[11px]">{registeredVendor?.secondaryAddress || regForm.secondaryAddress}</span>
-                        {(registeredVendor?.secondaryMapUrl || regForm.secondaryMapUrl) && (
+                        <span className="text-slate-800 text-[11px]">{formData.secondaryAddress || registeredVendor?.secondaryAddress}</span>
+                        {(formData.secondaryMapUrl || registeredVendor?.secondaryMapUrl) && (
                           <a
-                            href={registeredVendor?.secondaryMapUrl || regForm.secondaryMapUrl}
+                            href={formData.secondaryMapUrl || registeredVendor?.secondaryMapUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1 text-[10px] text-sky-600 hover:underline font-bold ml-2"
