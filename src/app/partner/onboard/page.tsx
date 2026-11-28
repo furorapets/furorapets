@@ -528,7 +528,7 @@ export default function PartnerOnboardPage() {
               <img
                 src="/logo.png"
                 alt="Furora"
-                className="h-8 w-auto object-contain transition-transform group-hover:scale-105"
+                className="h-10 w-auto object-contain transition-transform group-hover:scale-105"
               />
             </Link>
             <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">

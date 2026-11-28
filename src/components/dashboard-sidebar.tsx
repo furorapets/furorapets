@@ -115,7 +115,7 @@ export default function DashboardSidebar({
           <img
             src="/logo.png"
             alt="Furora"
-            className="h-8 w-auto object-contain transition-transform group-hover:scale-105"
+            className="h-10 w-auto max-w-[180px] object-contain transition-transform group-hover:scale-105"
           />
         </Link>
 
