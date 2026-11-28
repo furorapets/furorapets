@@ -487,36 +487,53 @@ function OrdersContent() {
     }
   };
 
-  const getOrderStatusBadge = (status: string) => {
+  const getOrderStatusBadge = (status: string, order?: any) => {
+    const isEnRoute =
+      status === 'PICKUP_ASSIGNED' &&
+      order?.estimatedDeliveryTime === 'EN_ROUTE_TO_BREEDER';
+    const isAtKennel =
+      status === 'PICKUP_INSPECTION' ||
+      order?.estimatedDeliveryTime === 'ARRIVED_AT_KENNEL';
+
     const config: Record<string, { dot: string; text: string; bg: string; label?: string }> = {
-      DELIVERY_COMPLETED: { dot: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200' },
-      INSPECTION_PASSED: { dot: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200' },
-      MEDICAL_APPROVED: { dot: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200' },
-      CANCELLED_REFUNDED: { dot: 'bg-rose-500', text: 'text-rose-700', bg: 'bg-rose-50 border-rose-200' },
-      INSPECTION_FAILED: { dot: 'bg-rose-500', text: 'text-rose-700', bg: 'bg-rose-50 border-rose-200' },
-      MEDICAL_FAILED: { dot: 'bg-rose-500', text: 'text-rose-700', bg: 'bg-rose-50 border-rose-200' },
-      VENDOR_REJECTED: { dot: 'bg-rose-500', text: 'text-rose-700', bg: 'bg-rose-50 border-rose-200' },
-      ORDER_RECEIVED: { dot: 'bg-amber-500', text: 'text-amber-700', bg: 'bg-amber-50 border-amber-200' },
-      PICKUP_ASSIGNED: { dot: 'bg-amber-500', text: 'text-amber-700', bg: 'bg-amber-50 border-amber-200' },
-      PICKUP_INSPECTION: { dot: 'bg-purple-500', text: 'text-purple-700', bg: 'bg-purple-50 border-purple-200' },
-      PICKUP_ACCEPTED: { dot: 'bg-purple-500', text: 'text-purple-700', bg: 'bg-purple-50 border-purple-200' },
-      PICKUP_INSPECTION_PENDING: { dot: 'bg-amber-500', text: 'text-amber-700', bg: 'bg-amber-50 border-amber-200' },
-      MEDICAL_PENDING: { dot: 'bg-amber-500', text: 'text-amber-700', bg: 'bg-amber-50 border-amber-200' },
-      MEDICAL_CHECK: { dot: 'bg-amber-500', text: 'text-amber-700', bg: 'bg-amber-50 border-amber-200' },
-      CHANGES_REQUESTED: { dot: 'bg-amber-500', text: 'text-amber-700', bg: 'bg-amber-50 border-amber-200' },
-      PET_ASSIGNED: { dot: 'bg-blue-500', text: 'text-blue-700', bg: 'bg-blue-50 border-blue-200' },
-      IN_TRANSIT: { dot: 'bg-blue-500', text: 'text-blue-700', bg: 'bg-blue-50 border-blue-200' },
-      READY_FOR_DELIVERY: { dot: 'bg-sky-500', text: 'text-sky-700', bg: 'bg-sky-50 border-sky-200' },
-      VENDOR_ASSIGNED: { dot: 'bg-indigo-500', text: 'text-indigo-700', bg: 'bg-indigo-50 border-indigo-200' },
-      VENDOR_ACCEPTED: { dot: 'bg-indigo-500', text: 'text-indigo-700', bg: 'bg-indigo-50 border-indigo-200' },
+      DELIVERY_COMPLETED: { dot: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200', label: 'DELIVERY COMPLETED' },
+      INSPECTION_PASSED: { dot: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200', label: 'INSPECTION PASSED' },
+      MEDICAL_APPROVED: { dot: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200', label: 'MEDICAL APPROVED' },
+      CANCELLED_REFUNDED: { dot: 'bg-rose-500', text: 'text-rose-700', bg: 'bg-rose-50 border-rose-200', label: 'CANCELLED REFUNDED' },
+      INSPECTION_FAILED: { dot: 'bg-rose-500', text: 'text-rose-700', bg: 'bg-rose-50 border-rose-200', label: 'INSPECTION FAILED' },
+      MEDICAL_FAILED: { dot: 'bg-rose-500', text: 'text-rose-700', bg: 'bg-rose-50 border-rose-200', label: 'MEDICAL FAILED' },
+      VENDOR_REJECTED: { dot: 'bg-rose-500', text: 'text-rose-700', bg: 'bg-rose-50 border-rose-200', label: 'VENDOR REJECTED' },
+      ORDER_RECEIVED: { dot: 'bg-amber-500', text: 'text-amber-700', bg: 'bg-amber-50 border-amber-200', label: 'ORDER RECEIVED' },
+      PICKUP_ASSIGNED: {
+        dot: isEnRoute ? 'bg-amber-600 animate-pulse' : 'bg-amber-500',
+        text: 'text-amber-800',
+        bg: 'bg-amber-50 border-amber-200',
+        label: isEnRoute ? 'ACCEPTED (EN ROUTE)' : 'PICKUP ASSIGNED',
+      },
+      PICKUP_INSPECTION: {
+        dot: 'bg-purple-500',
+        text: 'text-purple-700',
+        bg: 'bg-purple-50 border-purple-200',
+        label: isAtKennel ? 'AT VENDOR (INSPECTION)' : 'PICKUP INSPECTION',
+      },
+      PICKUP_ACCEPTED: { dot: 'bg-purple-500', text: 'text-purple-700', bg: 'bg-purple-50 border-purple-200', label: 'PICKUP ACCEPTED' },
+      PICKUP_INSPECTION_PENDING: { dot: 'bg-amber-500', text: 'text-amber-700', bg: 'bg-amber-50 border-amber-200', label: 'PICKUP INSPECTION PENDING' },
+      MEDICAL_PENDING: { dot: 'bg-amber-500', text: 'text-amber-700', bg: 'bg-amber-50 border-amber-200', label: 'MEDICAL PENDING' },
+      MEDICAL_CHECK: { dot: 'bg-indigo-500', text: 'text-indigo-700', bg: 'bg-indigo-50 border-indigo-200', label: 'MEDICAL CHECK (AT CLINIC)' },
+      CHANGES_REQUESTED: { dot: 'bg-amber-500', text: 'text-amber-700', bg: 'bg-amber-50 border-amber-200', label: 'CHANGES REQUESTED' },
+      PET_ASSIGNED: { dot: 'bg-blue-500', text: 'text-blue-700', bg: 'bg-blue-50 border-blue-200', label: 'PET ASSIGNED' },
+      IN_TRANSIT: { dot: 'bg-blue-500', text: 'text-blue-700', bg: 'bg-blue-50 border-blue-200', label: 'IN TRANSIT' },
+      READY_FOR_DELIVERY: { dot: 'bg-sky-500', text: 'text-sky-700', bg: 'bg-sky-50 border-sky-200', label: 'READY FOR DELIVERY' },
+      VENDOR_ASSIGNED: { dot: 'bg-indigo-500', text: 'text-indigo-700', bg: 'bg-indigo-50 border-indigo-200', label: 'VENDOR ASSIGNED' },
+      VENDOR_ACCEPTED: { dot: 'bg-indigo-500', text: 'text-indigo-700', bg: 'bg-indigo-50 border-indigo-200', label: 'VENDOR ACCEPTED' },
     };
 
-    const cfg = config[status] || { dot: 'bg-slate-400', text: 'text-slate-700', bg: 'bg-slate-100 border-slate-200' };
+    const cfg = config[status] || { dot: 'bg-slate-400', text: 'text-slate-700', bg: 'bg-slate-100 border-slate-200', label: status.replace(/_/g, ' ') };
 
     return (
       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold border whitespace-nowrap shadow-xs ${cfg.bg} ${cfg.text}`}>
         <span className={`w-1.5 h-1.5 rounded-full mr-1.5 flex-shrink-0 ${cfg.dot}`}></span>
-        {status.replace(/_/g, ' ')}
+        {cfg.label || status.replace(/_/g, ' ')}
       </span>
     );
   };
@@ -945,7 +962,7 @@ function OrdersContent() {
 
                     {/* Status Badge */}
                     <td className="py-3 px-4 whitespace-nowrap text-center">
-                      {getOrderStatusBadge(o.status)}
+                      {getOrderStatusBadge(o.status, o)}
                     </td>
 
                     {/* Dispatch Action - State-Aware Clean Buttons */}
@@ -1830,7 +1847,7 @@ function OrdersContent() {
                     <h3 className="text-base font-extrabold text-slate-900 font-mono tracking-tight">
                       {inspectingOrderDossier.orderId}
                     </h3>
-                    <span className="text-xs">{getOrderStatusBadge(inspectingOrderDossier.status)}</span>
+                    <span className="text-xs">{getOrderStatusBadge(inspectingOrderDossier.status, inspectingOrderDossier)}</span>
                   </div>
                   <p className="text-[11px] text-slate-500 font-medium mt-0.5">
                     End-to-End Companion Order Provenance & Physical Custody Dossier

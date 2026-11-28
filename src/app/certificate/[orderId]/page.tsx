@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { Award, Printer, CheckCircle2, QrCode, ArrowLeft, ShieldCheck, Stethoscope } from 'lucide-react';
+import { Award, Printer, CheckCircle2, QrCode, ArrowLeft, ShieldCheck, Stethoscope, Camera } from 'lucide-react';
 import Link from 'next/link';
 
 // Guilloche Security Corner Ornament
@@ -417,7 +417,7 @@ export default function PetCertificatePage() {
     pet.photos?.[0] ||
     order.petPhotoAtPickup ||
     order.liveTracking?.checkpoints?.kennel?.petPhotoUrl ||
-    'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=800&q=80';
+    '';
 
   // QR Code & Provenance Verification
   const qrCodeUrl = certificateData.qrCodeUrl || order.certificate?.qrCodeUrl;
@@ -566,11 +566,18 @@ export default function PetCertificatePage() {
                 {/* Left Column (5 Cols): High Resolution Pet Photo & Microchip Barcode */}
                 <div className="col-span-5 flex flex-col justify-between space-y-2">
                   <div className="w-full aspect-[4/3] rounded-lg overflow-hidden border-2 border-[#D4AF37] relative shadow-2xs bg-slate-100">
-                    <img
-                      src={petPhoto}
-                      alt={petBreed}
-                      className="w-full h-full object-cover object-center"
-                    />
+                    {petPhoto ? (
+                      <img
+                        src={petPhoto}
+                        alt={petBreed}
+                        className="w-full h-full object-cover object-center"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 text-slate-400">
+                        <Camera className="w-8 h-8 text-slate-300" />
+                        <span className="text-[9px] font-bold mt-1 text-slate-400">Biometric Photo Pending</span>
+                      </div>
+                    )}
                     <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-slate-950/85 via-slate-950/50 to-transparent p-1 text-center">
                       <span className="text-[8px] uppercase tracking-widest text-[#FDE68A] font-extrabold">
                         High-Resolution Biometric Identification

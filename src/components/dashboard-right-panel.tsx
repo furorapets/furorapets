@@ -78,20 +78,8 @@ export default function DashboardRightPanel({ currentUser }: DashboardRightPanel
         <div className="card-clean p-5 text-center relative overflow-hidden">
           {/* Avatar with live status dot */}
           <div className="relative inline-block mx-auto mb-3">
-            <div className="w-16 h-16 rounded-full p-0.5 border-2 border-slate-200 shadow-sm">
-              <img
-                src={
-                  currentUser?.role === 'CUSTOMER'
-                    ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'
-                    : currentUser?.role === 'DELIVERY_AGENT'
-                    ? 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80'
-                    : currentUser?.role === 'VENDOR'
-                    ? 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80'
-                    : 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80'
-                }
-                alt="Avatar"
-                className="w-full h-full rounded-full object-cover"
-              />
+            <div className="w-16 h-16 rounded-full border-2 border-slate-200 shadow-sm bg-slate-900 text-white flex items-center justify-center font-bold text-xl uppercase select-none">
+              {currentUser?.name?.charAt(0) || 'U'}
             </div>
             <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white"></span>
           </div>

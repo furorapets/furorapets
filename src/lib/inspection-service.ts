@@ -55,6 +55,17 @@ export async function submitPickupInspection(input: SubmitInspectionInput) {
 
     // 2. Attach any collected vendor compliance documents (Vaccination, Deworming, Pedigree)
     if (input.documents && input.documents.length > 0) {
+      // First, delete existing documents of matching types for this order to prevent duplicate rows on resubmission
+      const docTypesToReplace = input.documents.map((d) => d.type).filter(Boolean);
+      if (docTypesToReplace.length > 0) {
+        await tx.document.deleteMany({
+          where: {
+            orderId: order.id,
+            type: { in: docTypesToReplace },
+          },
+        });
+      }
+
       for (const doc of input.documents) {
         if (!doc.fileUrl) continue;
         await tx.document.create({
@@ -73,6 +84,12 @@ export async function submitPickupInspection(input: SubmitInspectionInput) {
 
     // 3. Register pickup photo as a document if present
     if (input.photos && input.photos.length > 0) {
+      await tx.document.deleteMany({
+        where: {
+          orderId: order.id,
+          type: 'PET_PICKUP_PHOTO',
+        },
+      });
       await tx.document.create({
         data: {
           orderId: order.id,

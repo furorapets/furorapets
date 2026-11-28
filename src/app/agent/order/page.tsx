@@ -31,6 +31,7 @@ import {
   Info,
   RefreshCw,
   Copy,
+  RotateCcw,
 } from 'lucide-react';
 import { useSession } from '@/context/session-context';
 import { useSearchParams } from 'next/navigation';
@@ -391,8 +392,8 @@ function AgentDocumentUpload({
   const isImageFile =
     value &&
     (value.match(/\.(jpeg|jpg|png|webp|gif)($|\?)/i) ||
-      value.includes('unsplash.com') ||
-      value.includes('images'));
+      value.includes('images') ||
+      value.includes('r2.'));
 
   return (
     <div className="space-y-1.5 text-xs">
@@ -718,12 +719,12 @@ function AgentOrderWorkflowContent() {
       if (Array.isArray(latestInsp.photos) && latestInsp.photos.length > 0 && !order?.petPhotoAtPickup) {
         setPickupPhotoUrl(latestInsp.photos[0]);
       }
-      // Populate checklist if saved
-      const allChecked: Record<number, boolean> = {};
+      // Always initialize all 10 checklist points to UNCHECKED (false) by default per operational mandate so agent manually inspects each item
+      const allUnchecked: Record<number, boolean> = {};
       INSPECTION_POINTS.forEach((_, idx) => {
-        allChecked[idx] = true;
+        allUnchecked[idx] = false;
       });
-      setChecklist(allChecked);
+      setChecklist(allUnchecked);
     } else {
       setPhysicalCondition('');
       setPickupNotes('');
@@ -1768,9 +1769,28 @@ function AgentOrderWorkflowContent() {
                       <FileCheck2 className="w-4 h-4 text-indigo-600" />
                       Breeder Kennel Compliance Documents & Pickup Proof Upload
                     </span>
-                    <span className="text-[10px] font-semibold text-slate-400">
-                      Direct streaming to Cloudflare R2
-                    </span>
+                    <div className="flex items-center gap-3">
+                      {(pickupPhotoUrl || vaccinationCardUrl || dewormingRecordUrl || pedigreeDocUrl) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPickupPhotoUrl('');
+                            setVaccinationCardUrl('');
+                            setVaccinationCardName('');
+                            setDewormingRecordUrl('');
+                            setDewormingRecordName('');
+                            setPedigreeDocUrl('');
+                            setPedigreeDocName('');
+                          }}
+                          className="text-[11px] font-bold text-rose-600 hover:text-rose-700 hover:underline flex items-center gap-1 cursor-pointer"
+                        >
+                          <RotateCcw className="w-3 h-3" /> Clear Uploads
+                        </button>
+                      )}
+                      <span className="text-[10px] font-semibold text-slate-400">
+                        Direct streaming to Cloudflare R2
+                      </span>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">

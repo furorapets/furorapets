@@ -1134,8 +1134,6 @@ function VendorOrdersContent() {
                   value={vaccinationCardUrl}
                   onChange={setVaccinationCardUrl}
                   folder="vendor/orders"
-                  sampleUrl="https://images.unsplash.com/photo-1576765608535-5f04d1e3f289?auto=format&fit=crop&w=800&q=80"
-                  sampleName="Puppy-Vaccination-Card-Sample.jpg"
                   disabled={isSubmittingAccept}
                 />
 
@@ -1145,8 +1143,6 @@ function VendorOrdersContent() {
                   value={dewormingRecordUrl}
                   onChange={setDewormingRecordUrl}
                   folder="vendor/orders"
-                  sampleUrl="https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=800&q=80"
-                  sampleName="Deworming-Pedigree-Sample.jpg"
                   disabled={isSubmittingAccept}
                 />
               </div>

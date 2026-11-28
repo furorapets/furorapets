@@ -229,20 +229,6 @@ function DeliveryPhotoUpload({
             <span className="text-slate-500 font-normal text-xs">or drag and drop</span>
           </div>
           <p className="text-[10px] text-slate-400">JPG, PNG, WEBP (Auto-compressed, Max 15MB)</p>
-
-          <div className="pt-1 flex items-center justify-center">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onChange('https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=800&q=80');
-              }}
-              className="inline-flex items-center gap-1 text-[10px] font-semibold text-purple-700 hover:text-purple-900 hover:underline px-2 py-0.5 rounded transition"
-            >
-              <Sparkles className="w-2.5 h-2.5 text-purple-600" />
-              <span>Click to use sample handover photo</span>
-            </button>
-          </div>
         </div>
       )}
 
@@ -326,16 +312,16 @@ function CustomersContent() {
   const [progressiveForm, setProgressiveForm] = useState({
     inspectionCondition: '10/10 Physical criteria passed. Healthy coat, clear eyes, energetic posture.',
     inspectionNotes: 'Breeder kennel verified. Pet verified against digital identity.',
-    inspectionPhoto: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=800&q=80',
+    inspectionPhoto: '',
     medicalHospital: 'Furora Veterinary Specialty Hospital & Diagnostics',
-    medicalDocUrl: 'https://furora-docs.storage/medical/vet-health-clearance-cert.pdf',
-    medicalDocName: 'Certified Veterinary Health & Wellness Report.pdf',
-    vaccinationDocUrl: 'https://furora-docs.storage/medical/complete-immunization-card.pdf',
-    vaccinationDocName: 'Official Immunization & Vaccination Record.pdf',
-    deliveryPhoto: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=800&q=80',
-    deliveryCustId: 'GOV-ID-AADHAAR-88992211',
-    deliverySignedReport: 'https://furora-docs.storage/delivery/signed-handover-pod.pdf',
-    deliveryAck: 'Customer confirms handover receipt of companion animal in optimal condition.',
+    medicalDocUrl: '',
+    medicalDocName: '',
+    vaccinationDocUrl: '',
+    vaccinationDocName: '',
+    deliveryPhoto: '',
+    deliveryCustId: '',
+    deliverySignedReport: '',
+    deliveryAck: '',
   });
   const [progressiveSubmitting, setProgressiveSubmitting] = useState(false);
   const [progressiveSuccess, setProgressiveSuccess] = useState('');
@@ -554,7 +540,7 @@ function CustomersContent() {
     setProgressiveForm({
       inspectionCondition: '10/10 Physical criteria passed. Healthy coat, clear eyes, energetic posture.',
       inspectionNotes: 'Breeder kennel verified. Pet verified against digital identity.',
-      inspectionPhoto: order.petPhotoAtPickup || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=800&q=80',
+      inspectionPhoto: order.petPhotoAtPickup || '',
       medicalHospital: order.vetClinicName || 'Furora Veterinary Specialty Hospital & Diagnostics',
       medicalDocUrl: medDoc?.fileUrl || order.medicalCertUrl || '',
       medicalDocName: medDoc?.fileName || (order.medicalCertUrl ? 'Certified Veterinary Health & Wellness Report.pdf' : ''),

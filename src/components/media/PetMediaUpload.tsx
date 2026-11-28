@@ -12,7 +12,6 @@ import {
   Sparkles,
   Film,
   Plus,
-  Link as LinkIcon,
   CheckCircle2,
 } from 'lucide-react';
 
@@ -52,12 +51,6 @@ export default function PetMediaUpload({
   const [uploadProgressText, setUploadProgressText] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [isDraggingPhoto, setIsDraggingPhoto] = useState(false);
-
-  // Fallback direct URL inputs
-  const [showUrlInput, setShowUrlInput] = useState(false);
-  const [manualPhotoUrl, setManualPhotoUrl] = useState('');
-  const [showVideoInput, setShowVideoInput] = useState(false);
-  const [manualVideoUrl, setManualVideoUrl] = useState('');
 
   const photoInputRef = useRef<HTMLInputElement | null>(null);
   const videoInputRef = useRef<HTMLInputElement | null>(null);
@@ -176,22 +169,6 @@ export default function PetMediaUpload({
     onVideosChange(updated);
   };
 
-  const addManualPhotoUrl = () => {
-    const trimmed = manualPhotoUrl.trim();
-    if (!trimmed) return;
-    onPhotosChange([...photoList, trimmed]);
-    setManualPhotoUrl('');
-    setShowUrlInput(false);
-  };
-
-  const addManualVideoUrl = () => {
-    const trimmed = manualVideoUrl.trim();
-    if (!trimmed || !onVideosChange) return;
-    onVideosChange([...videoList, trimmed]);
-    setManualVideoUrl('');
-    setShowVideoInput(false);
-  };
-
   return (
     <div className="space-y-4">
       {/* PHOTOS SECTION */}
@@ -201,38 +178,10 @@ export default function PetMediaUpload({
             <ImageIcon className="w-4 h-4 text-slate-700" />
             <span>Pet Photos</span>
             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
-              High Resolution
+              High Resolution (Direct R2 Upload)
             </span>
           </label>
-          <button
-            type="button"
-            onClick={() => setShowUrlInput(!showUrlInput)}
-            className="text-[11px] font-medium text-slate-500 hover:text-slate-800 transition flex items-center gap-1"
-          >
-            <LinkIcon className="w-3 h-3" />
-            {showUrlInput ? 'Hide URL Input' : 'Or paste URL'}
-          </button>
         </div>
-
-        {/* Optional Manual URL Input */}
-        {showUrlInput && (
-          <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center gap-2">
-            <input
-              type="url"
-              placeholder="https://images.example.com/pet-photo.jpg"
-              value={manualPhotoUrl}
-              onChange={(e) => setManualPhotoUrl(e.target.value)}
-              className="flex-1 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900"
-            />
-            <button
-              type="button"
-              onClick={addManualPhotoUrl}
-              className="px-3 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-bold hover:bg-slate-800 transition shrink-0"
-            >
-              Add Link
-            </button>
-          </div>
-        )}
 
         {/* Multi-Photo Dropzone */}
         <div
@@ -378,37 +327,9 @@ export default function PetMediaUpload({
           <div className="flex items-center justify-between">
             <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
               <Video className="w-4 h-4 text-slate-700" />
-              <span>Pet Videos (Direct Upload or Video URL)</span>
+              <span>Pet Videos (Direct R2 Upload)</span>
             </label>
-            <button
-              type="button"
-              onClick={() => setShowVideoInput(!showVideoInput)}
-              className="text-[11px] font-medium text-slate-500 hover:text-slate-800 transition flex items-center gap-1"
-            >
-              <LinkIcon className="w-3 h-3" />
-              {showVideoInput ? 'Hide URL Input' : 'Or paste video link'}
-            </button>
           </div>
-
-          {/* Optional Video URL Input */}
-          {showVideoInput && (
-            <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center gap-2">
-              <input
-                type="url"
-                placeholder="https://example.com/pet-video.mp4 or YouTube / Vimeo link"
-                value={manualVideoUrl}
-                onChange={(e) => setManualVideoUrl(e.target.value)}
-                className="flex-1 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900"
-              />
-              <button
-                type="button"
-                onClick={addManualVideoUrl}
-                className="px-3 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-bold hover:bg-slate-800 transition shrink-0"
-              >
-                Add Video
-              </button>
-            </div>
-          )}
 
           {/* Upload Video Button */}
           <div className="flex items-center gap-3">

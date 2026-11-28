@@ -44,8 +44,18 @@ export async function submitMedicalExamination(input: SubmitMedicalInput) {
       },
     });
 
-    // 2. Attach any uploaded documents with their visibility tags
+    // 2. Attach any uploaded documents with their visibility tags (deleting prior versions to prevent duplicates)
     if (input.documents && input.documents.length > 0) {
+      const medDocTypes = input.documents.map((d) => d.type).filter(Boolean);
+      if (medDocTypes.length > 0) {
+        await tx.document.deleteMany({
+          where: {
+            orderId: order.id,
+            type: { in: medDocTypes },
+          },
+        });
+      }
+
       for (const doc of input.documents) {
         await tx.document.create({
           data: {

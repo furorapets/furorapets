@@ -276,17 +276,6 @@ export default function FileUploadField({
             <span className="text-slate-500 font-normal text-xs">or drag and drop</span>
           </div>
           <p className="text-[10px] text-slate-400">PDF, JPG, PNG or WEBP (Max 15MB)</p>
-
-          <div className="pt-1 flex items-center justify-center">
-            <button
-              type="button"
-              onClick={handleUseSample}
-              className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 hover:text-amber-900 hover:underline px-2 py-0.5 rounded transition"
-            >
-              <Sparkles className="w-2.5 h-2.5 text-amber-600" />
-              <span>Click here to use sample PDF</span>
-            </button>
-          </div>
         </div>
       )}
 

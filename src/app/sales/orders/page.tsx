@@ -248,7 +248,7 @@ function SalesOrdersContent() {
         }
       }
     }
-    return 'https://images.unsplash.com/photo-1548767797-d8c844163c4c?auto=format&fit=crop&w=400&q=80';
+    return '';
   };
 
   return (

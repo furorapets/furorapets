@@ -202,7 +202,7 @@ export async function GET(req: NextRequest, { params }: { params: { orderId: str
       etaText = 'Completed Handover';
     }
 
-    const pickupPhoto = order.petPhotoAtPickup || (processedInspections[0]?.photos?.[0]) || (photos[0] || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=800&q=80');
+    const pickupPhoto = order.petPhotoAtPickup || (processedInspections[0]?.photos?.[0]) || (photos[0] || '');
 
     const liveTracking = {
       currentMilestone, // 0 = Order Confirmed, 1 = Kennel Pickup, 2 = Medical Check, 3 = Out for Delivery, 4 = Delivered
@@ -217,7 +217,7 @@ export async function GET(req: NextRequest, { params }: { params: { orderId: str
         rating: '4.95 ★ (140+ Safe Deliveries)',
         vehicle: 'Climate-Controlled Sanitized Pet Transit Van',
         vehicleNumber: 'DL-04-AB-1234',
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
+        avatar: '',
         safetyBadges: ['GPS Live Tracked', 'Certified Pet First Responder', 'Hydration Regulated'],
       },
       checkpoints: {
@@ -235,7 +235,7 @@ export async function GET(req: NextRequest, { params }: { params: { orderId: str
           clinicName: order.vetClinicName || 'Crown Vet Specialty Animal Hospital & Diagnostics',
           doctorName: order.vetDoctorName || 'Dr. Aditi Mukherjee, BVSc & AH (Reg #VCI-2018-9941)',
           completed: currentMilestone >= 3,
-          medicalCertUrl: order.medicalCertUrl || 'https://images.unsplash.com/photo-1576765608535-5f04d1e3f289?auto=format&fit=crop&w=800&q=80',
+          medicalCertUrl: order.medicalCertUrl || '',
           tests: [
             { name: 'Canine / Feline Parvovirus Antigen', result: 'NEGATIVE', verified: true },
             { name: 'Canine Distemper Virus (CDV) Screen', result: 'NEGATIVE', verified: true },
