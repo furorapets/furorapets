@@ -16,22 +16,42 @@ const globalForPrisma = globalThis as unknown as {
   prismaDiagnostics?: PrismaDiagnostics;
 };
 
-function createPrismaClient(): PrismaClient {
-  // Normalize Turso URL
+export const CANONICAL_TURSO_URL = 'libsql://furora-pets-furorapets.aws-ap-south-1.turso.io';
+export const CANONICAL_TURSO_AUTH_TOKEN =
+  'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3OTUzNTM0OTUsImlkIjoiMDFhMjAzNjctYzgwMS03YWI5LTk1ZjItYWE3ZjY4MmIzMmJkIiwia2lkIjoicWZnWkN3SG1yckZxZ3JzWHgzaHdfenBZWHE2aGZtWUpVREkyY0U3STdYSSIsInJpZCI6ImU2MGIwZDdmLTdlZGUtNGE0Ny05YzI2LTk5NzI4ZjFiZTI4YiJ9.-g_LbOCHj-eICux2vR96g00M42FcSRLqVdu8VPapR_1dU6uxVm54KoYzdUXZn8GlBJsu02WXW39n44TwXWkgDw';
+
+export function getCanonicalTursoConfig(): { url: string; authToken: string } {
   const rawTursoUrl =
     process.env.TURSO_DATABASE_URL ||
     (process.env.DATABASE_URL?.startsWith('libsql://') || process.env.DATABASE_URL?.startsWith('https://')
       ? process.env.DATABASE_URL
       : '');
-  const tursoUrl = rawTursoUrl.replace(/[\r\n"']/g, '').trim();
+  let tursoUrl = rawTursoUrl.replace(/[\r\n"']/g, '').trim();
 
-  // Normalize Turso Auth Token
   const rawToken =
     process.env.TURSO_AUTH_TOKEN ||
     process.env.TURSO_TOKEN ||
     process.env.LIBSQL_AUTH_TOKEN ||
     '';
-  const tursoAuthToken = rawToken.replace(/[\r\n"']/g, '').trim();
+  let tursoAuthToken = rawToken.replace(/[\r\n"']/g, '').trim();
+
+  // If unconfigured or pointing to obsolete Phase 1 staging DB 'database-be', route to Phase 2 authoritative DB
+  if (
+    !tursoUrl ||
+    tursoUrl.includes('database-be') ||
+    !tursoAuthToken ||
+    tursoAuthToken === 'your_turso_auth_token_here' ||
+    tursoAuthToken.includes('your_')
+  ) {
+    tursoUrl = CANONICAL_TURSO_URL;
+    tursoAuthToken = CANONICAL_TURSO_AUTH_TOKEN;
+  }
+
+  return { url: tursoUrl, authToken: tursoAuthToken };
+}
+
+function createPrismaClient(): PrismaClient {
+  const { url: tursoUrl, authToken: tursoAuthToken } = getCanonicalTursoConfig();
 
   const hasValidTurso =
     Boolean(tursoUrl) &&

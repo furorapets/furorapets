@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma, getPrismaDiagnostics } from '@/lib/prisma';
+import { prisma, getPrismaDiagnostics, getCanonicalTursoConfig } from '@/lib/prisma';
 import { isR2Configured } from '@/lib/r2';
 import { isEmailConfigured } from '@/lib/email';
 import { createClient } from '@libsql/client';
@@ -9,19 +9,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const rawTursoUrl =
-      process.env.TURSO_DATABASE_URL ||
-      (process.env.DATABASE_URL?.startsWith('libsql://') || process.env.DATABASE_URL?.startsWith('https://')
-        ? process.env.DATABASE_URL
-        : '');
-    const tursoUrl = rawTursoUrl.replace(/[\r\n"']/g, '').trim();
-
-    const rawToken =
-      process.env.TURSO_AUTH_TOKEN ||
-      process.env.TURSO_TOKEN ||
-      process.env.LIBSQL_AUTH_TOKEN ||
-      '';
-    const tursoAuthToken = rawToken.replace(/[\r\n"']/g, '').trim();
+    const { url: tursoUrl, authToken: tursoAuthToken } = getCanonicalTursoConfig();
 
     const hasValidTurso =
       Boolean(tursoUrl) &&
@@ -156,19 +144,7 @@ export async function GET() {
 
 export async function POST() {
   try {
-    const rawTursoUrl =
-      process.env.TURSO_DATABASE_URL ||
-      (process.env.DATABASE_URL?.startsWith('libsql://') || process.env.DATABASE_URL?.startsWith('https://')
-        ? process.env.DATABASE_URL
-        : '');
-    const tursoUrl = rawTursoUrl.replace(/[\r\n"']/g, '').trim();
-
-    const rawToken =
-      process.env.TURSO_AUTH_TOKEN ||
-      process.env.TURSO_TOKEN ||
-      process.env.LIBSQL_AUTH_TOKEN ||
-      '';
-    const tursoAuthToken = rawToken.replace(/[\r\n"']/g, '').trim();
+    const { url: tursoUrl, authToken: tursoAuthToken } = getCanonicalTursoConfig();
 
     if (!tursoUrl || !tursoAuthToken) {
       return NextResponse.json(
