@@ -36,6 +36,9 @@ import {
   Check,
   DollarSign,
   CreditCard,
+  Building2,
+  Copy,
+  ShieldCheck,
 } from 'lucide-react';
 import { useSession } from '@/context/session-context';
 import PetPicker from '@/components/PetPicker';
@@ -93,6 +96,14 @@ function OrdersContent() {
   const [payoutMode, setPayoutMode] = useState<'RECORD_UTR' | 'RAZORPAY_CHECKOUT'>('RECORD_UTR');
   const [payoutSubmitting, setPayoutSubmitting] = useState(false);
   const [payoutError, setPayoutError] = useState('');
+  const [copiedBankField, setCopiedBankField] = useState<string | null>(null);
+
+  const handleCopyBankDetail = (text: string, fieldKey: string) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setCopiedBankField(fieldKey);
+    setTimeout(() => setCopiedBankField(null), 2500);
+  };
   const [createVendorId, setCreateVendorId] = useState('');
   const [createProcurementCost, setCreateProcurementCost] = useState('');
 
@@ -439,7 +450,12 @@ function OrdersContent() {
     setPayoutError('');
 
     try {
-      const finalRef = payoutRefInput.trim() || `RZP_PO_${Date.now()}`;
+      const finalRef = payoutRefInput.trim();
+      if (!finalRef) {
+        setPayoutError('Please enter the Bank UTR reference or Razorpay Payment ID from your netbanking or Razorpay receipt');
+        setPayoutSubmitting(false);
+        return;
+      }
       const res = await fetch(`/api/orders/${settlingPayoutOrder.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -2314,34 +2330,120 @@ function OrdersContent() {
               </div>
             )}
 
-            {/* Vendor & Bank Details Card */}
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2 text-xs">
-              <div className="flex items-center justify-between font-bold text-slate-900">
-                <span className="flex items-center gap-1.5">
-                  <Store className="w-3.5 h-3.5 text-indigo-600" />
-                  <span>{settlingPayoutOrder.vendor?.name || 'Assigned Vendor Kennel'}</span>
+            {/* Vendor Beneficiary Bank Details Card with One-Click Copy */}
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-50/70 via-white to-blue-50/60 border border-indigo-200/80 space-y-3 text-xs shadow-xs">
+              <div className="flex items-center justify-between font-bold text-slate-900 border-b border-indigo-100 pb-2.5">
+                <span className="flex items-center gap-1.5 text-indigo-950">
+                  <Building2 className="w-4 h-4 text-indigo-600" />
+                  <span className="font-extrabold">Vendor Beneficiary Bank Account</span>
                 </span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-extrabold">
-                  Medical Milestone Reached
+                <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-extrabold flex items-center gap-1">
+                  <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                  Onboarding Verified
                 </span>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-600 pt-1">
-                <div>
-                  <span className="text-slate-400 block text-[10px]">Contact Person:</span>
-                  <strong>{settlingPayoutOrder.vendor?.name?.split('(')[1]?.replace(')', '') || settlingPayoutOrder.vendor?.name}</strong>
+
+              {/* Grid of Bank Details with One-Click Copy Buttons */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {/* 1. Beneficiary Name */}
+                <div className="p-2.5 rounded-xl bg-white border border-slate-200/80 flex items-center justify-between shadow-2xs">
+                  <div className="min-w-0 pr-2">
+                    <span className="text-[10px] font-bold uppercase text-slate-400 block tracking-wider">Beneficiary Name</span>
+                    <span className="font-bold text-slate-900 text-xs truncate block" title={settlingPayoutOrder.vendor?.bankAccountName || settlingPayoutOrder.vendor?.name}>
+                      {settlingPayoutOrder.vendor?.bankAccountName || settlingPayoutOrder.vendor?.name || 'Partner On File'}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyBankDetail(settlingPayoutOrder.vendor?.bankAccountName || settlingPayoutOrder.vendor?.name || '', 'name')}
+                    className="px-2 py-1 rounded-lg text-[10px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition flex items-center gap-1 cursor-pointer shrink-0"
+                    title="Copy Beneficiary Name"
+                  >
+                    {copiedBankField === 'name' ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3 text-slate-500" />}
+                    <span>{copiedBankField === 'name' ? 'Copied' : 'Copy'}</span>
+                  </button>
                 </div>
-                <div>
-                  <span className="text-slate-400 block text-[10px]">Contact Phone:</span>
-                  <strong className="font-mono">{settlingPayoutOrder.vendor?.phone || 'On file'}</strong>
+
+                {/* 2. Bank Name */}
+                <div className="p-2.5 rounded-xl bg-white border border-slate-200/80 shadow-2xs">
+                  <span className="text-[10px] font-bold uppercase text-slate-400 block tracking-wider">Bank Name</span>
+                  <span className="font-bold text-slate-900 text-xs">
+                    {settlingPayoutOrder.vendor?.bankName || (settlingPayoutOrder.vendor?.bankDetailsDoc ? 'Check Uploaded Document' : 'Pending Verification')}
+                  </span>
+                </div>
+
+                {/* 3. Bank Account Number with One-Click Copy */}
+                <div className="p-2.5 rounded-xl bg-white border border-indigo-200 ring-1 ring-indigo-200/60 flex items-center justify-between shadow-2xs">
+                  <div className="min-w-0 pr-2">
+                    <span className="text-[10px] font-bold uppercase text-indigo-700 block tracking-wider">Account Number</span>
+                    <span className={`font-mono font-black text-sm tracking-wider ${settlingPayoutOrder.vendor?.bankAccountNumber ? 'text-slate-900' : 'text-slate-400 font-normal italic'}`}>
+                      {settlingPayoutOrder.vendor?.bankAccountNumber || (settlingPayoutOrder.vendor?.bankDetailsDoc ? 'Refer to attached cheque' : 'Not Provided')}
+                    </span>
+                  </div>
+                  {settlingPayoutOrder.vendor?.bankAccountNumber ? (
+                    <button
+                      type="button"
+                      onClick={() => handleCopyBankDetail(settlingPayoutOrder.vendor.bankAccountNumber, 'acc')}
+                      className="px-2.5 py-1.5 rounded-lg text-xs font-black bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition flex items-center gap-1 cursor-pointer shrink-0 active:scale-95"
+                      title="Copy Account Number"
+                    >
+                      {copiedBankField === 'acc' ? <Check className="w-3.5 h-3.5 text-white" /> : <Copy className="w-3.5 h-3.5 text-white" />}
+                      <span>{copiedBankField === 'acc' ? 'Copied!' : 'Copy A/C'}</span>
+                    </button>
+                  ) : (
+                    <span className="text-[10px] text-slate-400 italic">No A/C #</span>
+                  )}
+                </div>
+
+                {/* 4. IFSC Code with One-Click Copy */}
+                <div className="p-2.5 rounded-xl bg-white border border-indigo-200 ring-1 ring-indigo-200/60 flex items-center justify-between shadow-2xs">
+                  <div className="min-w-0 pr-2">
+                    <span className="text-[10px] font-bold uppercase text-indigo-700 block tracking-wider">IFSC Code</span>
+                    <span className={`font-mono font-black text-sm tracking-wider uppercase ${settlingPayoutOrder.vendor?.bankIfsc ? 'text-slate-900' : 'text-slate-400 font-normal italic'}`}>
+                      {settlingPayoutOrder.vendor?.bankIfsc || (settlingPayoutOrder.vendor?.bankDetailsDoc ? 'Refer to attached cheque' : 'Not Provided')}
+                    </span>
+                  </div>
+                  {settlingPayoutOrder.vendor?.bankIfsc ? (
+                    <button
+                      type="button"
+                      onClick={() => handleCopyBankDetail(settlingPayoutOrder.vendor.bankIfsc, 'ifsc')}
+                      className="px-2.5 py-1.5 rounded-lg text-xs font-black bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition flex items-center gap-1 cursor-pointer shrink-0 active:scale-95"
+                      title="Copy IFSC Code"
+                    >
+                      {copiedBankField === 'ifsc' ? <Check className="w-3.5 h-3.5 text-white" /> : <Copy className="w-3.5 h-3.5 text-white" />}
+                      <span>{copiedBankField === 'ifsc' ? 'Copied!' : 'Copy IFSC'}</span>
+                    </button>
+                  ) : (
+                    <span className="text-[10px] text-slate-400 italic">No IFSC</span>
+                  )}
                 </div>
               </div>
-              <div className="p-2.5 rounded-xl bg-white border border-slate-200/70 text-[11px] space-y-1">
-                <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                  Verified Settlement Destination
+
+              {/* Uploaded Bank Passbook / Canceled Cheque PDF Link */}
+              {settlingPayoutOrder.vendor?.bankDetailsDoc && (
+                <div className="pt-1.5 flex items-center justify-between text-[11px] border-t border-indigo-100">
+                  <span className="text-slate-500 font-medium">Uploaded Bank Verification Proof:</span>
+                  <a
+                    href={settlingPayoutOrder.vendor.bankDetailsDoc}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 font-bold text-indigo-600 hover:text-indigo-800 hover:underline"
+                  >
+                    <FileText className="w-3 h-3" />
+                    <span>View Canceled Cheque / Passbook PDF ↗</span>
+                  </a>
                 </div>
-                <div className="text-slate-800 font-medium">
-                  {settlingPayoutOrder.vendor?.address ? `Facility Address: ${settlingPayoutOrder.vendor.address}` : 'Bank Passbook / Cheque on File'}
-                </div>
+              )}
+            </div>
+
+            {/* Mode B: Assisted Disbursal Instructions Banner */}
+            <div className="p-3 bg-amber-50/80 border border-amber-200 rounded-xl text-amber-950 text-xs flex items-start gap-2.5">
+              <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <div className="space-y-0.5 leading-relaxed">
+                <span className="font-extrabold text-amber-900 block">Mode B: Assisted Disbursal (One-Click Copy)</span>
+                <p className="text-[11px] text-amber-800">
+                  Copy the vendor&apos;s verified bank account and IFSC code above into your <strong>Razorpay Dashboard</strong> (Payouts / Bank Transfer) or <strong>Bank Netbanking (IMPS / NEFT)</strong>. Once transferred, record the official Bank UTR or Payment Reference below to mark this escrow settlement complete.
+                </p>
               </div>
             </div>
 
@@ -2363,43 +2465,6 @@ function OrdersContent() {
                 </div>
               </div>
 
-              {/* Non-Automatic Settlement Mode Tabs */}
-              <div className="space-y-2">
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                  Settlement Method (Manual Disbursal)
-                </label>
-                <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl">
-                  <button
-                    type="button"
-                    onClick={() => setPayoutMode('RECORD_UTR')}
-                    className={`py-2 rounded-lg text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                      payoutMode === 'RECORD_UTR'
-                        ? 'bg-white text-slate-900 shadow-xs'
-                        : 'text-slate-500 hover:text-slate-800'
-                    }`}
-                  >
-                    <span>Record Razorpay / UTR</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPayoutMode('RAZORPAY_CHECKOUT');
-                      if (!payoutRefInput) {
-                        setPayoutRefInput(`pay_RZP_${Date.now().toString().slice(-8)}`);
-                      }
-                    }}
-                    className={`py-2 rounded-lg text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                      payoutMode === 'RAZORPAY_CHECKOUT'
-                        ? 'bg-blue-600 text-white shadow-xs'
-                        : 'text-slate-500 hover:text-slate-800'
-                    }`}
-                  >
-                    <CreditCard className="w-3.5 h-3.5" />
-                    <span>Razorpay Transfer</span>
-                  </button>
-                </div>
-              </div>
-
               <div>
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
                   Razorpay Payment ID / Bank UTR Reference *
@@ -2409,13 +2474,11 @@ function OrdersContent() {
                   required
                   value={payoutRefInput}
                   onChange={(e) => setPayoutRefInput(e.target.value)}
-                  placeholder={payoutMode === 'RAZORPAY_CHECKOUT' ? 'e.g. pay_Nxxxxxxxxxxx or rzp_payout_xxxx' : 'e.g. UTR20261126900123 / IMPS'}
+                  placeholder="e.g. UTR20261128001928 / pay_Nxxxxxxxxxxx / IMPS"
                   className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 bg-white"
                 />
                 <p className="text-[10px] text-slate-400 mt-1">
-                  {payoutMode === 'RAZORPAY_CHECKOUT'
-                    ? 'Enter the transaction ID from your Razorpay Gateway or Payment Link.'
-                    : 'Enter the bank transfer reference or UTR to permanently clear vendor escrow.'}
+                  Enter the bank transfer UTR or Razorpay transaction reference to permanently clear vendor escrow.
                 </p>
               </div>
 

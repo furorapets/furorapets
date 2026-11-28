@@ -44,6 +44,10 @@ export async function GET(req: NextRequest) {
         tradeLicenseDoc: true,
         vetAffiliationDoc: true,
         bankDetailsDoc: true,
+        bankAccountName: true,
+        bankAccountNumber: true,
+        bankIfsc: true,
+        bankName: true,
         onboardingStatus: true,
         onboardingNotes: true,
         createdAt: true,
@@ -86,6 +90,10 @@ export async function POST(req: NextRequest) {
       tradeLicenseDoc,
       vetAffiliationDoc,
       bankDetailsDoc,
+      bankAccountName,
+      bankAccountNumber,
+      bankIfsc,
+      bankName,
     } = body;
 
     if (!email || !email.trim()) {
@@ -231,6 +239,10 @@ export async function POST(req: NextRequest) {
           tradeLicenseDoc: tradeLicenseDoc.trim(),
           vetAffiliationDoc: vetAffiliationDoc.trim(),
           bankDetailsDoc: bankDetailsDoc.trim(),
+          bankAccountName: bankAccountName ? bankAccountName.trim() : (existing.bankAccountName || name.trim()),
+          bankAccountNumber: bankAccountNumber ? bankAccountNumber.trim() : (existing.bankAccountNumber || null),
+          bankIfsc: bankIfsc ? bankIfsc.trim().toUpperCase() : (existing.bankIfsc || null),
+          bankName: bankName ? bankName.trim() : (existing.bankName || null),
           onboardingStatus: 'PENDING', // Ready for admin review
           onboardingNotes: existing.onboardingNotes
             ? `[Re-submitted on ${new Date().toLocaleDateString()}] Previous notes: ${existing.onboardingNotes}`
@@ -298,6 +310,10 @@ export async function POST(req: NextRequest) {
         tradeLicenseDoc: tradeLicenseDoc.trim(),
         vetAffiliationDoc: vetAffiliationDoc.trim(),
         bankDetailsDoc: bankDetailsDoc.trim(),
+        bankAccountName: bankAccountName ? bankAccountName.trim() : name.trim(),
+        bankAccountNumber: bankAccountNumber ? bankAccountNumber.trim() : null,
+        bankIfsc: bankIfsc ? bankIfsc.trim().toUpperCase() : null,
+        bankName: bankName ? bankName.trim() : null,
         onboardingStatus: 'PENDING',
         onboardingNotes: null,
       },

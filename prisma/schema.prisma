@@ -29,6 +29,10 @@ model User {
   tradeLicenseDoc    String?   // URL to Municipal / AWBI Breeder License
   vetAffiliationDoc  String?   // URL to Registered Vet Doctor Affiliation Certificate
   bankDetailsDoc     String?   // URL to Bank Passbook / Canceled Cheque
+  bankAccountName    String?   // Bank Beneficiary / Account Holder Name
+  bankAccountNumber  String?   // Bank Account Number
+  bankIfsc           String?   // IFSC Code (e.g. HDFC0001234)
+  bankName           String?   // Bank Name (e.g. HDFC Bank Ltd)
   onboardingStatus   String?   @default("APPROVED") // PENDING, APPROVED, REJECTED, CHANGES_REQUESTED
   onboardingNotes    String?   // Feedback / Reason when requesting resubmission or rejecting
   assignedCategories String?   @default("[]") // JSON array of category IDs assigned to vendor by admin

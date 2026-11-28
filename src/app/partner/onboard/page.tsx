@@ -84,6 +84,7 @@ export default function PartnerOnboardPage() {
     tradeLicenseDoc: '',
     vetAffiliationDoc: '',
     bankDetailsDoc: '',
+    bankAccountName: '',
     bankName: '',
     accountNumber: '',
     ifscCode: '',
@@ -294,6 +295,10 @@ export default function PartnerOnboardPage() {
           tradeLicenseDoc: data.data.tradeLicenseDoc || '',
           vetAffiliationDoc: data.data.vetAffiliationDoc || '',
           bankDetailsDoc: data.data.bankDetailsDoc || '',
+          bankAccountName: data.data.bankAccountName || prev.bankAccountName || '',
+          bankName: data.data.bankName || prev.bankName || '',
+          accountNumber: data.data.bankAccountNumber || prev.accountNumber || '',
+          ifscCode: data.data.bankIfsc || prev.ifscCode || '',
           address: data.data.address || prev.address || '',
           mapUrl: data.data.mapUrl || prev.mapUrl || '',
           hasSecondaryLocation: Boolean(data.data.secondaryAddress || data.data.secondaryMapUrl),
@@ -339,9 +344,10 @@ export default function PartnerOnboardPage() {
         tradeLicenseDoc: data.data.tradeLicenseDoc || '',
         vetAffiliationDoc: data.data.vetAffiliationDoc || '',
         bankDetailsDoc: data.data.bankDetailsDoc || '',
-        bankName: 'HDFC Bank Ltd',
-        accountNumber: '50200088991122',
-        ifscCode: 'HDFC0001234',
+        bankAccountName: data.data.bankAccountName || data.data.name || '',
+        bankName: data.data.bankName || '',
+        accountNumber: data.data.bankAccountNumber || '',
+        ifscCode: data.data.bankIfsc || '',
         ethicalDeclaration: true,
         address: data.data.address || '',
         mapUrl: data.data.mapUrl || '',
@@ -469,6 +475,10 @@ export default function PartnerOnboardPage() {
           tradeLicenseDoc: formData.tradeLicenseDoc,
           vetAffiliationDoc: formData.vetAffiliationDoc,
           bankDetailsDoc: formData.bankDetailsDoc,
+          bankAccountName: formData.bankAccountName || registeredVendor?.name || regForm.kennelName,
+          bankAccountNumber: formData.accountNumber,
+          bankIfsc: formData.ifscCode,
+          bankName: formData.bankName,
         }),
       });
 
@@ -1470,6 +1480,19 @@ export default function PartnerOnboardPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-800 mb-1">
+                      Account Holder / Beneficiary Name *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Royal Paws Kennel / Ganesan"
+                      value={formData.bankAccountName}
+                      onChange={(e) => setFormData({ ...formData, bankAccountName: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-xs text-slate-800 transition"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-800 mb-1">
                       Bank Name
                     </label>
                     <input
@@ -1480,32 +1503,34 @@ export default function PartnerOnboardPage() {
                       className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-xs text-slate-800 transition"
                     />
                   </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-800 mb-1">
+                      Bank Account Number *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 50200088991122"
+                      value={formData.accountNumber}
+                      onChange={(e) => setFormData({ ...formData, accountNumber: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-xs text-slate-800 transition font-mono"
+                    />
+                  </div>
 
                   <div>
                     <label className="block text-xs font-bold text-slate-800 mb-1">
-                      IFSC Code
+                      IFSC Code *
                     </label>
                     <input
                       type="text"
                       placeholder="e.g. HDFC0001234"
                       value={formData.ifscCode}
                       onChange={(e) => setFormData({ ...formData, ifscCode: e.target.value.toUpperCase() })}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-xs text-slate-800 uppercase transition"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-xs text-slate-800 uppercase transition font-mono"
                     />
                   </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-800 mb-1">
-                    Bank Account Number
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. 50200088991122"
-                    value={formData.accountNumber}
-                    onChange={(e) => setFormData({ ...formData, accountNumber: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-xs text-slate-800 transition"
-                  />
                 </div>
 
                 <FileUploadField
@@ -1697,6 +1722,10 @@ export default function PartnerOnboardPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-slate-600 text-[11px] pt-1">
                     <div>
+                      <span className="text-slate-400 block">Beneficiary Name:</span>
+                      <strong className="text-slate-800">{formData.bankAccountName || registeredVendor?.bankAccountName || registeredVendor?.name || regForm.contactName || 'Provided via Cheque'}</strong>
+                    </div>
+                    <div>
                       <span className="text-slate-400 block">Bank Name:</span>
                       <strong className="text-slate-800">{formData.bankName || 'Provided via Cheque'}</strong>
                     </div>
@@ -1705,6 +1734,10 @@ export default function PartnerOnboardPage() {
                       <strong className="text-slate-800 font-mono">
                         {formData.accountNumber ? `•••• ${formData.accountNumber.slice(-4)}` : 'Attached via Passbook'}
                       </strong>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block">IFSC Code:</span>
+                      <strong className="text-slate-800 font-mono uppercase">{formData.ifscCode || 'Attached via Cheque'}</strong>
                     </div>
                   </div>
                 </div>

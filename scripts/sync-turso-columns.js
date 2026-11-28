@@ -41,7 +41,11 @@ async function run() {
     'ALTER TABLE "User" ADD COLUMN "secondaryAddress" TEXT',
     'ALTER TABLE "User" ADD COLUMN "secondaryMapUrl" TEXT',
     'ALTER TABLE "User" ADD COLUMN "assignedCategories" TEXT DEFAULT \'[]\'',
-    'ALTER TABLE "Pet" ADD COLUMN "microchipNumber" TEXT'
+    'ALTER TABLE "Pet" ADD COLUMN "microchipNumber" TEXT',
+    'ALTER TABLE "User" ADD COLUMN "bankAccountName" TEXT',
+    'ALTER TABLE "User" ADD COLUMN "bankAccountNumber" TEXT',
+    'ALTER TABLE "User" ADD COLUMN "bankIfsc" TEXT',
+    'ALTER TABLE "User" ADD COLUMN "bankName" TEXT'
   ];
 
   for (const sql of statements) {
