@@ -309,8 +309,14 @@ export default function CustomerPetVerificationPage() {
       {/* Top Public Header */}
       <header className="bg-white border-b border-slate-100 sticky top-0 z-20 backdrop-blur-md bg-white/90">
         <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <span className="text-xl font-extrabold tracking-tight text-slate-900">furora</span>
+          <div className="flex items-center space-x-3">
+            <Link href="/" className="inline-block group">
+              <img
+                src="/logo.png"
+                alt="Furora"
+                className="h-8 w-auto object-contain transition-transform group-hover:scale-105"
+              />
+            </Link>
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 uppercase tracking-wider">
               Verified Pet Provenance
             </span>

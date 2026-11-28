@@ -523,9 +523,14 @@ export default function PetCertificatePage() {
 
             {/* Content Body Container */}
             <div className="relative z-10 flex flex-col justify-between h-full space-y-2">
-              {/* 1. Official Furora Header with Crest & Ribbon Badge */}
-              <div className="text-center space-y-1 pt-0.5">
-                <div className="flex items-center justify-center gap-2">
+              {/* 1. Official Furora Header with Crest & Logo */}
+              <div className="text-center space-y-1.5 pt-0.5">
+                <div className="flex items-center justify-center gap-3">
+                  <img
+                    src="/logo.png"
+                    alt="Furora"
+                    className="h-8 w-auto object-contain"
+                  />
                   <FuroraCrest />
                 </div>
                 <div className="space-y-0.5">

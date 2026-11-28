@@ -311,9 +311,18 @@ export default function VerifiedCustomerRecordPage() {
         <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
         <div className="space-y-3 text-center md:text-left relative z-10 flex-1">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-white/10 backdrop-blur-sm border border-white/15 text-emerald-300">
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Furora Official Verified Pet Health & Provenance Record</span>
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-2.5">
+            <Link href="/" className="inline-block group shrink-0">
+              <img
+                src="/logo-white.png"
+                alt="Furora"
+                className="h-8 w-auto object-contain transition-transform group-hover:scale-105"
+              />
+            </Link>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-white/10 backdrop-blur-sm border border-white/15 text-emerald-300">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>Verified Pet Health & Provenance Record</span>
+            </div>
           </div>
 
           <div>

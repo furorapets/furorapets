@@ -524,8 +524,12 @@ export default function PartnerOnboardPage() {
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link href="/" className="flex items-center gap-2">
-              <span className="text-xl font-black tracking-tight text-slate-900">furora</span>
+            <Link href="/" className="flex items-center group">
+              <img
+                src="/logo.png"
+                alt="Furora"
+                className="h-8 w-auto object-contain transition-transform group-hover:scale-105"
+              />
             </Link>
             <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
               <Sparkles className="w-3 h-3 text-amber-600" />
@@ -1092,6 +1096,11 @@ export default function PartnerOnboardPage() {
           {/* Footer Call to Action */}
           <footer className="py-10 bg-slate-900 text-white text-center">
             <div className="max-w-4xl mx-auto px-4 space-y-4">
+              <img
+                src="/logo-white.png"
+                alt="Furora"
+                className="h-9 w-auto mx-auto object-contain opacity-95"
+              />
               <h3 className="text-xl font-black">Ready to scale your kennel nationwide?</h3>
               <p className="text-xs text-slate-400 max-w-md mx-auto">
                 Join India&apos;s most trusted verified breeder community. Register above to start receiving orders.

@@ -72,12 +72,16 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 select-none">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center space-y-2">
-        <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-slate-900 text-white shadow-lg mx-auto">
-          <ShieldCheck className="w-6 h-6 text-emerald-400" />
-        </div>
-        <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-          Sign In to Furora
+      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center space-y-3">
+        <Link href="/" className="inline-block group">
+          <img
+            src="/logo.png"
+            alt="Furora"
+            className="h-11 w-auto mx-auto object-contain transition-transform group-hover:scale-105"
+          />
+        </Link>
+        <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">
+          Staff & Operations Portal
         </h2>
         <p className="text-xs text-slate-500">
           Enter your staff username or email to access your workspace.

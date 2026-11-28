@@ -6,6 +6,11 @@ import { SessionProvider } from '@/context/session-context';
 export const metadata: Metadata = {
   title: 'Furora — Pet Inventory, Order & Delivery Platform',
   description: 'Enterprise Pet Inventory, Order, Medical Inspection, and Delivery System with Strict Server-Side RBAC',
+  icons: {
+    icon: '/icon.png',
+    shortcut: '/icon.png',
+    apple: '/icon.png',
+  },
 };
 
 export default function RootLayout({

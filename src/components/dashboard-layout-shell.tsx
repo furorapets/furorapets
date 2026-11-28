@@ -81,7 +81,11 @@ export default function DashboardLayoutShell({ children }: DashboardLayoutShellP
       {/* Mobile Top Header */}
       <div className="lg:hidden bg-white border-b border-slate-100 px-4 py-3 flex items-center justify-between sticky top-0 z-40">
         <div className="flex items-center">
-          <span className="font-extrabold text-slate-900 text-lg">furora</span>
+          <img
+            src="/logo.png"
+            alt="Furora"
+            className="h-7 w-auto object-contain"
+          />
         </div>
 
         <div className="flex items-center space-x-2">

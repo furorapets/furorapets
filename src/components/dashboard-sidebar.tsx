@@ -111,8 +111,12 @@ export default function DashboardSidebar({
     <aside className="w-64 bg-white border-r border-slate-100 flex flex-col justify-between flex-shrink-0 min-h-screen p-5 select-none">
       <div className="space-y-6">
         {/* Brand Header */}
-        <Link href={brandHomeHref} className="flex items-center px-2 pt-1 group">
-          <span className="text-xl font-extrabold tracking-tight text-slate-900">furora</span>
+        <Link href={brandHomeHref} className="flex items-center px-1.5 pt-1 group">
+          <img
+            src="/logo.png"
+            alt="Furora"
+            className="h-8 w-auto object-contain transition-transform group-hover:scale-105"
+          />
         </Link>
 
         {/* Navigation Items */}

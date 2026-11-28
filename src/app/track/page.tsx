@@ -58,6 +58,13 @@ export default function TrackOrderPage() {
       <div className="max-w-3xl mx-auto space-y-8">
         {/* Header Hero */}
         <div className="text-center space-y-3">
+          <Link href="/" className="inline-block group">
+            <img
+              src="/logo.png"
+              alt="Furora"
+              className="h-10 w-auto mx-auto object-contain transition-transform group-hover:scale-105"
+            />
+          </Link>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
             <span className="flex h-2 w-2 relative">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
