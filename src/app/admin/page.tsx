@@ -164,10 +164,10 @@ export default function AdminDashboardPage() {
             </div>
           </div>
           <div className="text-3xl font-black text-slate-900 group-hover:text-blue-700 transition">
-            {stats.petsCount}
+            {loading ? <span className="inline-block w-8 h-8 rounded-lg bg-slate-100 animate-pulse" /> : stats.petsCount}
           </div>
           <div className="text-[11px] text-slate-500 mt-1 flex items-center justify-between">
-            <span>{stats.availablePets} Available for sale</span>
+            <span>{loading ? 'Loading...' : `${stats.availablePets} Available for sale`}</span>
             <span className="text-blue-600 font-bold group-hover:translate-x-0.5 transition">Manage →</span>
           </div>
         </Link>
@@ -184,10 +184,10 @@ export default function AdminDashboardPage() {
             </div>
           </div>
           <div className="text-3xl font-black text-slate-900 group-hover:text-amber-700 transition">
-            {stats.ordersCount}
+            {loading ? <span className="inline-block w-8 h-8 rounded-lg bg-slate-100 animate-pulse" /> : stats.ordersCount}
           </div>
           <div className="text-[11px] text-slate-500 mt-1 flex items-center justify-between">
-            <span>{stats.activeOrders} Active in fulfillment</span>
+            <span>{loading ? 'Loading...' : `${stats.activeOrders} Active in fulfillment`}</span>
             <span className="text-amber-600 font-bold group-hover:translate-x-0.5 transition">Track →</span>
           </div>
         </Link>
@@ -204,10 +204,10 @@ export default function AdminDashboardPage() {
             </div>
           </div>
           <div className="text-3xl font-black text-slate-900 group-hover:text-emerald-700 transition">
-            {stats.vendorsCount}
+            {loading ? <span className="inline-block w-8 h-8 rounded-lg bg-slate-100 animate-pulse" /> : stats.vendorsCount}
           </div>
           <div className="text-[11px] text-slate-500 mt-1 flex items-center justify-between">
-            <span>{stats.draftVendors > 0 ? `${stats.draftVendors} Awaiting wizard` : 'All reviewed'}</span>
+            <span>{loading ? 'Loading...' : (stats.draftVendors > 0 ? `${stats.draftVendors} Awaiting wizard` : 'All reviewed')}</span>
             <span className="text-emerald-600 font-bold group-hover:translate-x-0.5 transition">Review →</span>
           </div>
         </Link>
