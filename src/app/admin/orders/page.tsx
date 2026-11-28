@@ -816,6 +816,14 @@ function OrdersContent() {
                           <span>{o.orderId}</span>
                           <Eye className="w-3 h-3 text-blue-600 ml-0.5" />
                         </button>
+                        {o.orderSource === 'WOOCOMMERCE' && (
+                          <span
+                            className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200 shrink-0"
+                            title="Direct order synced from WordPress WooCommerce store"
+                          >
+                            WooCommerce
+                          </span>
+                        )}
                       </div>
                     </td>
 
